@@ -31,6 +31,17 @@
       border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
       background: rgba(255,255,255,0.06); color: #fff; font-size: 0.85rem;
     }
+    .sidebar input[type="checkbox"],
+    .sidebar input[type="radio"] {
+      width: auto !important;
+      max-width: none;
+      margin-top: 0.2rem;
+      flex-shrink: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      accent-color: #2563eb;
+    }
     .sidebar select {
       width: 100%; padding: 0.4rem 0.5rem; margin-top: 0.15rem;
       border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
@@ -52,23 +63,394 @@
     .sidebar .btn-secondary { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.15); }
     .sidebar .btn-secondary:hover { background: rgba(255,255,255,0.15); }
     .sidebar .panel-foot { margin-top: auto; padding-top: 1rem; font-size: 0.7rem; color: rgba(255,255,255,0.4); }
+    .sidebar .group-title { font-size: 0.95rem; color: rgba(255,255,255,0.9); margin-bottom: 0.5rem; }
     .error { color: #f88; }
+    .page { display: none; }
+    .page.is-active { display: block; }
+    nav.page-nav {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem;
+      margin: 0.85rem 0 0; padding: 0.55rem 0.85rem;
+      font-size: 1rem; line-height: 1.45;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+    }
+    .page-nav__label { font-size: 0.72rem; font-weight: 600; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 0.25rem; }
+    .page-nav__link {
+      color: #93c5fd; text-decoration: none; font-weight: 700; font-size: 1.05rem;
+      padding: 0.2rem 0.35rem; border-radius: 6px;
+    }
+    .page-nav__link:hover { color: #fff; background: rgba(59, 130, 246, 0.25); }
+    .page-nav__link.is-current { color: #fff; background: rgba(255, 255, 255, 0.1); }
+    .page-nav__sep { margin: 0 0.15rem; opacity: 0.35; user-select: none; color: rgba(255, 255, 255, 0.5); }
+    .page-meta { margin-top: 0.5rem; }
+    .page-meta[hidden] { display: none !important; }
+    .page-jump {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      margin-bottom: 0.85rem; padding: 0.45rem 0.75rem;
+      background: rgba(59, 130, 246, 0.18);
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      border-radius: 10px; font-size: 0.9rem;
+    }
+    .page-jump a { color: #bfdbfe; font-weight: 700; text-decoration: none; }
+    .page-jump a:hover { color: #fff; text-decoration: underline; }
+    .page-jump--muted { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
+    .page-jump--muted a { color: #93c5fd; }
+    .fund-summary-outer { padding: 0 1rem 1rem; overflow-x: auto; background: #1a1a2e; }
+    .fund-summary__title { font-size: 1.05rem; margin: 0; color: rgba(255,255,255,0.95); font-weight: 600; }
+    .fund-summary__title--sub { margin-top: 1.35rem; }
+    .fund-summary__title-row {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+      margin: 0 0 0.5rem;
+    }
+    .fund-summary__asof-inline { font-size: 0.88rem; color: rgba(255,255,255,0.82); font-weight: 600; white-space: nowrap; }
+    .fund-summary__note { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin: 0 0 0.65rem; }
+    .fund-range-toolbar {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem 0.75rem;
+      margin: 0 0 0.65rem; padding: 0.4rem 0.55rem;
+      background: rgba(0,0,0,0.22); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.78rem; color: rgba(255,255,255,0.78);
+    }
+    .fund-range-toolbar__label { font-weight: 600; color: rgba(255,255,255,0.9); }
+    .fund-range-toolbar__hint { font-size: 0.68rem; color: rgba(255,255,255,0.42); }
+    .fund-refdate-input {
+      padding: 0.28rem 0.4rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.1); color: #fff; font-size: 0.78rem;
+    }
+    .fund-refdate-input--toolbar { margin: 0; width: auto; min-width: 9.5rem; }
+    .fund-metric-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 0.68rem; }
+    .fund-metric-table--summary { font-size: 0.75rem; }
+    .fund-metric-table--summary .subhead { font-size: 0.68rem; }
+    .fund-metric-table th, .fund-metric-table td {
+      border: 1px solid rgba(255,255,255,0.1); padding: 0.3rem 0.4rem; text-align: right; white-space: nowrap;
+    }
+    .fund-metric-table th { background: rgba(14, 17, 23, 0.95); color: rgba(255,255,255,0.88); font-weight: 600; }
+    .fund-metric-table td.name-cell, .fund-metric-table th.name-cell { text-align: left; max-width: 18rem; white-space: normal; vertical-align: top; }
+    .fund-metric-table tr.fund-metric-table__row--highlight td {
+      background: rgba(234, 179, 8, 0.14);
+    }
+    .fund-metric-table tr.fund-metric-table__row--highlight td:first-child {
+      box-shadow: inset 3px 0 0 rgba(234, 179, 8, 0.75);
+    }
+    .fund-metric-table tr.fund-metric-table__row--highlight td.name-cell { font-weight: 600; color: rgba(255, 255, 255, 0.96); }
+    .fund-metric-table .subhead { font-size: 0.62rem; font-weight: 500; color: rgba(255,255,255,0.55); }
+    .pct-up { color: #f87171; }
+    .pct-down { color: #60a5fa; }
+    .fund-check-list {
+      max-height: 240px; overflow: auto;
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.4rem 0.5rem;
+      font-size: 0.78rem; background: rgba(0,0,0,0.2);
+    }
+    .fund-check-list label {
+      display: flex; align-items: flex-start; gap: 0.4rem; margin: 0.25rem 0; cursor: pointer;
+      color: rgba(255,255,255,0.88); line-height: 1.35;
+    }
+    .fund-check-list input { margin-top: 0.2rem; flex-shrink: 0; }
+    .fund-sidebar-pick--light {
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 10px;
+      padding: 0.75rem 0.7rem 0.85rem;
+      margin: 0.5rem 0 1rem;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    }
+    .fund-sidebar-pick--light h2 { margin: 0 0 0.4rem !important; font-size: 0.85rem !important; font-weight: 700 !important; color: #0f172a !important; }
+    .fund-sidebar-pick--light label { color: #334155 !important; font-weight: 600; }
+    .fund-sidebar-pick--light .fund-check-list {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+      max-height: 220px;
+    }
+    .fund-sidebar-pick--light .fund-check-list label { color: #0f172a !important; align-items: flex-start; }
+    .fund-sidebar-pick--light .fund-check-list label span {
+      color: #0f172a !important;
+      flex: 1 1 auto;
+      min-width: 0;
+      word-break: break-word;
+      line-height: 1.35;
+    }
+    .fund-sidebar-pick--light .fund-compare-start {
+      width: 100%;
+      margin-top: 0.2rem;
+      padding: 0.4rem 0.5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      color: #0f172a;
+      font-size: 0.85rem;
+    }
+    .fund-sidebar-pick--light .fund-compare-hint { margin: 0.45rem 0 0 !important; font-size: 0.68rem !important; color: #64748b !important; }
+    .fund-chart-compare-wrap { margin-top: 1rem; padding-top: 0.25rem; }
+    .rates-analysis-outer { padding: 1rem 1.25rem 2rem; max-width: 100%; overflow-x: auto; background: #1a1a2e; }
+    .rates-analysis-outer h2.rates-page-title { margin: 0 0 1rem; font-size: 1.35rem; font-weight: 700; color: rgba(255,255,255,0.96); }
+    .rates-analysis-outer .rates-block { margin-bottom: 1.75rem; }
+    .rates-analysis-outer .rates-block h3 { margin: 0 0 0.5rem; font-size: 1rem; font-weight: 600; color: rgba(255,255,255,0.92); }
+    .rates-table-wrap {
+      overflow-x: auto; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+      display: flex; justify-content: center;
+    }
+    .rates-analysis-table {
+      border-collapse: collapse;
+      table-layout: fixed;
+      width: 100%;
+      max-width: 100%;
+      min-width: 52rem;
+      margin: 0 auto;
+      font-size: 0.88rem;
+      background: rgba(14, 17, 23, 0.65);
+    }
+    .rates-analysis-table th, .rates-analysis-table td {
+      border: 1px solid rgba(255,255,255,0.1); padding: 0.2rem 0.32rem; text-align: center; white-space: nowrap;
+      box-sizing: border-box;
+      vertical-align: middle;
+      line-height: 1.25;
+    }
+    .rates-analysis-table th { background: rgba(22, 33, 62, 0.95); color: rgba(255,255,255,0.92); font-weight: 600; }
+    .rates-analysis-table td:first-child, .rates-analysis-table th:first-child {
+      font-weight: 600; width: 3.75rem; min-width: 3.75rem; max-width: 3.75rem;
+      padding-left: 0.35rem; padding-right: 0.35rem;
+    }
+    /* colgroup으로 열 경계를 고정할 때 쓰는 클래스 */
+    .rates-analysis-table col.rates-col-label { width: 3.75rem; }
+    .rates-analysis-table col.rates-col-metric { width: 4.25rem; }
+    .rates-analysis-table th:not(:first-child),
+    .rates-analysis-table td:not(:first-child) {
+      width: 4.25rem;
+      min-width: 4.25rem;
+    }
+    .rates-analysis-table thead th.group-head { text-align: center; background: rgba(30, 41, 59, 0.95); line-height: 1.2; padding: 0.18rem 0.28rem; }
+    .rates-block-hint { font-size: 0.78rem; color: rgba(255,255,255,0.5); margin: 0 0 0.45rem; line-height: 1.4; }
+    .rates-table-row--history td { background: rgba(245, 230, 200, 0.12); color: rgba(255,255,255,0.92); }
+    .rates-table-row--history td:first-child { color: rgba(255,255,255,0.95); }
+    /* 일자별 블록 안 최신 거래일 행 */
+    .rates-table-row--history.rates-table-row--latest td {
+      background: rgba(37, 99, 235, 0.28);
+      color: rgba(255,255,255,0.98);
+    }
+    .rates-table-row--history.rates-table-row--latest td:first-child {
+      box-shadow: inset 3px 0 0 rgba(147, 197, 253, 0.95);
+      font-weight: 700;
+      color: #fff;
+    }
+    .rates-cell--neg { color: #f87171 !important; }
+    .rates-analysis-note {
+      font-size: 0.75rem; color: rgba(255,255,255,0.45); margin: 0 0 1rem; line-height: 1.45;
+      white-space: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .rates-history-toolbar {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1rem;
+      margin: 0 0 1rem; padding: 0.55rem 0.75rem;
+      background: rgba(0,0,0,0.22); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.85rem; color: rgba(255,255,255,0.88);
+    }
+    .rates-history-toolbar label { font-weight: 600; color: rgba(255,255,255,0.92); }
+    .rates-history-toolbar input[type="number"] {
+      width: 4.5rem; padding: 0.35rem 0.45rem; border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff;
+      font-size: 0.9rem;
+    }
+    .rates-custom-date-input {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 0.12rem 0.2rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 0.72rem;
+      height: 1.6rem;
+      line-height: 1.2;
+    }
+    /* 금리 분석 표(.rates-analysis-table: 0.88rem / line-height 1.25 / padding 0.2rem 0.32rem)과 동일하게 */
+    .rates-custom-date-global {
+      width: 9.5rem;
+      min-width: 9.5rem;
+      max-width: 9.5rem;
+      padding: 0.2rem 0.32rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.88rem;
+      line-height: 1.25;
+      box-sizing: border-box;
+      cursor: pointer;
+    }
+    .rates-custom-date-text {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      padding: 0;
+      color: inherit;
+    }
+    .rates-table-ktb .rates-custom-date-wrap--ktb .rates-custom-date-text {
+      padding: 0;
+    }
+    /* 1번 테이블(국고채+스프레드): colgroup으로 첫 열 고정 + 셀 폭 강제 */
+    .rates-table-ktb {
+      table-layout: fixed !important;
+      width: 100%;
+    }
+    .rates-table-ktb col.rates-col-ktb-label {
+      width: 3.75rem;
+    }
+    .rates-table-ktb td:first-child, .rates-table-ktb th:first-child {
+      width: 3.75rem !important;
+      min-width: 3.75rem !important;
+      max-width: 3.75rem !important;
+      white-space: nowrap !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0.2rem 0.32rem !important;
+    }
+    /* Chrome/Edge: date input 기본 최소폭(~200px)이 1열을 밀어냄 → KTB에서만 축소 */
+    .rates-table-ktb .rates-custom-date-wrap--ktb {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .rates-table-ktb .rates-custom-date-wrap--ktb .rates-custom-date-input {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0 !important;
+      margin: 0 auto;
+    }
+    .rates-table-ktb input[type="date"].rates-custom-date-input::-webkit-calendar-picker-indicator {
+      padding: 0;
+      margin: 0 0 0 0.1rem;
+      cursor: pointer;
+      transform: scale(0.85);
+      transform-origin: center;
+    }
+    /* Term Structure (CP/Bond term 테이블) */
+    .term-structure-outer { padding: 1rem 1.25rem 2rem; max-width: 100%; overflow-x: auto; background: #1a1a2e; }
+    .term-structure-outer h2.rates-page-title { margin: 0 0 0.35rem; font-size: 1.35rem; font-weight: 700; color: rgba(255,255,255,0.96); }
+    .term-structure-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .term-structure-cols .term-structure-block { margin-bottom: 0; }
+    @media (max-width: 980px) {
+      .term-structure-cols { grid-template-columns: 1fr; }
+    }
+    .term-structure-block { margin-bottom: 2rem; }
+    .term-structure-block > h3 { margin: 0 0 0.45rem; font-size: 1.05rem; font-weight: 600; color: rgba(255,255,255,0.92); }
+    .term-structure-hint { font-size: 0.78rem; color: rgba(255,255,255,0.5); margin: 0 0 0.65rem; line-height: 1.45; max-width: 52rem; }
+    .term-rating-bar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem;
+      margin: 0 0 0.75rem; padding: 0.45rem 0.55rem;
+      background: rgba(0,0,0,0.22); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .term-rating-bar__label { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.75); margin-right: 0.35rem; }
+    .term-radio-pill {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.32rem 0.6rem; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      cursor: pointer; font-size: 0.8rem; color: rgba(255,255,255,0.88);
+      user-select: none;
+    }
+    .term-radio-pill input { accent-color: #2563eb; margin: 0; }
+    .term-radio-pill:has(input:checked) {
+      background: rgba(37, 99, 235, 0.35);
+      border-color: rgba(147, 197, 253, 0.55);
+      color: #fff;
+      font-weight: 600;
+    }
+    .term-structure-table-wrap {
+      overflow-x: auto; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(14, 17, 23, 0.45);
+    }
+    .term-structure-table {
+      border-collapse: collapse; font-size: 0.72rem;
+      min-width: max(100%, 36rem);
+    }
+    .term-structure-table th, .term-structure-table td {
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 0.28rem 0.38rem;
+      text-align: center;
+      vertical-align: middle;
+      line-height: 1.35;
+    }
+    .term-structure-table th {
+      background: rgba(22, 33, 62, 0.95);
+      color: rgba(255,255,255,0.9);
+      font-weight: 400;
+      white-space: nowrap;
+    }
+    .term-structure-table th.term-col-issuer { min-width: 9rem; text-align: left; }
+    .term-structure-table td.term-col-issuer { text-align: left; font-weight: 400; color: rgba(255,255,255,0.95); }
+    .term-cell-stack { display: flex; flex-direction: column; gap: 0.12rem; align-items: center; }
+    .term-cell-stack .term-rate-line { font-weight: 400; color: rgba(255,255,255,0.95); font-size: 0.78rem; }
+    .term-cell-stack .term-bp-line { font-size: 0.68rem; font-weight: 500; }
+    .term-cp-rate-cell { font-size: 0.76rem; font-weight: 400; color: rgba(255,255,255,0.95); white-space: nowrap; }
+    .term-muted { color: rgba(255,255,255,0.35); }
   </style>
 </head>
 <body>
   <header class="header">
     <h1>market_db 대시보드</h1>
-    <p>기준금리 + 라인2/라인3 금리 및 스프레드(라인3−라인2) 조회</p>
+    <nav class="page-nav" aria-label="페이지 이동">
+      <span class="page-nav__label">페이지</span>
+      <a href="#spread" class="page-nav__link" id="navSpread">스프레드 분석</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#rates" class="page-nav__link" id="navRates">금리 분석</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#fund" class="page-nav__link" id="navFund">펀드 비교분석</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#term" class="page-nav__link" id="navTerm">Term Structure</a>
+    </nav>
+    <div id="spreadHeaderMeta" class="page-meta">
+      <p>기준금리 + 라인2/라인3 금리 및 스프레드(라인3−라인2) 조회</p>
+      <p id="asOfDate" style="margin:0.5rem 0 0; font-size:0.95rem; opacity:0.95;"
+         title="세 라인 모두 값이 있는 날짜 중 가장 늦은 날(비교 기준일)입니다. 종목마다 파일 최신일이 다르므로, 어떤 선만 더 최근까지 갈 수 있습니다.">기준일: —</p>
+      <p id="asOfFileDate" style="margin:0.25rem 0 0; font-size:0.8rem; opacity:0.75;">파일 최신일: —</p>
+    </div>
   </header>
 
+  <div id="page-spread" class="page is-active">
   <div class="container">
     <main class="main">
+      <div class="page-jump" id="spreadPageJump">
+        <span style="color:rgba(255,255,255,0.65);">다른 화면:</span>
+        <a href="#rates">금리 분석</a>
+        <span style="opacity:0.45;">·</span>
+        <a href="#fund">펀드 비교분석</a>
+        <span style="opacity:0.45;">·</span>
+        <a href="#term">Term Structure</a>
+      </div>
+      <p class="panel-head">그룹1</p>
       <div class="chart-wrap" id="chartDiv"></div>
       <p id="chartError" class="error" style="display:none;"></p>
+      <p class="panel-head" style="margin-top:1.5rem;">그룹2</p>
+      <div class="chart-wrap" id="chartDiv2"></div>
+      <p id="chartError2" class="error" style="display:none;"></p>
     </main>
 
     <aside class="sidebar">
       <p class="panel-head">설정</p>
+      <h2 class="group-title">그룹1</h2>
 
       <h2>라인 1</h2>
       <label>종목 · 만기</label>
@@ -116,8 +498,235 @@
       </div>
 
       <p style="margin-top:0.75rem; font-size:0.75rem; color:rgba(255,255,255,0.5);" id="dataStatus">—</p>
+
+      <h2 class="group-title" style="margin-top:1.5rem;">그룹2</h2>
+      <h2>라인 1</h2>
+      <label>종목 · 만기</label>
+      <div class="line-row">
+        <select id="line1Inst_2"><option value="기준금리">기준금리</option></select>
+        <select id="line1Tenor_2"></select>
+      </div>
+      <h2>라인 2</h2>
+      <label>종목 · 만기</label>
+      <div class="line-row">
+        <select id="line2Inst_2"></select>
+        <select id="line2Tenor_2"></select>
+      </div>
+      <h2>라인 3</h2>
+      <label>종목 · 만기</label>
+      <div class="line-row">
+        <select id="line3Inst_2"></select>
+        <select id="line3Tenor_2"></select>
+      </div>
+      <h2>Y축 조정</h2>
+      <label>y축 min · max (메인)</label>
+      <div class="axis-row">
+        <input type="number" id="yMin_2" step="0.1" placeholder="자동" />
+        <input type="number" id="yMax_2" step="0.1" placeholder="자동" />
+      </div>
+      <label>보조(Spread) min · max</label>
+      <div class="axis-row">
+        <input type="number" id="y2Min_2" step="0.01" placeholder="자동" />
+        <input type="number" id="y2Max_2" step="0.01" placeholder="자동" />
+      </div>
+      <h2>기간</h2>
+      <label>시작일 · 종료일</label>
+      <div class="axis-row">
+        <input type="date" id="startDate_2" title="시작일" />
+        <input type="date" id="endDate_2" title="종료일" />
+      </div>
+      <div class="btn-wrap">
+        <button type="button" class="btn btn-primary" id="btnDraw_2">그래프 그리기</button>
+        <button type="button" class="btn btn-secondary" id="btnAutoAxis_2">축 자동</button>
+      </div>
+      <p style="margin-top:0.75rem; font-size:0.75rem; color:rgba(255,255,255,0.5);" id="dataStatus2">—</p>
+
       <p class="panel-foot">차트</p>
     </aside>
+  </div>
+  </div>
+
+  <div id="page-rates" class="page">
+    <div class="rates-analysis-outer">
+      <div class="page-jump page-jump--muted">
+        <span style="color:rgba(255,255,255,0.65);">다른 화면:</span>
+        <a href="#spread">스프레드 분석</a>
+        <span style="opacity:0.45;">·</span>
+        <a href="#fund">펀드 비교분석</a>
+        <span style="opacity:0.45;">·</span>
+        <a href="#term">Term Structure</a>
+      </div>
+      <h2 class="rates-page-title">금리 분석</h2>
+      <div class="rates-history-toolbar">
+        <label for="ratesHistoryDays">일자별 수준 표시 거래일 수</label>
+        <input type="number" id="ratesHistoryDays" min="1" max="250" value="7" step="1" title="국고·크레딧 데이터가 있는 일자만, 최신일부터 이 개수만큼 표시합니다." />
+        <label for="ratesCustomDiffDateInput">기준일</label>
+        <input type="date" id="ratesCustomDiffDateInput" class="rates-custom-date-global" title="비우면 첫 행 미표시 · 입력 시 최신일 대비 변동 행(모든 테이블 공통)을 표시합니다." />
+      </div>
+      <p class="rates-analysis-note">DTD·MTD·YTD는 각각 전일·전월말·전년말 대비 변동(금리는 %p, 스프레드는 bp)입니다. 전월말·전년말 당일에 값이 없으면 파일상 그보다 이전의 최근 거래일을 기준으로 합니다. 크레딧 스프레드는 동일 만기 국고채 대비(bp)입니다. 일자별 행은 데이터가 있는 날짜만 최신일부터 채웁니다.</p>
+      <p id="ratesAnalysisStatus" class="fund-summary__note" style="margin-top:0;">—</p>
+      <div class="rates-block">
+        <h3>국고채 금리 및 국고채 만기 간 스프레드</h3>
+        <p class="rates-block-hint">표 헤더와 동일: 변동 행은 bp, 일자별 행은 금리 %·스프레드 bp 수준.</p>
+        <div class="rates-table-wrap" id="ratesTableKtbWrap"></div>
+      </div>
+      <div class="rates-block">
+        <h3>크레딧 금리</h3>
+        <p class="rates-block-hint">표 헤더와 동일: 변동 행 bp, 일자별 행은 금리 수준(%).</p>
+        <div class="rates-table-wrap" id="ratesTableCreditYldWrap"></div>
+      </div>
+      <div class="rates-block">
+        <h3>크레딧 스프레드</h3>
+        <div class="rates-table-wrap" id="ratesTableCreditSprWrap"></div>
+      </div>
+      <div class="rates-block">
+        <h3>크레딧 스프레드 일자별 변동</h3>
+        <div class="rates-table-wrap" id="ratesTableCreditSlopeWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-term" class="page">
+    <div class="term-structure-outer">
+      <div class="page-jump page-jump--muted">
+        <span style="color:rgba(255,255,255,0.65);">다른 화면:</span>
+        <a href="#spread">스프레드 분석</a>
+        <span style="opacity:0.45;">·</span>
+        <a href="#rates">금리 분석</a>
+        <span style="opacity:0.45;">·</span>
+        <a href="#fund">펀드 비교분석</a>
+      </div>
+      <h2 class="rates-page-title">Term Structure</h2>
+      <p id="termStructureStatus" class="fund-summary__note" style="margin-top:0;">—</p>
+
+      <div class="term-structure-cols">
+        <div class="term-structure-block">
+          <h3>CP term — 만기별 금리</h3>
+          <p class="term-structure-hint">
+            예: <strong>2.97(<span class="pct-down">▼3</span>, <span class="pct-down">▼4</span>)</strong> — 금리 옆 괄호 안이 T-1·T-2 대비 변동(bp). CSV <code>섹터</code> 열(지주·증권·카드·여전·일반)로 필터합니다.
+          </p>
+          <div class="term-rating-bar" role="group" aria-label="CP 등급 필터">
+            <span class="term-rating-bar__label">등급</span>
+            <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A1" checked /><span>A1</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2+" /><span>A2+</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2" /><span>A2</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2-" /><span>A2-</span></label>
+          </div>
+          <div class="term-rating-bar" role="group" aria-label="CP 섹터 필터">
+            <span class="term-rating-bar__label">섹터</span>
+            <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="all" /><span>전체</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="지주" /><span>지주</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="증권" checked /><span>증권</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="카드" /><span>카드</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="여전" /><span>여전</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="일반" /><span>일반</span></label>
+          </div>
+          <div class="term-structure-table-wrap" id="termCpTableWrap"></div>
+        </div>
+
+        <div class="term-structure-block">
+          <h3>Bond term — 만기별 금리</h3>
+          <p class="term-structure-hint">등급·섹터 필터에 맞는 발행사만 표시합니다. 채권 <code>등급</code>이 비어 있으면(AS에서 못 찾은 경우) 해당 행은 <strong>모든 등급 라디오에서 통과</strong>해 섹터만으로 걸러집니다. 섹터는 CSV <code>섹터</code> 열 값을 씁니다.</p>
+        <div class="term-rating-bar" role="group" aria-label="채권 등급 필터">
+          <span class="term-rating-bar__label">등급</span>
+          <label class="term-radio-pill"><input type="radio" name="termBondRating" value="all" /><span>전체</span></label>
+          <label class="term-radio-pill"><input type="radio" name="termBondRating" value="AAA" checked /><span>AAA</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondRating" value="AA+" /><span>AA+</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondRating" value="AA0" /><span>AA0</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondRating" value="AA-" /><span>AA-</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondRating" value="A+" /><span>A+</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondRating" value="A0" /><span>A0</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondRating" value="A-" /><span>A-</span></label>
+          </div>
+          <div class="term-rating-bar" role="group" aria-label="채권 섹터 필터">
+            <span class="term-rating-bar__label">섹터</span>
+            <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="all" /><span>전체</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="특수" /><span>특수</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="은행" checked /><span>은행</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="카드" /><span>카드</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="여전" /><span>여전</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="일반" /><span>일반</span></label>
+          </div>
+          <div class="term-structure-table-wrap" id="termBondTableWrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-fund" class="page">
+    <div class="fund-summary-outer" id="fundSummaryOuter">
+      <p class="fund-summary__note" id="fundSummaryNote">
+        수익률은 <strong>수정기준가</strong>(없으면 기준가) 구간 수익률을 <strong>연환산(단리, 365일)</strong>입니다. <strong>YTD</strong>는 전년 말(당해 1/1 이전 마지막 관측일) 대비, <strong>MTD</strong>는 당월 첫 관측일 대비입니다. 수익률 셀에 마우스를 올리면 사용한 일자·수정기준가·구간수익률·연환산 식을 볼 수 있습니다. 수탁고 변동은 <strong>설정액</strong> 차이(원)를 10⁸으로 나눈 값이며 <strong>소수점은 버립니다</strong>. 아래 <strong>구간 시작일</strong>을 넣으면 그 앞에 <strong>시작일~최신</strong> 열이 추가됩니다. 자펀드: 펀드명에 알파벳 <strong>C</strong> 포함(KCGI초단기우량채증권(채권)은 모펀드).
+      </p>
+      <div class="fund-range-toolbar" id="fundRangeToolbar">
+        <label for="fundMetricsAsOfDateInput" class="fund-range-toolbar__label">기준일</label>
+        <input type="date" id="fundMetricsAsOfDateInput" class="fund-refdate-input fund-refdate-input--toolbar" title="수익률·수탁고 등 표 지표를 이 날짜(또는 그 이전 최근 관측일) 기준으로 계산합니다." />
+        <label for="fundMetricsAsOfInput" class="fund-range-toolbar__label">구간 시작일</label>
+        <input type="date" id="fundMetricsAsOfInput" class="fund-refdate-input fund-refdate-input--toolbar" title="비우면 추가 열 없음 · 입력 시 시작일~최신 열 추가(기존 열 유지)" />
+        <span class="fund-range-toolbar__hint">비우면 추가 열 없음</span>
+      </div>
+      <div id="fundMoTitleRow" class="fund-summary__title-row"></div>
+      <div id="fundTableMoWrap"></div>
+      <div id="fundJaTitleRow" class="fund-summary__title-row fund-summary__title--sub"></div>
+      <div id="fundTableJaWrap"></div>
+    </div>
+    <div class="container">
+      <main class="main">
+        <div class="page-jump page-jump--muted">
+          <span style="color:rgba(255,255,255,0.65);">다른 화면:</span>
+          <a href="#spread">스프레드 분석</a>
+          <span style="opacity:0.45;">·</span>
+          <a href="#rates">금리 분석</a>
+          <span style="opacity:0.45;">·</span>
+          <a href="#term">Term Structure</a>
+        </div>
+        <p class="panel-head">펀드 시계열 비교</p>
+        <p class="fund-summary__note" style="margin:0 0 0.5rem;">기간 <strong>시작일</strong>을 기준점으로 합니다. 설정액·순자산은 그날 값을 0으로 두고 이후 <strong>누적 변동</strong>만 그립니다. 수정기준가는 시작 관측 대비 <strong>기간수익률(%)</strong>을 날짜마다 표시합니다(시작일 이전 데이터가 없으면 그 이후 첫 관측을 기준으로 합니다).</p>
+        <div class="chart-wrap" id="chartFund"></div>
+        <p id="fundChartError" class="error" style="display:none;"></p>
+        <div class="fund-chart-compare-wrap" id="fundChartCompareBlock">
+          <p class="panel-head">구간 비교 표</p>
+          <p class="fund-summary__note" style="margin-bottom:0.5rem;">비교 시작일 이후 <strong>변동</strong>만 표시합니다. 수정기준가 기준 <strong>기간수익률</strong>, <strong>설정액 변동</strong>(원÷10⁸, 소수 절사). 그래프와 동일한 펀드 선택을 씁니다.</p>
+          <div id="fundCompareTableWrap"></div>
+        </div>
+      </main>
+      <aside class="sidebar">
+        <p class="panel-head">설정</p>
+        <h2>그래프 데이터</h2>
+        <label for="fundChartMode">표시 유형 (기준일=기간 시작)</label>
+        <select id="fundChartMode">
+          <option value="setup">설정액 누적변동 (시작일 대비 증감, 원)</option>
+          <option value="net">순자산 누적변동 (시작일 대비 증감, 원)</option>
+          <option value="navPeriod">수정기준가 기간수익률 (시작 관측 대비, %)</option>
+        </select>
+        <div class="fund-sidebar-pick--light">
+          <h2>구간 비교 · 표시 펀드 (모펀드만)</h2>
+          <label for="fundCompareStartDate">비교 시작일 (이후 누적)</label>
+          <input type="date" id="fundCompareStartDate" class="fund-compare-start" title="이 날짜 이후~최신일까지 비교" />
+          <label style="margin-top:0.75rem;">표시할 펀드 (복수 선택)</label>
+          <div id="fundList" class="fund-check-list"></div>
+          <p class="fund-compare-hint">차트와 동일한 선택이 적용됩니다. 펀드가 많으면 스크롤하세요.</p>
+        </div>
+        <h2>Y축</h2>
+        <label>y축 min · max</label>
+        <div class="axis-row">
+          <input type="number" id="fundYMin" step="any" placeholder="자동" />
+          <input type="number" id="fundYMax" step="any" placeholder="자동" />
+        </div>
+        <h2>기간</h2>
+        <label>시작일 · 종료일</label>
+        <div class="axis-row">
+          <input type="date" id="fundStartDate" title="시작일" />
+          <input type="date" id="fundEndDate" title="종료일" />
+        </div>
+        <div class="btn-wrap">
+          <button type="button" class="btn btn-primary" id="btnDrawFund">그래프 그리기</button>
+          <button type="button" class="btn btn-secondary" id="btnFundAutoAxis">축 자동</button>
+        </div>
+        <p style="margin-top:0.75rem; font-size:0.75rem; color:rgba(255,255,255,0.5);" id="fundDataStatus">—</p>
+        <p class="panel-foot">fund_db</p>
+      </aside>
+    </div>
   </div>
 
   <script>
@@ -126,11 +735,52 @@
     "기준금리", "국고채", "특은채", "특수채", "은행채", "카드채", "여전채",
     "CD 3사평균 AAA", "CP 3사평균 A1"
   ];
-  const CSV_PATH = "market_db.csv";
+  /**
+   * - http(s)로 열면: 이 HTML과 같은 폴더의 market_db.csv (예: http://127.0.0.1:8765/market_db.csv)
+   *   → 서버는 반드시 market_db_dashboard 폴더에서 실행하세요.
+   * - file:// 로 열면: 지정한 경로의 CSV
+   */
+  const CSV_PATH = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("market_db.csv", location.href).href;
+    }
+    return "file:///C:/Users/infomax/Documents/market_db_dashboard/market_db.csv";
+  })();
+  const ISSUES_PATH = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("issues.csv", location.href).href;
+    }
+    return "file:///C:/Users/infomax/Documents/market_db_dashboard/issues.csv";
+  })();
+  const FUND_CSV_PATH = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("fund_db.csv", location.href).href;
+    }
+    return "file:///C:/Users/infomax/Documents/market_db_dashboard/fund_db.csv";
+  })();
+  const TERM_CSV_PATH = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("term_table_long.csv", location.href).href;
+    }
+    return "file:///C:/Users/infomax/Documents/market_db_dashboard/term_table_long.csv";
+  })();
+
+  /** 브라우저/프록시가 CSV 응답을 캐시해 수정 후에도 예전 데이터가 보이는 것을 방지 */
+  function fetchCsvNoCache(url) {
+    try {
+      const u = new URL(url, location.href);
+      u.searchParams.set("_", String(Date.now()));
+      return fetch(u.href, { cache: "no-store" });
+    } catch (e) {
+      const sep = url.indexOf("?") >= 0 ? "&" : "?";
+      return fetch(url + sep + "_=" + Date.now(), { cache: "no-store" });
+    }
+  }
 
   let rawRows = [];
   let instruments = [];
   let dates = [];
+  let issuesByDate = new Map();
 
   const line1Inst = document.getElementById("line1Inst");
   const line1Tenor = document.getElementById("line1Tenor");
@@ -144,23 +794,1412 @@
   const y2Max = document.getElementById("y2Max");
   const startDate = document.getElementById("startDate");
   const endDate = document.getElementById("endDate");
+  const asOfDate = document.getElementById("asOfDate");
+  const asOfFileDate = document.getElementById("asOfFileDate");
   const dataStatus = document.getElementById("dataStatus");
   const chartDiv = document.getElementById("chartDiv");
   const chartError = document.getElementById("chartError");
+  const line1Inst_2 = document.getElementById("line1Inst_2");
+  const line1Tenor_2 = document.getElementById("line1Tenor_2");
+  const line2Inst_2 = document.getElementById("line2Inst_2");
+  const line2Tenor_2 = document.getElementById("line2Tenor_2");
+  const line3Inst_2 = document.getElementById("line3Inst_2");
+  const line3Tenor_2 = document.getElementById("line3Tenor_2");
+  const yMin_2 = document.getElementById("yMin_2");
+  const yMax_2 = document.getElementById("yMax_2");
+  const y2Min_2 = document.getElementById("y2Min_2");
+  const y2Max_2 = document.getElementById("y2Max_2");
+  const startDate_2 = document.getElementById("startDate_2");
+  const endDate_2 = document.getElementById("endDate_2");
+  const chartDiv2 = document.getElementById("chartDiv2");
+  const chartError2 = document.getElementById("chartError2");
+  const chartFund = document.getElementById("chartFund");
+  const fundChartError = document.getElementById("fundChartError");
+  const fundChartMode = document.getElementById("fundChartMode");
+  const fundList = document.getElementById("fundList");
+  const fundStartDate = document.getElementById("fundStartDate");
+  const fundEndDate = document.getElementById("fundEndDate");
+  const fundDataStatus = document.getElementById("fundDataStatus");
+  const fundYMin = document.getElementById("fundYMin");
+  const fundYMax = document.getElementById("fundYMax");
+  const spreadHeaderMeta = document.getElementById("spreadHeaderMeta");
+  const navSpread = document.getElementById("navSpread");
+  const navRates = document.getElementById("navRates");
+  const navFund = document.getElementById("navFund");
+  const navTerm = document.getElementById("navTerm");
+  const pageSpreadEl = document.getElementById("page-spread");
+  const pageRatesEl = document.getElementById("page-rates");
+  const pageFundEl = document.getElementById("page-fund");
+  const pageTermEl = document.getElementById("page-term");
+  const fundTableMoWrap = document.getElementById("fundTableMoWrap");
+  const fundTableJaWrap = document.getElementById("fundTableJaWrap");
+  const fundSummaryOuter = document.getElementById("fundSummaryOuter");
+  const fundMoTitleRow = document.getElementById("fundMoTitleRow");
+  const fundJaTitleRow = document.getElementById("fundJaTitleRow");
+  const fundCompareStartDate = document.getElementById("fundCompareStartDate");
+  const fundCompareTableWrap = document.getElementById("fundCompareTableWrap");
+  const ratesAnalysisStatus = document.getElementById("ratesAnalysisStatus");
+  const ratesTableKtbWrap = document.getElementById("ratesTableKtbWrap");
+  const ratesTableCreditYldWrap = document.getElementById("ratesTableCreditYldWrap");
+  const ratesTableCreditSprWrap = document.getElementById("ratesTableCreditSprWrap");
+  const ratesTableCreditSlopeWrap = document.getElementById("ratesTableCreditSlopeWrap");
+  const ratesHistoryDaysInput = document.getElementById("ratesHistoryDays");
+  const ratesCustomDiffDateInput = document.getElementById("ratesCustomDiffDateInput");
+  const termStructureStatus = document.getElementById("termStructureStatus");
+  const termCpTableWrap = document.getElementById("termCpTableWrap");
+  const termBondTableWrap = document.getElementById("termBondTableWrap");
+
+  let ratesCustomDiffDate = "";
+  let termTableRows = [];
+  let termDataLoadPromise = null;
+
+  let fundSeriesMap = new Map();
+  let fundFieldList = [];
+  let fundNameList = [];
+  let fundDateList = [];
+  let fundDataLoadPromise = null;
+
+  const FUND_TRACE_COLORS = [
+    "#22c55e", "#14b8a6", "#f97316", "#eab308", "#a855f7", "#ec4899", "#3b82f6", "#f472b6",
+    "#38bdf8", "#c084fc", "#fbbf24", "#34d399", "#fb7185", "#94a3b8", "#fde047", "#ffffff",
+  ];
+
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = "";
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQ) {
+        if (c === "\"") {
+          if (line[i + 1] === "\"") { cur += "\""; i++; }
+          else inQ = false;
+        } else cur += c;
+      } else {
+        if (c === "\"") inQ = true;
+        else if (c === ",") { out.push(cur); cur = ""; }
+        else cur += c;
+      }
+    }
+    out.push(cur);
+    return out.map((s) => String(s).trim());
+  }
 
   function parseCsv(text) {
-    const lines = text.trim().split("\n");
+    const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter((l) => l.length);
     if (lines.length < 2) return [];
-    const headers = lines[0].split(",").map(h => h.trim());
-    return lines.slice(1).map(line => {
-      const vals = line.split(",");
+    const headers = parseCsvLine(lines[0]).map((h) => h.trim().replace(/^\uFEFF/, ""));
+    return lines.slice(1).map((line) => {
+      const vals = parseCsvLine(line);
       const row = {};
       headers.forEach((h, i) => { row[h] = (vals[i] || "").trim(); });
       return row;
     });
   }
 
-  function tenorLabel(t) { return String(t) + "Y"; }
+  /** term_table_long.csv: 섹터 열 (BOM·별칭·비문자 대비) */
+  function termRowSector(r) {
+    if (!r || typeof r !== "object") return "";
+    const v = r["섹터"] ?? r["sector"] ?? r["Sector"];
+    let s = v == null ? "" : String(v);
+    s = s.trim();
+    if (s) return s;
+    for (const k of Object.keys(r)) {
+      if (k.replace(/^\uFEFF/, "") === "섹터") {
+        const t = r[k];
+        return t == null ? "" : String(t).trim();
+      }
+    }
+    return "";
+  }
+
+  function rowFund(r) { return (r.fund || r.펀드 || "").trim(); }
+  function rowField(r) { return (r.field || r.필드 || "").trim(); }
+  function rowDate(r) { return (r.date || r.일자 || "").trim(); }
+  function rowValue(r) { return (r.value || r.값 || "").trim(); }
+
+  const MO_FUND_NAME_OVERRIDES = new Set(["KCGI초단기우량채증권(채권)"]);
+
+  function isJaFundName(name) {
+    const s = String(name || "").trim();
+    if (MO_FUND_NAME_OVERRIDES.has(s)) return false;
+    return /C/.test(s);
+  }
+
+  function ymdToDate(ymd) {
+    const p = String(ymd || "").split("-");
+    if (p.length !== 3) return null;
+    const y = parseInt(p[0], 10);
+    const m = parseInt(p[1], 10) - 1;
+    const d = parseInt(p[2], 10);
+    const dt = new Date(y, m, d);
+    return Number.isFinite(dt.getTime()) ? dt : null;
+  }
+
+  function dateToYmd(dt) {
+    return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+  }
+
+  function addCalendarDays(ymd, delta) {
+    const dt = ymdToDate(ymd);
+    if (!dt) return null;
+    dt.setDate(dt.getDate() + delta);
+    return dateToYmd(dt);
+  }
+
+  function firstOfMonthYmd(ymd) {
+    const p = String(ymd || "").split("-");
+    if (p.length < 2) return null;
+    return p[0] + "-" + String(p[1]).padStart(2, "0") + "-01";
+  }
+
+  function janFirstYmd(ymd) {
+    const p = String(ymd || "").split("-");
+    if (!p[0]) return null;
+    return p[0] + "-01-01";
+  }
+
+  function prevMonthEndYmd(ymd) {
+    const dt = ymdToDate(ymd);
+    if (!dt) return null;
+    return dateToYmd(new Date(dt.getFullYear(), dt.getMonth(), 0));
+  }
+
+  function filterPtsToAsOf(pts, asOf) {
+    return (pts || []).filter((p) => p.d <= asOf);
+  }
+
+  function lastPointOnOrBefore(pts, ymd) {
+    const arr = filterPtsToAsOf(pts, ymd);
+    return arr.length ? arr[arr.length - 1] : null;
+  }
+
+  function valueOnOrBefore(pts, asOf, thresholdYmd) {
+    const arr = filterPtsToAsOf(pts, asOf);
+    let best = null;
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i].d <= thresholdYmd) best = arr[i];
+    }
+    return best;
+  }
+
+  function firstObsInRange(pts, asOf, fromYmd) {
+    const arr = (pts || []).filter((p) => p.d >= fromYmd && p.d <= asOf);
+    if (!arr.length) return null;
+    return arr[0];
+  }
+
+  /** 기준일 이전 관측이 없으면 그 이후 첫 관측을 기준으로 사용(펀드별 상장·데이터 시작일 상이) */
+  function baselinePointOrFirstAfter(pts, asOf, startYmd) {
+    const b = valueOnOrBefore(pts, asOf, startYmd);
+    if (b) return b;
+    return firstObsInRange(pts, asOf, startYmd);
+  }
+
+  /** asOf 이전 시계열에서 boundaryYmd 미만인 날짜 중 마지막 관측(전년 말·전월 말 등) */
+  function lastPointStrictlyBefore(pts, asOf, boundaryYmd) {
+    const arr = filterPtsToAsOf(pts, asOf);
+    let best = null;
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i].d < boundaryYmd) best = arr[i];
+    }
+    return best;
+  }
+
+  function fmtNavForTooltip(v) {
+    if (!Number.isFinite(v)) return "—";
+    return v.toLocaleString("ko-KR", { maximumFractionDigits: 6, minimumFractionDigits: 2 });
+  }
+
+  function buildAnnPctTooltip(kind, startPt, endD, endV, rawPct, days, annPct) {
+    if (!startPt || !Number.isFinite(endV)) return "";
+    const rStr = rawPct === null || rawPct === undefined || Number.isNaN(rawPct) ? "—" : rawPct.toFixed(4) + "%";
+    const dStr = days === null || days === undefined ? "—" : String(days);
+    const aStr = annPct === null || annPct === undefined || Number.isNaN(annPct) ? "—" : annPct.toFixed(4) + "%";
+    return (
+      kind +
+      ": 시작 " +
+      startPt.d +
+      " 수정기준가 " +
+      fmtNavForTooltip(startPt.v) +
+      " → 종료 " +
+      endD +
+      " 수정기준가 " +
+      fmtNavForTooltip(endV) +
+      " | 구간수익률 r=(P종/P시작−1)×100=" +
+      rStr +
+      " | 경과일 T=" +
+      dStr +
+      "일 | 연환산(단리)=r×(365/T)=" +
+      aStr
+    );
+  }
+
+  /** 수익률 계산용: 수정기준가 우선, 없으면 기준가 */
+  function navSeriesForFund(fund) {
+    let s = fundSeriesMap.get(fund + "\0" + "수정기준가");
+    if (!s || !s.length) s = fundSeriesMap.get(fund + "\0" + "기준가");
+    return s || [];
+  }
+
+  function netWorthSeriesForFund(fund) {
+    return fundSeriesMap.get(fund + "\0" + "순자산") || [];
+  }
+
+  /** 수탁고 변동: 설정액(전일 대비 등) */
+  function setupSeriesForFund(fund) {
+    return fundSeriesMap.get(fund + "\0" + "설정액") || [];
+  }
+
+  function pctChange(nowV, prevV) {
+    if (!Number.isFinite(nowV) || !Number.isFinite(prevV) || prevV === 0) return null;
+    return (nowV / prevV - 1) * 100;
+  }
+
+  function calendarDaysBetween(ymdEarlier, ymdLater) {
+    const a = ymdToDate(ymdEarlier);
+    const b = ymdToDate(ymdLater);
+    if (!a || !b) return null;
+    const d = Math.round((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000));
+    return d > 0 ? d : null;
+  }
+
+  /** 구간 단순수익률(%)를 실제 일수로 연환산(단리, 365일년) */
+  function toAnnualizedPctSimple(periodPct, days) {
+    if (periodPct === null || periodPct === undefined || Number.isNaN(periodPct)) return null;
+    if (!days || days <= 0) return null;
+    return periodPct * (365 / days);
+  }
+
+  /** 설정액 차이를 원 ÷ 1e8 로 환산한 값(표시는 정수 절사) */
+  function aumDeltaEok(nowV, prevV) {
+    if (!Number.isFinite(nowV) || !Number.isFinite(prevV)) return null;
+    return (nowV - prevV) / 1e8;
+  }
+
+  function pctCellHtml(x, titleAttr) {
+    if (x === null || x === undefined || Number.isNaN(x)) return "<td>—</td>";
+    const cls = x > 0 ? "pct-up" : x < 0 ? "pct-down" : "";
+    const s = (x >= 0 ? "+" : "") + x.toFixed(2) + "%";
+    const t = titleAttr ? " title=\"" + escapeHtml(titleAttr) + "\"" : "";
+    return "<td class=\"" + cls + "\"" + t + ">" + s + "</td>";
+  }
+
+  function aumEokCellHtml(x) {
+    if (x === null || x === undefined || Number.isNaN(x)) return "<td>—</td>";
+    const cls = x > 0 ? "pct-up" : x < 0 ? "pct-down" : "";
+    const t = Math.trunc(x);
+    const s = (t >= 0 ? "+" : "−") + Math.abs(t).toLocaleString("ko-KR");
+    return "<td class=\"" + cls + "\">" + s + "</td>";
+  }
+
+  function fmtNetWorth(x) {
+    if (!Number.isFinite(x)) return "—";
+    return x.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+  }
+
+  function metricsForFund(fund, rangeStartYmd, asOfYmdRequested) {
+    const navPts = navSeriesForFund(fund);
+    const setupPts = setupSeriesForFund(fund);
+    const netPts = netWorthSeriesForFund(fund);
+    if (!navPts.length) return null;
+    let asOfCandidate = (asOfYmdRequested && /^\d{4}-\d{2}-\d{2}$/.test(String(asOfYmdRequested || "").trim()))
+      ? String(asOfYmdRequested).trim()
+      : (fundDateList.length ? fundDateList[fundDateList.length - 1] : "");
+    if (!asOfCandidate) return null;
+    const navAt = lastPointOnOrBefore(navPts, asOfCandidate);
+    if (!navAt) return null;
+    const asOf = navAt.d;
+    const navNow = navAt.v;
+    const navF = filterPtsToAsOf(navPts, asOf);
+    const setupUpTo = filterPtsToAsOf(setupPts, asOf);
+    const setupNow = setupUpTo.length ? setupUpTo[setupUpTo.length - 1].v : null;
+
+    const netOn = lastPointOnOrBefore(netPts, asOf);
+    const netWorthDisplay = netOn && Number.isFinite(netOn.v) ? netOn.v : null;
+
+    const start = (rangeStartYmd && /^\d{4}-\d{2}-\d{2}$/.test(String(rangeStartYmd).trim())) ? String(rangeStartYmd).trim() : "";
+
+    let rRange = null;
+    let aRange = null;
+    if (start) {
+      const navStart = valueOnOrBefore(navPts, asOf, start);
+      if (navStart) {
+        const days = calendarDaysBetween(navStart.d, asOf);
+        if (days && days > 0) {
+          const raw = pctChange(navNow, navStart.v);
+          rRange = raw !== null ? toAnnualizedPctSimple(raw, days) : null;
+        }
+      }
+      const setupEndPt = setupUpTo.length ? setupUpTo[setupUpTo.length - 1] : null;
+      if (setupEndPt) {
+        const setupStartPt = valueOnOrBefore(setupPts, asOf, start);
+        if (setupStartPt && Number.isFinite(setupEndPt.v) && Number.isFinite(setupStartPt.v)) {
+          aRange = aumDeltaEok(setupEndPt.v, setupStartPt.v);
+        }
+      }
+    }
+
+    const prevNav = navF.length >= 2 ? navF[navF.length - 2] : null;
+    const raw1d = prevNav ? pctChange(navNow, prevNav.v) : null;
+    const days1d = prevNav ? calendarDaysBetween(prevNav.d, asOf) : null;
+    const r1d = raw1d !== null && days1d ? toAnnualizedPctSimple(raw1d, days1d) : null;
+
+    const a1d = setupUpTo.length >= 2
+      ? aumDeltaEok(setupUpTo[setupUpTo.length - 1].v, setupUpTo[setupUpTo.length - 2].v)
+      : null;
+
+    const t1w = addCalendarDays(asOf, -7);
+    const t1m = addCalendarDays(asOf, -30);
+    const t3m = addCalendarDays(asOf, -90);
+    const t6m = addCalendarDays(asOf, -180);
+    const t1y = addCalendarDays(asOf, -365);
+    const pmEnd = prevMonthEndYmd(asOf);
+    const fy = janFirstYmd(asOf);
+
+    function pairNavSetup(thresholdYmd) {
+      let rAnn = null;
+      let aMil = null;
+      if (!thresholdYmd) return { r: null, a: null };
+      const pn = valueOnOrBefore(navPts, asOf, thresholdYmd);
+      if (pn) {
+        const raw = pctChange(navNow, pn.v);
+        const days = calendarDaysBetween(pn.d, asOf);
+        rAnn = raw !== null && days ? toAnnualizedPctSimple(raw, days) : null;
+      }
+      const pa = valueOnOrBefore(setupPts, asOf, thresholdYmd);
+      if (pa && Number.isFinite(setupNow)) aMil = aumDeltaEok(setupNow, pa.v);
+      return { r: rAnn, a: aMil };
+    }
+
+    const w = t1w ? pairNavSetup(t1w) : { r: null, a: null };
+    const m = t1m ? pairNavSetup(t1m) : { r: null, a: null };
+    const m3 = t3m ? pairNavSetup(t3m) : { r: null, a: null };
+    const m6 = t6m ? pairNavSetup(t6m) : { r: null, a: null };
+    const y = t1y ? pairNavSetup(t1y) : { r: null, a: null };
+
+    let rMtd = null;
+    let aMtd = null;
+    let mtdTooltip = "";
+    if (pmEnd) {
+      const sn = valueOnOrBefore(navPts, asOf, pmEnd);
+      if (sn) {
+        const raw = pctChange(navNow, sn.v);
+        const daysM = calendarDaysBetween(sn.d, asOf);
+        rMtd = raw !== null && daysM ? toAnnualizedPctSimple(raw, daysM) : null;
+        if (raw !== null && daysM && rMtd !== null) {
+          mtdTooltip = buildAnnPctTooltip("MTD(전월말 기준·미존재 시 이전 최근 관측일)", sn, asOf, navNow, raw, daysM, rMtd);
+        }
+      }
+      const sa = valueOnOrBefore(setupPts, asOf, pmEnd);
+      if (sa && Number.isFinite(setupNow)) aMtd = aumDeltaEok(setupNow, sa.v);
+    }
+
+    let rYtd = null;
+    let aYtd = null;
+    let ytdTooltip = "";
+    if (fy) {
+      let snY = lastPointStrictlyBefore(navPts, asOf, fy);
+      const ytdFromPriorYear = !!snY;
+      if (!snY) snY = firstObsInRange(navPts, asOf, fy);
+      if (snY) {
+        const raw = pctChange(navNow, snY.v);
+        const daysY = calendarDaysBetween(snY.d, asOf);
+        rYtd = raw !== null && daysY ? toAnnualizedPctSimple(raw, daysY) : null;
+        if (raw !== null && daysY && rYtd !== null) {
+          const ytdLabel = ytdFromPriorYear ? "YTD(전년말 이전 마지막 관측=수정기준가)" : "YTD(당해 첫 관측·전년 데이터 없음)";
+          ytdTooltip = buildAnnPctTooltip(ytdLabel, snY, asOf, navNow, raw, daysY, rYtd);
+        }
+      }
+      let saY = lastPointStrictlyBefore(setupPts, asOf, fy);
+      if (!saY) saY = firstObsInRange(setupPts, asOf, fy);
+      if (saY && Number.isFinite(setupNow)) aYtd = aumDeltaEok(setupNow, saY.v);
+    }
+
+    return {
+      fund, asOf, netWorthDisplay,
+      rangeStart: start,
+      rRange, aRange,
+      r1d, a1d,
+      r1w: w.r, a1w: w.a,
+      r1m: m.r, a1m: m.a,
+      r3m: m3.r, a3m: m3.a,
+      r6m: m6.r, a6m: m6.a,
+      r1y: y.r, a1y: y.a,
+      rMtd, aMtd,
+      rYtd, aYtd,
+      mtdTooltip,
+      ytdTooltip,
+    };
+  }
+
+  function maxAsOfAmong(rows) {
+    if (!rows || !rows.length) return "—";
+    return rows.reduce((m, r) => (String(r.asOf) > String(m) ? r.asOf : m), rows[0].asOf);
+  }
+
+  function getFundRangeStartYmd() {
+    const el = document.getElementById("fundMetricsAsOfInput");
+    const v = el && (el.value || "").trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "";
+  }
+
+  /** 표(펀드 지표) 기준일: 비우면 fund_db 전체 최신일 */
+  function getFundMetricsAsOfYmd() {
+    const el = document.getElementById("fundMetricsAsOfDateInput");
+    const v = el && (el.value || "").trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    if (fundDateList.length) return fundDateList[fundDateList.length - 1];
+    return "";
+  }
+
+  function sortRowsByNetWorthDesc(rows) {
+    return rows.slice().sort((a, b) => {
+      const an = Number.isFinite(a.netWorthDisplay) ? a.netWorthDisplay : Number.NEGATIVE_INFINITY;
+      const bn = Number.isFinite(b.netWorthDisplay) ? b.netWorthDisplay : Number.NEGATIVE_INFINITY;
+      if (bn !== an) return bn - an;
+      return String(a.fund).localeCompare(b.fund, "ko");
+    });
+  }
+
+  /** 그래프 섹션 구간 비교 표용: 비교 시작일~최신, 기간수익률·설정액 변동 */
+  function computeFundCompareRow(fund, startYmd) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(startYmd || "").trim())) return null;
+    const start = String(startYmd).trim();
+    const navPts = navSeriesForFund(fund);
+    const setupPts = setupSeriesForFund(fund);
+    const netPts = netWorthSeriesForFund(fund);
+    if (!navPts.length) return null;
+    const navEnd = navPts[navPts.length - 1];
+    const asOf = navEnd.d;
+    if (start > asOf) return null;
+    const navNow = navEnd.v;
+    const navStart = baselinePointOrFirstAfter(navPts, asOf, start);
+    if (!navStart) return null;
+    const days = calendarDaysBetween(navStart.d, asOf);
+    if (!days || days <= 0) return null;
+    const rawPct = pctChange(navNow, navStart.v);
+    const setupUpTo = filterPtsToAsOf(setupPts, asOf);
+    let aSetupEok = null;
+    const setupEndPt = setupUpTo.length ? setupUpTo[setupUpTo.length - 1] : null;
+    if (setupEndPt) {
+      const setupStartPt = baselinePointOrFirstAfter(setupPts, asOf, start);
+      if (setupStartPt && Number.isFinite(setupEndPt.v) && Number.isFinite(setupStartPt.v)) {
+        aSetupEok = aumDeltaEok(setupEndPt.v, setupStartPt.v);
+      }
+    }
+    const netOn = lastPointOnOrBefore(netPts, asOf);
+    const netWorthDisplay = netOn && Number.isFinite(netOn.v) ? netOn.v : null;
+    return {
+      fund,
+      asOf,
+      rawPct,
+      aSetupEok,
+      netWorthDisplay,
+    };
+  }
+
+  function renderFundCompareTable() {
+    if (!fundCompareTableWrap || !fundList) return;
+    if (!fundNameList.length) {
+      fundCompareTableWrap.innerHTML = "";
+      return;
+    }
+    const startYmd = (fundCompareStartDate && fundCompareStartDate.value || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startYmd)) {
+      fundCompareTableWrap.innerHTML = "<p class=\"fund-summary__note\">비교 시작일을 선택하세요.</p>";
+      return;
+    }
+    const selected = Array.from(fundList.querySelectorAll("input[type=checkbox]:checked")).map((cb) => cb.value);
+    if (!selected.length) {
+      fundCompareTableWrap.innerHTML = "<p class=\"fund-summary__note\">표시할 펀드를 한 개 이상 선택하세요.</p>";
+      return;
+    }
+    const rows = [];
+    selected.forEach((name) => {
+      const row = computeFundCompareRow(name, startYmd);
+      if (row) rows.push(row);
+    });
+    if (!rows.length) {
+      fundCompareTableWrap.innerHTML = "<p class=\"fund-summary__note\">해당 구간에 데이터가 있는 펀드가 없습니다.</p>";
+      return;
+    }
+    const sorted = sortRowsByNetWorthDesc(rows);
+    let h = "<table class=\"fund-metric-table\"><thead><tr>";
+    h += "<th class=\"name-cell\">펀드</th>";
+    h += "<th>최신일</th>";
+    h += "<th>기간수익률<br><span class=\"subhead\">(수정기준가·시작~최신)</span></th>";
+    h += "<th>설정액 변동<br><span class=\"subhead\">(원÷10⁸, 절사)</span></th>";
+    h += "</tr></thead><tbody>";
+    sorted.forEach((r) => {
+      const trCls = isFundSummaryHighlightRow(r.fund) ? " class=\"fund-metric-table__row--highlight\"" : "";
+      h += "<tr" + trCls + "><td class=\"name-cell\">" + escapeHtml(r.fund) + "</td>";
+      h += "<td>" + escapeHtml(r.asOf) + "</td>";
+      h += pctCellHtml(r.rawPct, undefined);
+      h += aumEokCellHtml(r.aSetupEok);
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    fundCompareTableWrap.innerHTML = h;
+  }
+
+  /** 표에서 강조할 펀드(정확히 일치) */
+  function isFundSummaryHighlightRow(fundName) {
+    const n = String(fundName || "");
+    return n === "신한초단기채증권투자신탁(채권)(종류)" || n === "신한초단기채증권투자신탁[채권](종류C1)";
+  }
+
+  function fundSectionTitleHtml(heading, rows, rangeStartYmd, metricsAsOfYmd) {
+    const requested = metricsAsOfYmd || "—";
+    const maxD = rows.length ? maxAsOfAmong(rows) : "—";
+    let right = "기준일(입력): " + escapeHtml(requested) + " · 펀드별 관측: " + escapeHtml(maxD);
+    if (rangeStartYmd) {
+      right += " · 추가열 " + escapeHtml(rangeStartYmd) + "~기준일";
+    }
+    return "<h2 class=\"fund-summary__title\">" + escapeHtml(heading) + "</h2><span class=\"fund-summary__asof-inline\">" + right + "</span>";
+  }
+
+  function buildMetricTableHtml(rows, opts) {
+    opts = opts || {};
+    const preserved = /^\d{4}-\d{2}-\d{2}$/.test(opts.preservedRefDate || "") ? opts.preservedRefDate : "";
+    const showRangeCols = !!preserved;
+    if (!rows.length) {
+      return "<p class=\"fund-summary__note\">표시할 펀드가 없습니다(수정기준가·일자 데이터 필요).</p>";
+    }
+    const headsFixed = [
+      ["YTD", "rYtd", "aYtd"],
+      ["MTD", "rMtd", "aMtd"],
+      ["1일", "r1d", "a1d"],
+      ["1주", "r1w", "a1w"],
+      ["1달", "r1m", "a1m"],
+      ["3달", "r3m", "a3m"],
+      ["6달", "r6m", "a6m"],
+      ["1년", "r1y", "a1y"],
+    ];
+    const rangeColLabel = preserved ? (escapeHtml(preserved) + "~기준일") : "";
+    const headsRange = showRangeCols ? [[rangeColLabel, "rRange", "aRange"]] : [];
+    const heads = headsRange.concat(headsFixed);
+    let h = "<table class=\"fund-metric-table fund-metric-table--summary\"><thead><tr>";
+    h += "<th class=\"name-cell\" rowspan=\"2\">펀드</th><th rowspan=\"2\">순자산<br><span class=\"subhead\">(기준일)</span></th>";
+    heads.forEach(([lbl]) => {
+      h += "<th colspan=\"2\">" + lbl + "</th>";
+    });
+    h += "</tr><tr>";
+    heads.forEach(() => {
+      h += "<th class=\"subhead\">수익률</th>";
+      h += "<th class=\"subhead\">수탁고 변동</th>";
+    });
+    h += "</tr></thead><tbody>";
+    rows.forEach((m) => {
+      const trCls = isFundSummaryHighlightRow(m.fund) ? " class=\"fund-metric-table__row--highlight\"" : "";
+      h += "<tr" + trCls + "><td class=\"name-cell\">" + escapeHtml(m.fund) + "</td>";
+      h += "<td>" + fmtNetWorth(m.netWorthDisplay) + "</td>";
+      heads.forEach(([, rk, ak]) => {
+        let pctTitle = "";
+        if (rk === "rYtd") pctTitle = m.ytdTooltip || "";
+        else if (rk === "rMtd") pctTitle = m.mtdTooltip || "";
+        h += pctCellHtml(m[rk], pctTitle || undefined);
+        h += aumEokCellHtml(m[ak]);
+      });
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    return h;
+  }
+
+  function escTermHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function normTermRating(s) {
+    return String(s || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .replace(/＋/g, "+")
+      .replace(/－/g, "-")
+      .replace(/−/g, "-")
+      .toUpperCase();
+  }
+
+  function matchesCpRating(csvRating, selected) {
+    return normTermRating(csvRating) === normTermRating(selected);
+  }
+
+  /** 등급 칸이 비어 있으면 통과(AS 파싱 실패 등) — 섹터·만기 데이터는 그대로 표시 */
+  function matchesBondRating(csvRating, selected) {
+    // "전체" 선택 시 등급 무관
+    const b0 = normTermRating(selected);
+    if (!b0 || b0 === "ALL") return true;
+    const a = normTermRating(csvRating);
+    if (!a) return true;
+    const b = b0;
+    if (b === "AA0") return a === "AA" || a === "AA0";
+    if (b === "A0") return a === "A" || a === "A0";
+    return a === b;
+  }
+
+  function sectorFilterMatch(sec, selectedCat) {
+    const norm = (s) =>
+      String(s == null ? "" : s)
+        .trim()
+        .replace(/^\uFEFF/, "")
+        .replace(/\u00a0/g, "")
+        .replace(/\s+/g, "");
+    return norm(sec) === norm(selectedCat);
+  }
+
+  function tenorSortKey(t) {
+    const s = String(t).trim();
+    const m1 = /^(\d+)일$/.exec(s);
+    if (m1) return [0, parseInt(m1[1], 10), s];
+    const m2 = /^(\d+)주$/.exec(s);
+    if (m2) return [1, parseInt(m2[1], 10), s];
+    const m3 = /^(\d+)(개월|월)$/.exec(s);
+    if (m3) return [2, parseInt(m3[1], 10), s];
+    const m4 = /^(\d+)년$/.exec(s);
+    if (m4) return [4, parseInt(m4[1], 10), s];
+    if (/당일|이하|월이하/.test(s)) return [3, 0, s];
+    return [9, 0, s];
+  }
+
+  function compareTenors(a, b) {
+    const oa = tenorSortKey(a);
+    const ob = tenorSortKey(b);
+    for (let i = 0; i < 3; i++) {
+      if (oa[i] !== ob[i]) return oa[i] < ob[i] ? -1 : 1;
+    }
+    return 0;
+  }
+
+  // Bond term: 요청된 표준 만기 라벨 + 고정 순서
+  const BOND_TENOR_ORDER = ["3월", "6월", "1년", "1.5년", "2년", "2.5년", "3년", "4년", "5년", "7년", "10년", "20년", "30년"];
+  function normalizeBondTenorLabel(t) {
+    const s = String(t || "").trim();
+    if (!s) return "";
+    // 예: "3월이하(당일)", "6월이하(당일)"
+    const mMonth = /^(\d+(?:\.\d+)?)월이하/.exec(s);
+    if (mMonth) return String(mMonth[1]) + "월";
+    // 예: "1.5년이하(당일)", "10년이하(당일)"
+    const mYear = /^(\d+(?:\.\d+)?)년이하/.exec(s);
+    if (mYear) return String(mYear[1]) + "년";
+    // 그 외(예외 케이스)는 원문 유지
+    return s;
+  }
+
+  function bondTenorSortKey(t) {
+    const lab = String(t || "").trim();
+    const idx = BOND_TENOR_ORDER.indexOf(lab);
+    return idx >= 0 ? [0, idx] : [1, 9999];
+  }
+
+  // Bond term: 등급 정렬(전체 선택 시)용
+  function normalizeBondRatingForSort(r) {
+    const s = String(r == null ? "" : r).trim();
+    if (!s) return "";
+    // UI 값의 AA0/A0를 기본등급(AA/A)로 정규화
+    return s.replace(/AA0/g, "AA").replace(/A0/g, "A");
+  }
+
+  function bondGradeSortKey(r) {
+    const s0 = normalizeBondRatingForSort(r);
+    if (!s0) return [9999, 9, ""];
+    // 기대 입력: AAA, AA+, AA-, BBB+, BBB 등
+    const m = /^([A-Z]+)([+-])?$/.exec(s0);
+    if (!m) return [9999, 9, s0];
+    const base = m[1];
+    const suf = m[2] || "";
+    const baseOrder = ["AAA", "AA", "A", "BBB", "BB", "B", "CCC", "CC", "C", "D"];
+    const baseRank = baseOrder.indexOf(base);
+    const br = baseRank >= 0 ? baseRank : 2000; // 정의 밖은 뒤로
+    const sufRank = suf === "+" ? 0 : (suf === "-" ? 2 : 1); // + > (중간) > -
+    return [br, sufRank, s0];
+  }
+
+  function parseTermRate(v) {
+    const n = parseFloat(String(v || "").replace(/,/g, ""), 10);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function formatTermPctRate(r) {
+    if (!Number.isFinite(r)) return "—";
+    const t = Math.round(r * 1000) / 1000;
+    return String(t);
+  }
+
+  function formatTermPctRate2(r) {
+    const n = Number.isFinite(r) ? r : NaN;
+    if (!Number.isFinite(n)) return "—";
+    // 요청 형식: 0.00 처럼 항상 소수점 둘째 자리 표시
+    return (Math.round(n * 100) / 100).toFixed(2);
+  }
+
+  function termBpTriangleHtml(latest, prev) {
+    if (!Number.isFinite(latest) || !Number.isFinite(prev)) return "<span class=\"term-muted\">—</span>";
+    const bp = (latest - prev) * 100;
+    if (Math.abs(bp) < 0.0005) return "<span class=\"term-muted\">0</span>";
+    const tri = bp > 0 ? "▲" : "▼";
+    const cls = bp > 0 ? "pct-up" : "pct-down";
+    const mag = Math.round(Math.abs(bp) * 10) / 10;
+    const num = mag % 1 === 0 ? String(mag) : mag.toFixed(1);
+    return "<span class=\"" + cls + "\">" + tri + num + "</span>";
+  }
+
+  /** CP 섹터: CSV `섹터` 우선, 없으면 발행사명 규칙(VBA와 동일) */
+  function cpSectorFromIssuer(name) {
+    const s = String(name || "");
+    if (s.includes("현대커머셜")) return "여전";
+    if (s.includes("지주")) return "지주";
+    if (s.includes("증권")) return "증권";
+    if (s.includes("카드")) return "카드";
+    if (s.includes("캐피탈")) return "여전";
+    return "일반";
+  }
+
+  function rowSectorCp(r) {
+    const t = termRowSector(r);
+    if (t) return t;
+    return cpSectorFromIssuer((r["발행사명"] || "").trim());
+  }
+
+  function sectorForIssuerCp(filteredRows, issuer) {
+    for (let i = 0; i < filteredRows.length; i++) {
+      const r = filteredRows[i];
+      if ((r["발행사명"] || "").trim() !== issuer) continue;
+      return rowSectorCp(r);
+    }
+    return cpSectorFromIssuer(issuer);
+  }
+
+  /** 채권: 행의 섹터 또는 발행사별 맵(동일 발행사·다른 만기 행에서 채움) */
+  function bondSectorForRow(r, issuerSectorMap, issuer) {
+    const direct = termRowSector(r);
+    if (direct) return direct;
+    if (issuerSectorMap && issuer && issuerSectorMap.has(issuer)) return issuerSectorMap.get(issuer);
+    return "일반";
+  }
+
+  /** bond_term 전체에서 발행사 → 섹터 (임의 한 행이라도 섹터 있으면 기록) */
+  function buildBondIssuerSectorMap(rows) {
+    const m = new Map();
+    if (!rows || !rows.length) return m;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      if ((r.section || "").trim() !== "bond_term") continue;
+      const iss = (r["발행사명"] || "").trim();
+      if (!iss) continue;
+      const sec = termRowSector(r);
+      if (sec) m.set(iss, sec);
+    }
+    return m;
+  }
+
+  function sectorForIssuerBond(filteredRows, issuer, issuerSectorMapFull) {
+    for (let i = 0; i < filteredRows.length; i++) {
+      const r = filteredRows[i];
+      if ((r["발행사명"] || "").trim() !== issuer) continue;
+      return bondSectorForRow(r, issuerSectorMapFull, issuer);
+    }
+    if (issuerSectorMapFull && issuerSectorMapFull.has(issuer)) return issuerSectorMapFull.get(issuer);
+    return "일반";
+  }
+
+  function buildCpTermPivot(rows, ratingFilter, categoryFilter) {
+    const cat = (categoryFilter || "all").trim();
+    const filtered = rows.filter((r) => {
+      if ((r.section || "").trim() !== "cp_term") return false;
+      if (!matchesCpRating(r["등급"], ratingFilter)) return false;
+      const iss = (r["발행사명"] || "").trim();
+      if (!iss) return false;
+      if (cat !== "all" && !sectorFilterMatch(rowSectorCp(r), cat)) return false;
+      return true;
+    });
+    const cellMap = new Map();
+    for (const r of filtered) {
+      const issuer = (r["발행사명"] || "").trim();
+      const tenor = (r["만기"] || "").trim();
+      const date = (r["날짜"] || "").trim();
+      const rate = parseTermRate(r["금리"]);
+      if (!issuer || !tenor || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(rate)) continue;
+      const k = issuer + "\0" + tenor;
+      if (!cellMap.has(k)) cellMap.set(k, new Map());
+      cellMap.get(k).set(date, rate);
+    }
+    const issuerSet = new Set();
+    filtered.forEach((r) => {
+      const iss = (r["발행사명"] || "").trim();
+      if (iss) issuerSet.add(iss);
+    });
+    const issuers = Array.from(issuerSet).sort((a, b) => a.localeCompare(b, "ko"));
+    const tenorSet = new Set();
+    filtered.forEach((r) => {
+      const tn = (r["만기"] || "").trim();
+      if (tn) tenorSet.add(tn);
+    });
+    const tenors = Array.from(tenorSet).sort(compareTenors);
+    const body = [];
+    for (const iss of issuers) {
+      const cells = [];
+      let any = false;
+      for (const ten of tenors) {
+        const k = iss + "\0" + ten;
+        const dmap = cellMap.get(k);
+        if (!dmap || dmap.size === 0) {
+          cells.push(null);
+          continue;
+        }
+        any = true;
+        const dates = Array.from(dmap.keys()).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
+        const byDate = dates.map((d) => ({ d, rate: dmap.get(d) }));
+        cells.push({ latest: byDate[0], t1: byDate[1], t2: byDate[2] });
+      }
+      if (any) body.push({ issuer: iss, category: sectorForIssuerCp(filtered, iss), cells });
+    }
+    return { tenors, body };
+  }
+
+  function buildBondTermPivot(rows, ratingFilter, categoryFilter) {
+    const cat = (categoryFilter || "all").trim();
+    const isRatingAll = normTermRating(ratingFilter) === "ALL";
+    const issuerSectorAll = buildBondIssuerSectorMap(rows);
+    const filtered = rows.filter((r) => {
+      if ((r.section || "").trim() !== "bond_term") return false;
+      if (!matchesBondRating(r["등급"], ratingFilter)) return false;
+      const iss = (r["발행사명"] || "").trim();
+      if (!iss) return false;
+      if (cat !== "all") {
+        const sec = bondSectorForRow(r, issuerSectorAll, iss);
+        if (!sectorFilterMatch(sec, cat)) return false;
+      }
+      return true;
+    });
+    const best = new Map();
+    // "전체" 정렬용: 발행사별 대표 등급(가장 최신 날짜 기준)을 저장
+    const issuerBestRating = new Map(); // issuer -> { rating, date }
+    for (const r of filtered) {
+      const issuer = (r["발행사명"] || "").trim();
+      const tenorRaw = (r["만기"] || "").trim();
+      const tenor = normalizeBondTenorLabel(tenorRaw);
+      const date = (r["날짜"] || "").trim();
+      const rate = parseTermRate(r["금리"]);
+      if (!issuer || !tenor || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(rate)) continue;
+
+      const ratingRaw = (r["등급"] || "").trim();
+      if (ratingRaw) {
+        const cur = issuerBestRating.get(issuer);
+        if (!cur || date > cur.date) issuerBestRating.set(issuer, { rating: ratingRaw, date });
+      }
+
+      const k = issuer + "\0" + tenor;
+      const cur = best.get(k);
+      if (!cur || date > cur.date) best.set(k, { date, rate });
+    }
+    const issuerSet = new Set();
+    const tenorSet = new Set();
+    best.forEach((_, key) => {
+      const parts = key.split("\0");
+      issuerSet.add(parts[0]);
+      tenorSet.add(parts[1]);
+    });
+    const issuers = Array.from(issuerSet);
+    if (isRatingAll) {
+      issuers.sort((a, b) => {
+        const ra = issuerBestRating.has(a) ? issuerBestRating.get(a).rating : "";
+        const rb = issuerBestRating.has(b) ? issuerBestRating.get(b).rating : "";
+        const ka = bondGradeSortKey(ra);
+        const kb = bondGradeSortKey(rb);
+        if (ka[0] !== kb[0]) return ka[0] - kb[0];
+        if (ka[1] !== kb[1]) return ka[1] - kb[1];
+        return String(a).localeCompare(String(b), "ko");
+      });
+    } else {
+      issuers.sort((a, b) => a.localeCompare(b, "ko"));
+    }
+    const tenors = Array.from(tenorSet).sort((a, b) => {
+      const ka = bondTenorSortKey(a);
+      const kb = bondTenorSortKey(b);
+      if (ka[0] !== kb[0]) return ka[0] - kb[0];
+      return ka[1] - kb[1];
+    });
+    const body = [];
+    for (const iss of issuers) {
+      const cells = [];
+      let any = false;
+      for (const ten of tenors) {
+        const k = iss + "\0" + ten;
+        const v = best.get(k);
+        if (!v) {
+          cells.push(null);
+          continue;
+        }
+        any = true;
+        cells.push(v.rate);
+      }
+      if (any) body.push({ issuer: iss, category: sectorForIssuerBond(filtered, iss, issuerSectorAll), cells });
+    }
+    return { tenors, body };
+  }
+
+  function renderCpTermTable(pivot) {
+    if (!termCpTableWrap) return;
+    const { tenors, body } = pivot;
+    if (!tenors.length || !body.length) {
+      termCpTableWrap.innerHTML = "<p class=\"fund-summary__note\">조건에 맞는 CP 데이터가 없습니다. 등급(E/F)·카테고리 필터·CSV를 확인하세요.</p>";
+      return;
+    }
+    let h = "<table class=\"term-structure-table\"><thead><tr><th class=\"term-col-issuer\">발행사</th>";
+    tenors.forEach((t) => {
+      h += "<th>" + escTermHtml(t) + "</th>";
+    });
+    h += "</tr></thead><tbody>";
+    body.forEach((row) => {
+      h += "<tr><td class=\"term-col-issuer\">" + escTermHtml(row.issuer) + "</td>";
+      row.cells.forEach((cell) => {
+        if (!cell || !cell.latest) {
+          h += "<td><span class=\"term-muted\">—</span></td>";
+          return;
+        }
+        const lr = cell.latest.rate;
+        const r1 = cell.t1 ? cell.t1.rate : NaN;
+        const r2 = cell.t2 ? cell.t2.rate : NaN;
+        const t1d = cell.t1 && cell.t1.d ? String(cell.t1.d) : "";
+        const t2d = cell.t2 && cell.t2.d ? String(cell.t2.d) : "";
+        const t1Txt = Number.isFinite(r1) ? formatTermPctRate2(r1) : "—";
+        const t2Txt = Number.isFinite(r2) ? formatTermPctRate2(r2) : "—";
+        const title = "전일(T-1): " + t1Txt + (t1d ? " (" + t1d + ")" : "") + " / 전전일(T-2): " + t2Txt + (t2d ? " (" + t2d + ")" : "");
+        h += "<td title=\"" + escTermHtml(title) + "\">";
+        h += "<span class=\"term-cp-rate-cell\">" + escTermHtml(formatTermPctRate2(lr)) + "</span>";
+        h += "(" + termBpTriangleHtml(lr, r1) + "/" + termBpTriangleHtml(lr, r2) + ")";
+        h += "</td>";
+      });
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    termCpTableWrap.innerHTML = h;
+  }
+
+  function renderBondTermTable(pivot) {
+    if (!termBondTableWrap) return;
+    const { tenors, body } = pivot;
+    if (!tenors.length || !body.length) {
+      termBondTableWrap.innerHTML = "<p class=\"fund-summary__note\">조건에 맞는 Bond term 데이터가 없습니다. 등급·CSV를 확인하세요.</p>";
+      return;
+    }
+    let h = "<table class=\"term-structure-table\"><thead><tr><th class=\"term-col-issuer\">발행사</th>";
+    tenors.forEach((t) => {
+      h += "<th>" + escTermHtml(t) + "</th>";
+    });
+    h += "</tr></thead><tbody>";
+    body.forEach((row) => {
+      h += "<tr><td class=\"term-col-issuer\">" + escTermHtml(row.issuer) + "</td>";
+      row.cells.forEach((rate) => {
+        if (!Number.isFinite(rate)) h += "<td><span class=\"term-muted\">—</span></td>";
+        else h += "<td><span class=\"term-rate-line\">" + escTermHtml(formatTermPctRate(rate)) + "</span></td>";
+      });
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    termBondTableWrap.innerHTML = h;
+  }
+
+  function getTermSelectedRadioValue(name) {
+    const el = document.querySelector("input[name=\"" + name + "\"]:checked");
+    return el ? el.value : "";
+  }
+
+  function renderTermStructureTables() {
+    if (!termTableRows.length) {
+      if (termCpTableWrap) termCpTableWrap.innerHTML = "";
+      if (termBondTableWrap) termBondTableWrap.innerHTML = "";
+      return;
+    }
+    const cpRating = getTermSelectedRadioValue("termCpRating") || "A1";
+    const cpCategory = getTermSelectedRadioValue("termCpCategory") || "all";
+    const bdRating = getTermSelectedRadioValue("termBondRating") || "AAA";
+    const bdCategory = getTermSelectedRadioValue("termBondCategory") || "all";
+    renderCpTermTable(buildCpTermPivot(termTableRows, cpRating, cpCategory));
+    renderBondTermTable(buildBondTermPivot(termTableRows, bdRating, bdCategory));
+  }
+
+  function ensureTermData() {
+    if (!termStructureStatus) return Promise.resolve();
+    if (termDataLoadPromise) {
+      if (termTableRows.length) renderTermStructureTables();
+      return termDataLoadPromise;
+    }
+    termStructureStatus.textContent = "term_table_long.csv 불러오는 중…";
+    termDataLoadPromise = fetchCsvNoCache(TERM_CSV_PATH)
+      .then((r) => {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      })
+      .then((text) => {
+        termTableRows = parseCsv(text);
+        if (!termTableRows.length) throw new Error("데이터 행이 없습니다.");
+        termStructureStatus.textContent = "행 수 " + termTableRows.length.toLocaleString() + " · term_table_long.csv";
+        renderTermStructureTables();
+      })
+      .catch((err) => {
+        console.warn("[term_table_long.csv]", err);
+        termTableRows = [];
+        termStructureStatus.textContent = "불러오기 실패: " + (err && err.message ? err.message : String(err));
+        if (termCpTableWrap) termCpTableWrap.innerHTML = "";
+        if (termBondTableWrap) termBondTableWrap.innerHTML = "";
+      });
+    return termDataLoadPromise;
+  }
+
+  function renderFundSummaryTables() {
+    const preserved = getFundRangeStartYmd();
+    const rangeStart = preserved;
+    const metricsAsOfYmd = getFundMetricsAsOfYmd();
+    const mo = [];
+    const ja = [];
+    fundNameList.forEach((name) => {
+      const row = metricsForFund(name, rangeStart, metricsAsOfYmd);
+      if (!row) return;
+      if (isJaFundName(name)) ja.push(row);
+      else mo.push(row);
+    });
+    const moSorted = sortRowsByNetWorthDesc(mo);
+    const jaSorted = sortRowsByNetWorthDesc(ja);
+    if (fundMoTitleRow) fundMoTitleRow.innerHTML = fundSectionTitleHtml("모펀드", moSorted, rangeStart, metricsAsOfYmd);
+    if (fundTableMoWrap) {
+      fundTableMoWrap.innerHTML = buildMetricTableHtml(moSorted, {
+        preservedRefDate: preserved,
+      });
+    }
+    if (fundJaTitleRow) fundJaTitleRow.innerHTML = fundSectionTitleHtml("자펀드", jaSorted, rangeStart, metricsAsOfYmd);
+    if (fundTableJaWrap) {
+      fundTableJaWrap.innerHTML = buildMetricTableHtml(jaSorted, {
+        preservedRefDate: preserved,
+      });
+    }
+  }
+
+  function emptyLayoutFund() {
+    return {
+      margin: { l: 55, r: 45, t: 18, b: 45 },
+      paper_bgcolor: "#0e1117",
+      plot_bgcolor: "#0e1117",
+      font: { color: "#fff", family: "Malgun Gothic, Segoe UI, sans-serif" },
+      xaxis: { title: "Date", gridcolor: "rgba(255,255,255,0.08)", zeroline: false },
+      yaxis: { title: "값", gridcolor: "rgba(255,255,255,0.14)", zerolinecolor: "rgba(255,255,255,0.3)" },
+    };
+  }
+
+  function setPage(page) {
+    const isSpread = page === "spread";
+    const isFund = page === "fund";
+    const isRates = page === "rates";
+    const isTerm = page === "term";
+    if (pageSpreadEl) pageSpreadEl.classList.toggle("is-active", isSpread);
+    if (pageRatesEl) pageRatesEl.classList.toggle("is-active", isRates);
+    if (pageFundEl) pageFundEl.classList.toggle("is-active", isFund);
+    if (pageTermEl) pageTermEl.classList.toggle("is-active", isTerm);
+    if (spreadHeaderMeta) spreadHeaderMeta.hidden = !isSpread;
+    if (navSpread) navSpread.classList.toggle("is-current", isSpread);
+    if (navRates) navRates.classList.toggle("is-current", isRates);
+    if (navFund) navFund.classList.toggle("is-current", isFund);
+    if (navTerm) navTerm.classList.toggle("is-current", isTerm);
+    let title = "스프레드 분석";
+    if (isFund) title = "펀드 비교분석";
+    else if (isRates) title = "금리 분석";
+    else if (isTerm) title = "Term Structure";
+    document.title = title + " · market_db 대시보드";
+    if (isFund) ensureFundData();
+    if (isRates) {
+      renderRatesAnalysis();
+      refreshMarketCsvFromServer();
+    }
+    if (isTerm) ensureTermData();
+  }
+
+  function fundNameListMoOnly() {
+    return fundNameList.filter((n) => !isJaFundName(n));
+  }
+
+  function buildFundCheckboxes() {
+    fundList.innerHTML = "";
+    const mo = fundNameListMoOnly();
+    if (!mo.length) {
+      const p = document.createElement("p");
+      p.className = "fund-compare-hint";
+      p.style.margin = "0";
+      p.textContent = "모펀드가 없습니다.";
+      fundList.appendChild(p);
+      return;
+    }
+    mo.forEach((name, i) => {
+      const id = "fundCb_" + i;
+      const lab = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = name;
+      cb.id = id;
+      cb.checked = true;
+      lab.appendChild(cb);
+      const span = document.createElement("span");
+      span.textContent = name;
+      lab.appendChild(span);
+      fundList.appendChild(lab);
+    });
+  }
+
+  function ensureFundData() {
+    if (fundDataLoadPromise) return fundDataLoadPromise;
+    fundDataStatus.textContent = "불러오는 중…";
+    fundChartError.style.display = "none";
+    fundDataLoadPromise = fetchCsvNoCache(FUND_CSV_PATH)
+      .then((r) => {
+        if (!r.ok) throw new Error("파일을 불러올 수 없습니다: " + FUND_CSV_PATH);
+        return r.text();
+      })
+      .then((text) => {
+        const fundRows = parseCsv(text);
+        fundSeriesMap.clear();
+        const tmpSeries = new Map();
+        const fields = new Set();
+        const names = new Set();
+        const dset = new Set();
+        fundRows.forEach((r) => {
+          const f = rowFund(r);
+          const fld = rowField(r);
+          const d = rowDate(r);
+          const v = parseFloat(String(rowValue(r)).replace(/,/g, ""), 10);
+          if (!f || !fld || !d || !Number.isFinite(v)) return;
+          fields.add(fld);
+          names.add(f);
+          dset.add(d);
+          const k = f + "\0" + fld;
+          if (!tmpSeries.has(k)) tmpSeries.set(k, new Map());
+          tmpSeries.get(k).set(d, v);
+        });
+        tmpSeries.forEach((dateMap, k) => {
+          const arr = Array.from(dateMap.entries())
+            .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+            .map(([d, v]) => ({ d, v }));
+          fundSeriesMap.set(k, arr);
+        });
+        fundFieldList = Array.from(fields).sort((a, b) => String(a).localeCompare(b, "ko"));
+        fundNameList = Array.from(names).sort((a, b) => String(a).localeCompare(b, "ko"));
+        fundDateList = Array.from(dset).sort();
+        buildFundCheckboxes();
+        const dMin = fundDateList[0];
+        const dMax = fundDateList[fundDateList.length - 1];
+        if (dMin) fundStartDate.value = dMin;
+        if (dMax) fundEndDate.value = dMax;
+        if (fundCompareStartDate && dMin) fundCompareStartDate.value = dMin;
+        const fundMetricsAsOfDateInput = document.getElementById("fundMetricsAsOfDateInput");
+        if (fundMetricsAsOfDateInput && dMax) fundMetricsAsOfDateInput.value = dMax;
+        fundDataStatus.textContent = fundRows.length ? "행 " + fundRows.length + "건" : "데이터 없음";
+        renderFundSummaryTables();
+        renderFundCompareTable();
+        if (!fundFieldList.length) {
+          fundDataStatus.textContent = "유효 행 없음";
+          Plotly.react(chartFund, [], emptyLayoutFund(), { responsive: true });
+        } else renderFundChart();
+      })
+      .catch((err) => {
+        fundDataLoadPromise = null;
+        fundDataStatus.textContent = "오류";
+        fundChartError.textContent = err.message || "오류 발생";
+        fundChartError.style.display = "block";
+        if (fundMoTitleRow) fundMoTitleRow.innerHTML = "";
+        if (fundJaTitleRow) fundJaTitleRow.innerHTML = "";
+        if (fundTableMoWrap) fundTableMoWrap.innerHTML = "";
+        if (fundTableJaWrap) fundTableJaWrap.innerHTML = "";
+        if (fundCompareTableWrap) fundCompareTableWrap.innerHTML = "";
+      });
+    return fundDataLoadPromise;
+  }
+
+  /** 기간 시작일 기준점 대비 누적(설정액·순자산) 또는 기간수익(수정기준가) 시계열 */
+  function buildFundChartCumulativeSeries(fname, mode, start, end) {
+    let pts;
+    if (mode === "navPeriod") {
+      pts = navSeriesForFund(fname);
+    } else {
+      const fld = mode === "setup" ? "설정액" : "순자산";
+      pts = fundSeriesMap.get(fname + "\0" + fld) || [];
+    }
+    if (!pts.length) return null;
+    const asOf = pts[pts.length - 1].d;
+    const base = baselinePointOrFirstAfter(pts, asOf, start);
+    if (!base) return null;
+    const inRange = pts.filter((p) => p.d >= start && p.d <= end);
+    const xs = [];
+    const ys = [];
+    if (mode === "navPeriod") {
+      inRange.forEach((p) => {
+        if (p.d < base.d) return;
+        const raw = pctChange(p.v, base.v);
+        if (raw === null || Number.isNaN(raw)) return;
+        xs.push(p.d);
+        ys.push(raw);
+      });
+    } else {
+      inRange.forEach((p) => {
+        if (p.d < base.d) return;
+        if (!Number.isFinite(p.v) || !Number.isFinite(base.v)) return;
+        xs.push(p.d);
+        ys.push(p.v - base.v);
+      });
+    }
+    return xs.length ? { x: xs, y: ys } : null;
+  }
+
+  function yAxisTitleForFundChartMode(mode) {
+    if (mode === "setup") return "설정액 누적변동 (원, 시작일=0)";
+    if (mode === "net") return "순자산 누적변동 (원, 시작일=0)";
+    return "기간수익률 (%, 시작 관측 대비)";
+  }
+
+  function renderFundChart() {
+    if (!fundChartMode || !chartFund) return;
+    fundChartError.style.display = "none";
+    const mode = (fundChartMode.value || "setup").trim();
+    const start = (fundStartDate.value || "").trim() || fundDateList[0];
+    const end = (fundEndDate.value || "").trim() || fundDateList[fundDateList.length - 1];
+    const selected = Array.from(fundList.querySelectorAll("input[type=checkbox]:checked")).map((cb) => cb.value);
+    if (!selected.length) {
+      const layout = emptyLayoutFund();
+      layout.annotations = [{
+        x: 0.5, y: 0.5, text: "표시할 모펀드를 선택하세요", showarrow: false, font: { size: 14, color: "#fff" },
+      }];
+      Plotly.react(chartFund, [], layout, { responsive: true });
+      return;
+    }
+    const traces = [];
+    selected.forEach((fname, idx) => {
+      const ser = buildFundChartCumulativeSeries(fname, mode, start, end);
+      if (!ser) return;
+      traces.push({
+        x: ser.x,
+        y: ser.y,
+        type: "scatter",
+        mode: "lines",
+        name: fname,
+        line: { width: 2, color: FUND_TRACE_COLORS[idx % FUND_TRACE_COLORS.length] },
+      });
+    });
+    const layout = {
+      margin: { l: 62, r: Math.min(120 + selected.length * 8, 360), t: 18, b: 45 },
+      paper_bgcolor: "#0e1117",
+      plot_bgcolor: "#0e1117",
+      font: { color: "#fff", family: "Malgun Gothic, Segoe UI, sans-serif" },
+      hoverlabel: { align: "left" },
+      xaxis: {
+        title: "Date",
+        gridcolor: "rgba(255,255,255,0.08)",
+        zeroline: false,
+        linecolor: "rgba(255,255,255,0.15)",
+        tickfont: { color: "#fff" },
+      },
+      yaxis: {
+        title: yAxisTitleForFundChartMode(mode),
+        gridcolor: "rgba(255,255,255,0.14)",
+        zeroline: mode === "setup" || mode === "net" || mode === "navPeriod",
+        zerolinecolor: "rgba(255,255,255,0.35)",
+        linecolor: "rgba(255,255,255,0.55)",
+        linewidth: 1.5,
+        tickfont: { color: "#fff" },
+      },
+      legend: {
+        x: 1.02, y: 1, xanchor: "left", yanchor: "top",
+        bgcolor: "rgba(0,0,0,0.45)",
+        font: { color: "#fff", size: 9 },
+      },
+    };
+    const yMinVal = parseFloat(fundYMin.value, 10);
+    const yMaxVal = parseFloat(fundYMax.value, 10);
+    if (!Number.isNaN(yMinVal) || !Number.isNaN(yMaxVal)) {
+      layout.yaxis.range = [Number.isNaN(yMinVal) ? undefined : yMinVal, Number.isNaN(yMaxVal) ? undefined : yMaxVal];
+    }
+    if (!traces.length) {
+      layout.annotations = [{
+        x: 0.5, y: 0.5, text: "선택한 조합에 표시할 데이터가 없습니다", showarrow: false, font: { size: 14, color: "#fff" },
+      }];
+    }
+    Plotly.react(chartFund, traces, layout, { responsive: true });
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function normalizeIssueDate(raw, fallbackYear) {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m1 = s.match(/^(\d{1,2})[\/.\-](\d{1,2})$/);
+    if (m1 && Number.isFinite(fallbackYear)) {
+      return `${fallbackYear}-${String(parseInt(m1[1], 10)).padStart(2, "0")}-${String(parseInt(m1[2], 10)).padStart(2, "0")}`;
+    }
+    const m2 = s.match(/^(\d{1,2})\s*월\s*(\d{1,2})\s*일$/);
+    if (m2 && Number.isFinite(fallbackYear)) {
+      return `${fallbackYear}-${String(parseInt(m2[1], 10)).padStart(2, "0")}-${String(parseInt(m2[2], 10)).padStart(2, "0")}`;
+    }
+    return "";
+  }
+
+  function buildIssuesMap(text, fallbackYear) {
+    const rows = parseCsv(text);
+    const map = new Map();
+    rows.forEach((r) => {
+      const d = normalizeIssueDate(r["날짜"] || r.date || r.Date, fallbackYear);
+      if (!d) return;
+      const issue = String(r["이슈"] || r.issue || r.title || "").trim();
+      const summary = String(r["요약"] || r.summary || "").trim();
+      if (!issue && !summary) return;
+      const parts = [];
+      if (issue) parts.push(`이슈: ${escapeHtml(issue)}`);
+      if (summary) parts.push(`요약: ${escapeHtml(summary)}`);
+      const line = parts.join("<br>");
+      if (!map.has(d)) map.set(d, []);
+      map.get(d).push(line);
+    });
+    return map;
+  }
+
+  function issueTextByDate(d) {
+    const arr = issuesByDate.get(d);
+    if (!arr || !arr.length) return "";
+    return `<br>${arr.join("<br>")}`;
+  }
+
+  function traceCustomData(xs) {
+    return (xs || []).map((d) => issueTextByDate(d));
+  }
+
+  function parseTenorValue(t) {
+    if (t === undefined || t === null) return NaN;
+    const s = String(t).trim();
+    const n = parseFloat(s, 10);
+    if (Number.isFinite(n)) return n;
+    const m = s.match(/(\d+(?:\.\d+)?)/);
+    return m ? parseFloat(m[1], 10) : NaN;
+  }
+
+  function tenorLabel(t, instrument) {
+    const v = parseTenorValue(t);
+    if (!Number.isFinite(v)) return String(t);
+    const inst = (instrument || "").trim();
+    if (inst.indexOf("CD") !== -1 || inst.indexOf("CP") !== -1) {
+      if (Number.isInteger(v) && v >= 1 && v <= 12) return v + "M";
+      return v + "Y";
+    }
+    if (v > 0 && v < 1) return (v * 12) + "M";
+    return v + "Y";
+  }
 
   function sortInstruments(instSet) {
     const ordered = [];
@@ -175,20 +2214,70 @@
     const tenors = new Set();
     rawRows.forEach(r => {
       if ((r.instrument || "").trim() !== inst) return;
-      const t = (r.tenor || "").trim();
-      if (t === "") return;
-      const v = parseFloat(t, 10);
-      if (!Number.isNaN(v)) tenors.add(v);
+      const v = parseTenorValue(r.tenor);
+      if (Number.isFinite(v)) tenors.add(v);
     });
     return Array.from(tenors).sort((a, b) => a - b);
   }
 
   function pickFiltered(inst, tenor) {
     const t = parseFloat(tenor, 10);
+    if (!Number.isFinite(t)) return [];
     return rawRows.filter(r =>
       (r.instrument || "").trim() === inst &&
-      parseFloat(r.tenor, 10) === t
+      parseTenorValue(r.tenor) === t
     ).map(r => ({ d: (r.date || "").trim(), y: parseFloat(r.yield, 10) }));
+  }
+
+  function filterPointsByRange(points, start, end) {
+    if (!points.length) return points;
+    const a = (start || "").trim();
+    const b = (end || "").trim();
+    return points.filter((p) => {
+      if (a && p.d < a) return false;
+      if (b && p.d > b) return false;
+      return true;
+    });
+  }
+
+  function maxDateInSeries(points) {
+    if (!points.length) return null;
+    return points.reduce((m, p) => (p.d > m ? p.d : m), points[0].d);
+  }
+
+  /** 세 라인이 모두 값을 갖는 구간의 마지막 날 = 각 라인 마지막 관측일 중 가장 이른 날 */
+  function jointAsOfDate(f1, f2, f3) {
+    if (!f1.length || !f2.length || !f3.length) return null;
+    const m1 = maxDateInSeries(f1);
+    const m2 = maxDateInSeries(f2);
+    const m3 = maxDateInSeries(f3);
+    return [m1, m2, m3].sort()[0];
+  }
+
+  function updateHeaderAsOfDate(start1, end1, start2, end2) {
+    const s1 = { inst: line1Inst, ten: line1Tenor };
+    const s2 = { inst: line2Inst, ten: line2Tenor };
+    const s3 = { inst: line3Inst, ten: line3Tenor };
+    let f1 = filterPointsByRange(pickFiltered(s1.inst.value, s1.ten.value), start1, end1);
+    let f2 = filterPointsByRange(pickFiltered(s2.inst.value, s2.ten.value), start1, end1);
+    let f3 = filterPointsByRange(pickFiltered(s3.inst.value, s3.ten.value), start1, end1);
+    const j1 = jointAsOfDate(f1, f2, f3);
+
+    const s1b = { inst: line1Inst_2, ten: line1Tenor_2 };
+    const s2b = { inst: line2Inst_2, ten: line2Tenor_2 };
+    const s3b = { inst: line3Inst_2, ten: line3Tenor_2 };
+    f1 = filterPointsByRange(pickFiltered(s1b.inst.value, s1b.ten.value), start2, end2);
+    f2 = filterPointsByRange(pickFiltered(s2b.inst.value, s2b.ten.value), start2, end2);
+    f3 = filterPointsByRange(pickFiltered(s3b.inst.value, s3b.ten.value), start2, end2);
+    const j2 = jointAsOfDate(f1, f2, f3);
+
+    let joint = null;
+    if (j1 && j2) joint = j1 < j2 ? j1 : j2;
+             else joint = j1 || j2;
+
+    const fileLatest = dates.length ? dates[dates.length - 1] : "";
+    if (asOfDate) asOfDate.textContent = joint ? "기준일: " + joint : "기준일: —";
+    if (asOfFileDate) asOfFileDate.textContent = fileLatest ? "파일 최신일: " + fileLatest : "파일 최신일: —";
   }
 
   function fillSelect(sel, items, fmt) {
@@ -204,10 +2293,556 @@
     else if (items.length) sel.value = items[0];
   }
 
+  const RATES_KTB_TENORS = [1, 1.5, 2, 3, 5, 7, 10, 20, 30];
+  const RATES_KTB_SPREAD_PAIRS = [
+    [1, 1.5],
+    [1.5, 2],
+    [1, 2],
+    [2, 3],
+    [3, 5],
+    [3, 10],
+    [7, 10],
+    [10, 30],
+    [10, 20],
+    [20, 30],
+  ];
+  const RATES_CREDIT_LINES = [
+    { inst: "특은채", label: "특온" },
+    { inst: "은행채", label: "은행" },
+    { inst: "카드채", label: "카드" },
+    { inst: "여전채", label: "여전" },
+  ];
+  const RATES_CREDIT_TENORS = [1, 1.5, 2, 2.5, 3];
+  const RATES_SPREAD_SLOPE_PAIRS = [
+    [1, 1.5],
+    [1.5, 2],
+    [1, 2],
+    [2, 2.5],
+    [2.5, 3],
+    [2, 3],
+  ];
+
+  let dateYieldMap = new Map();
+
+  function rebuildDateYieldMap() {
+    dateYieldMap.clear();
+    rawRows.forEach((r) => {
+      const d = (r.date || "").trim();
+      const inst = (r.instrument || "").trim();
+      const ten = String(r.tenor ?? "").trim();
+      const y = parseFloat(String(r.yield || "").replace(/,/g, ""), 10);
+      if (!d || !inst || !Number.isFinite(y)) return;
+      if (!dateYieldMap.has(d)) dateYieldMap.set(d, new Map());
+      dateYieldMap.get(d).set(inst + "|" + ten, y);
+    });
+  }
+
+  function yieldAt(d, inst, tenorStr) {
+    const m = dateYieldMap.get(d);
+    if (!m) return null;
+    const v = m.get(inst + "|" + tenorStr);
+    if (!Number.isFinite(v)) return null;
+    if (v === 0 && inst !== "국고채") return null;
+    return v;
+  }
+
+  function ktbYield(d, t) {
+    return yieldAt(d, "국고채", String(t));
+  }
+
+  function creditTenorStr(inst, y) {
+    const p = { 특은채: "특은", 은행채: "은행", 카드채: "카드", 여전채: "여전" }[inst];
+    if (!p) return null;
+    const ys = y === 2.5 ? "2.5Y" : `${y}Y`;
+    return p + " " + ys;
+  }
+
+  function creditYield(d, inst, y) {
+    const ts = creditTenorStr(inst, y);
+    return ts ? yieldAt(d, inst, ts) : null;
+  }
+
+  function ktbTermSpreadBp(d, a, b) {
+    const ya = ktbYield(d, a);
+    const yb = ktbYield(d, b);
+    if (ya === null || yb === null) return null;
+    return (yb - ya) * 100;
+  }
+
+  function creditSpreadBp(d, inst, y) {
+    const c = creditYield(d, inst, y);
+    const k = ktbYield(d, y);
+    if (c === null || k === null) return null;
+    return (c - k) * 100;
+  }
+
+  function spreadSlopeBp(d, inst, a, b) {
+    const sa = creditSpreadBp(d, inst, a);
+    const sb = creditSpreadBp(d, inst, b);
+    if (sa === null || sb === null) return null;
+    return sb - sa;
+  }
+
+  function dateHasRatesData(d) {
+    const m = dateYieldMap.get(d);
+    if (!m || !m.size) return false;
+    for (let ti = 0; ti < RATES_KTB_TENORS.length; ti++) {
+      const t = RATES_KTB_TENORS[ti];
+      if (Number.isFinite(m.get("국고채|" + String(t)))) return true;
+    }
+    for (let li = 0; li < RATES_CREDIT_LINES.length; li++) {
+      const inst = RATES_CREDIT_LINES[li].inst;
+      for (let tyi = 0; tyi < RATES_CREDIT_TENORS.length; tyi++) {
+        const ty = RATES_CREDIT_TENORS[tyi];
+        const ts = creditTenorStr(inst, ty);
+        if (ts && Number.isFinite(m.get(inst + "|" + ts))) return true;
+      }
+    }
+    return false;
+  }
+
+  function latestDateWithRatesData() {
+    for (let j = dates.length - 1; j >= 0; j--) {
+      if (dateHasRatesData(dates[j])) return dates[j];
+    }
+    return null;
+  }
+
+  function dateRefPrev(d0) {
+    const i = dates.indexOf(d0);
+    if (i <= 0) return null;
+    for (let j = i - 1; j >= 0; j--) {
+      if (dateHasRatesData(dates[j])) return dates[j];
+    }
+    return null;
+  }
+
+  /** cutoff(yyyy-mm-dd) 이하 중, 금리 데이터가 있는 가장 늦은 거래일 */
+  function lastRatesDateOnOrBefore(cutoff) {
+    if (!cutoff || !/^\d{4}-\d{2}-\d{2}$/.test(cutoff)) return null;
+    for (let j = dates.length - 1; j >= 0; j--) {
+      const dt = dates[j];
+      if (dt > cutoff) continue;
+      if (dateHasRatesData(dt)) return dt;
+    }
+    return null;
+  }
+
+  /** 기준일 d0가 속한 달의 직전 달 말일(전월말) yyyy-mm-dd */
+  function calendarPrevMonthEndISO(d0) {
+    if (!d0 || !/^\d{4}-\d{2}-\d{2}$/.test(d0)) return null;
+    const y = parseInt(d0.slice(0, 4), 10);
+    const m = parseInt(d0.slice(5, 7), 10);
+    const d = new Date(y, m - 1, 0);
+    const yy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return yy + "-" + mm + "-" + dd;
+  }
+
+  /** MTD: 전월말(달력) — 해당일 데이터가 없으면 그 이전 최근 거래일 */
+  function dateRefMtd(d0) {
+    const target = calendarPrevMonthEndISO(d0);
+    return lastRatesDateOnOrBefore(target);
+  }
+
+  /** YTD: 전년 12/31(전년말) — 해당일 데이터가 없으면 그 이전 최근 거래일 */
+  function dateRefYtd(d0) {
+    if (!d0 || !/^\d{4}-\d{2}-\d{2}$/.test(d0)) return null;
+    const y = parseInt(d0.slice(0, 4), 10);
+    const target = (y - 1) + "-12-31";
+    return lastRatesDateOnOrBefore(target);
+  }
+
+  function parseRatesHistoryDaysInput() {
+    const raw = ratesHistoryDaysInput && (ratesHistoryDaysInput.value || "").trim();
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n)) return 7;
+    return Math.max(1, Math.min(250, n));
+  }
+
+  function buildHistDatesWithData(requestedCount) {
+    const out = [];
+    for (let j = dates.length - 1; j >= 0 && out.length < requestedCount; j--) {
+      const d = dates[j];
+      if (dateHasRatesData(d)) out.push(d);
+    }
+    return out;
+  }
+
+  function fmtShortYmd(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "—";
+    return iso.slice(2, 4) + "/" + iso.slice(5, 7) + "/" + iso.slice(8, 10);
+  }
+
+  function tdVal(v, decimals, isDelta) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "<td>—</td>";
+    const cls = isDelta && v < 0 ? " class=\"rates-cell--neg\"" : "";
+    return "<td" + cls + ">" + v.toFixed(decimals) + "</td>";
+  }
+
+  function renderRatesAnalysis() {
+    if (!ratesTableKtbWrap) return;
+    if (!rawRows.length || !dates.length) {
+      if (ratesAnalysisStatus) ratesAnalysisStatus.textContent = "데이터를 불러오는 중이거나 행이 없습니다.";
+      ratesTableKtbWrap.innerHTML = "";
+      ratesTableCreditYldWrap.innerHTML = "";
+      ratesTableCreditSprWrap.innerHTML = "";
+      ratesTableCreditSlopeWrap.innerHTML = "";
+      return;
+    }
+    const d0 = latestDateWithRatesData();
+    if (!d0) {
+      if (ratesAnalysisStatus) ratesAnalysisStatus.textContent = "국고채·크레딧 금리가 있는 일자가 없습니다.";
+      ratesTableKtbWrap.innerHTML = "";
+      ratesTableCreditYldWrap.innerHTML = "";
+      ratesTableCreditSprWrap.innerHTML = "";
+      ratesTableCreditSlopeWrap.innerHTML = "";
+      return;
+    }
+    const nRequested = parseRatesHistoryDaysInput();
+    const histDates = buildHistDatesWithData(nRequested);
+    if (ratesAnalysisStatus) {
+      ratesAnalysisStatus.textContent =
+        "최신일(데이터): " + d0 + " · 일자별 " + histDates.length + "거래일 표시 (요청 " + nRequested + "거래일)";
+    }
+    const dPrev = dateRefPrev(d0);
+    const dMtd = dateRefMtd(d0);
+    const dYtd = dateRefYtd(d0);
+    const refMap = { DTD: dPrev, MTD: dMtd, YTD: dYtd };
+    // 전역 기준일: 비어 있으면 첫 행(최신일 대비 차이) 미표시 · 입력 시에만 행 생성
+    ratesCustomDiffDate = "";
+    if (ratesCustomDiffDateInput) {
+      const v = (ratesCustomDiffDateInput.value || "").trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) ratesCustomDiffDate = v;
+    }
+    let customRefD = /^\d{4}-\d{2}-\d{2}$/.test(String(ratesCustomDiffDate || "").trim()) ? String(ratesCustomDiffDate).trim() : null;
+    if (customRefD && d0 && customRefD > d0) customRefD = null;
+    const ktbPairs = RATES_KTB_TENORS.length + RATES_KTB_SPREAD_PAIRS.length;
+    const creditCols = RATES_CREDIT_LINES.length * RATES_CREDIT_TENORS.length;
+
+    function ktbRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist) {
+      let trCls = "";
+      if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
+      let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
+      RATES_KTB_TENORS.forEach((t) => {
+        const vA = ktbYield(dAnchor, t);
+        if (isDelta && refD) {
+          const vR = ktbYield(refD, t);
+          const dPct = vA !== null && vR !== null ? vA - vR : null;
+          const dBp = dPct !== null ? dPct * 100 : null;
+          h += tdVal(dBp, 1, true);
+        } else h += tdVal(vA, 3, false);
+      });
+      RATES_KTB_SPREAD_PAIRS.forEach(([a, b]) => {
+        const sA = ktbTermSpreadBp(dAnchor, a, b);
+        if (isDelta && refD) {
+          const sR = ktbTermSpreadBp(refD, a, b);
+          h += tdVal(sA !== null && sR !== null ? sA - sR : null, 1, true);
+        } else h += tdVal(sA, 1, false);
+      });
+      return h + "</tr>";
+    }
+
+    function ktbCustomRowHtml(dCustom) {
+      const val = dCustom ? dCustom : "";
+      let h = "<tr><td><div class=\"rates-custom-date-wrap rates-custom-date-wrap--ktb\"><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></div></td>";
+      RATES_KTB_TENORS.forEach((t) => {
+        const vA = ktbYield(d0, t);
+        const vR = dCustom ? ktbYield(dCustom, t) : null;
+        const dPct = vA !== null && vR !== null ? vA - vR : null;
+        const dBp = dPct !== null ? dPct * 100 : null;
+        h += tdVal(dBp, 1, true);
+      });
+      RATES_KTB_SPREAD_PAIRS.forEach(([a, b]) => {
+        const sA = ktbTermSpreadBp(d0, a, b);
+        const sR = dCustom ? ktbTermSpreadBp(dCustom, a, b) : null;
+        const dBp = sA !== null && sR !== null ? sA - sR : null;
+        h += tdVal(dBp, 1, true);
+      });
+      return h + "</tr>";
+    }
+
+    function creditYldCustomRowHtml(dCustom) {
+      const val = dCustom ? dCustom : "";
+      let h = "<tr><td><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></td>";
+      RATES_CREDIT_LINES.forEach((line) => {
+        RATES_CREDIT_TENORS.forEach((ty) => {
+          const vA = creditYield(d0, line.inst, ty);
+          const vR = dCustom ? creditYield(dCustom, line.inst, ty) : null;
+          const dPct = vA !== null && vR !== null ? vA - vR : null;
+          const dBp = dPct !== null ? dPct * 100 : null;
+          h += tdVal(dBp, 1, true);
+        });
+      });
+      return h + "</tr>";
+    }
+
+    function creditSprCustomRowHtml(dCustom) {
+      const val = dCustom ? dCustom : "";
+      let h = "<tr><td><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></td>";
+      RATES_CREDIT_LINES.forEach((line) => {
+        RATES_CREDIT_TENORS.forEach((ty) => {
+          const vA = creditSpreadBp(d0, line.inst, ty);
+          const vR = dCustom ? creditSpreadBp(dCustom, line.inst, ty) : null;
+          const dBp = vA !== null && vR !== null ? vA - vR : null;
+          h += tdVal(dBp, 1, true);
+        });
+      });
+      return h + "</tr>";
+    }
+
+    function creditSlopeCustomRowHtml(dCustom) {
+      const val = dCustom ? dCustom : "";
+      let h = "<tr><td><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></td>";
+      RATES_CREDIT_LINES.forEach((line) => {
+        RATES_SPREAD_SLOPE_PAIRS.forEach(([a, b]) => {
+          const vA = spreadSlopeBp(d0, line.inst, a, b);
+          const vR = dCustom ? spreadSlopeBp(dCustom, line.inst, a, b) : null;
+          const dBp = vA !== null && vR !== null ? vA - vR : null;
+          h += tdVal(dBp, 1, true);
+        });
+      });
+      return h + "</tr>";
+    }
+
+    function creditYldRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist) {
+      let trCls = "";
+      if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
+      let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
+      RATES_CREDIT_LINES.forEach((line) => {
+        RATES_CREDIT_TENORS.forEach((ty) => {
+          const vA = creditYield(dAnchor, line.inst, ty);
+          if (isDelta && refD) {
+            const vR = creditYield(refD, line.inst, ty);
+            const dPct = vA !== null && vR !== null ? vA - vR : null;
+            const dBp = dPct !== null ? dPct * 100 : null;
+            h += tdVal(dBp, 1, true);
+          } else h += tdVal(vA, 3, false);
+        });
+      });
+      return h + "</tr>";
+    }
+
+    function creditSprRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist) {
+      let trCls = "";
+      if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
+      let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
+      RATES_CREDIT_LINES.forEach((line) => {
+        RATES_CREDIT_TENORS.forEach((ty) => {
+          const vA = creditSpreadBp(dAnchor, line.inst, ty);
+          if (isDelta && refD) {
+            const vR = creditSpreadBp(refD, line.inst, ty);
+            h += tdVal(vA !== null && vR !== null ? vA - vR : null, 1, true);
+          } else h += tdVal(vA, 1, false);
+        });
+      });
+      return h + "</tr>";
+    }
+
+    function creditSlopeRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist) {
+      let trCls = "";
+      if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
+      let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
+      RATES_CREDIT_LINES.forEach((line) => {
+        RATES_SPREAD_SLOPE_PAIRS.forEach(([a, b]) => {
+          const vA = spreadSlopeBp(dAnchor, line.inst, a, b);
+          if (isDelta && refD) {
+            const vR = spreadSlopeBp(refD, line.inst, a, b);
+            h += tdVal(vA !== null && vR !== null ? vA - vR : null, 1, true);
+          } else h += tdVal(vA, 1, false);
+        });
+      });
+      return h + "</tr>";
+    }
+
+    let hK = "<table class=\"rates-analysis-table rates-table-ktb\"><colgroup><col class=\"rates-col-ktb-label rates-col-label\" /><col span=\"" + ktbPairs + "\" class=\"rates-col-metric\" /></colgroup><thead>";
+    hK += "<tr><th rowspan=\"2\">구분</th>";
+    hK += "<th colspan=\"" + RATES_KTB_TENORS.length + "\" class=\"group-head\">국고채 금리<br><span style=\"font-size:0.78em;font-weight:500;opacity:0.85\">(일자별 % · DTD/MTD/YTD bp)</span></th>";
+    hK += "<th colspan=\"" + RATES_KTB_SPREAD_PAIRS.length + "\" class=\"group-head\">만기간 스프레드<br><span style=\"font-size:0.78em;font-weight:500;opacity:0.85\">(일자별 bp · 변동 bp)</span></th></tr><tr>";
+    RATES_KTB_TENORS.forEach((t) => { hK += "<th>" + t + "</th>"; });
+    RATES_KTB_SPREAD_PAIRS.forEach(([a, b]) => { hK += "<th>" + a + "/" + b + "</th>"; });
+    hK += "</tr></thead><tbody>";
+    if (customRefD) hK += ktbCustomRowHtml(customRefD);
+    ["DTD", "MTD", "YTD"].forEach((k) => {
+      const refD = refMap[k];
+      if (!refD) {
+        hK += "<tr><td>" + k + "</td>";
+        for (let i = 0; i < ktbPairs; i++) hK += "<td>—</td>";
+        hK += "</tr>";
+      } else hK += ktbRowHtml(k, d0, true, refD, false);
+    });
+    // YTD 밑: MTD/YTD 기준점 일자의 실제 데이터(비-변동) — 구분 열에는 yy/mm/dd만 표시
+    if (dMtd) hK += ktbRowHtml(fmtShortYmd(dMtd), dMtd, false, null, false);
+    if (dYtd) hK += ktbRowHtml(fmtShortYmd(dYtd), dYtd, false, null, false);
+    histDates.forEach((d) => { hK += ktbRowHtml(fmtShortYmd(d), d, false, null, true, d === d0); });
+    hK += "</tbody></table>";
+    ratesTableKtbWrap.innerHTML = hK;
+
+    let hY = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + creditCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
+    RATES_CREDIT_LINES.forEach((line) => {
+      hY += "<th colspan=\"" + RATES_CREDIT_TENORS.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "<br><span style=\"font-size:0.78em;font-weight:500;opacity:0.85\">(일자별 % · DTD/MTD/YTD bp)</span></th>";
+    });
+    hY += "</tr><tr>";
+    RATES_CREDIT_LINES.forEach(() => {
+      RATES_CREDIT_TENORS.forEach((ty) => { hY += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
+    });
+    hY += "</tr></thead><tbody>";
+    if (customRefD) hY += creditYldCustomRowHtml(customRefD);
+    ["DTD", "MTD", "YTD"].forEach((k) => {
+      const refD = refMap[k];
+      if (!refD) {
+        hY += "<tr><td>" + k + "</td>";
+        for (let i = 0; i < creditCols; i++) hY += "<td>—</td>";
+        hY += "</tr>";
+      } else hY += creditYldRowHtml(k, d0, true, refD, false);
+    });
+    if (dMtd) hY += creditYldRowHtml(fmtShortYmd(dMtd), dMtd, false, null, false);
+    if (dYtd) hY += creditYldRowHtml(fmtShortYmd(dYtd), dYtd, false, null, false);
+    histDates.forEach((d) => { hY += creditYldRowHtml(fmtShortYmd(d), d, false, null, true, d === d0); });
+    hY += "</tbody></table>";
+    ratesTableCreditYldWrap.innerHTML = hY;
+
+    let hS = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + creditCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
+    RATES_CREDIT_LINES.forEach((line) => {
+      hS += "<th colspan=\"" + RATES_CREDIT_TENORS.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
+    });
+    hS += "</tr><tr>";
+    RATES_CREDIT_LINES.forEach(() => {
+      RATES_CREDIT_TENORS.forEach((ty) => { hS += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
+    });
+    hS += "</tr></thead><tbody>";
+    if (customRefD) hS += creditSprCustomRowHtml(customRefD);
+    ["DTD", "MTD", "YTD"].forEach((k) => {
+      const refD = refMap[k];
+      if (!refD) {
+        hS += "<tr><td>" + k + "</td>";
+        for (let i = 0; i < creditCols; i++) hS += "<td>—</td>";
+        hS += "</tr>";
+      } else hS += creditSprRowHtml(k, d0, true, refD, false);
+    });
+    if (dMtd) hS += creditSprRowHtml(fmtShortYmd(dMtd), dMtd, false, null, false);
+    if (dYtd) hS += creditSprRowHtml(fmtShortYmd(dYtd), dYtd, false, null, false);
+    histDates.forEach((d) => { hS += creditSprRowHtml(fmtShortYmd(d), d, false, null, true, d === d0); });
+    hS += "</tbody></table>";
+    ratesTableCreditSprWrap.innerHTML = hS;
+
+    const slopeCols = RATES_CREDIT_LINES.length * RATES_SPREAD_SLOPE_PAIRS.length;
+    let hP = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + slopeCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
+    RATES_CREDIT_LINES.forEach((line) => {
+      hP += "<th colspan=\"" + RATES_SPREAD_SLOPE_PAIRS.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
+    });
+    hP += "</tr><tr>";
+    RATES_CREDIT_LINES.forEach(() => {
+      RATES_SPREAD_SLOPE_PAIRS.forEach(([a, b]) => {
+        const la = a === 2.5 ? "2.5" : String(a);
+        const lb = b === 2.5 ? "2.5" : String(b);
+        hP += "<th>" + la + "/" + lb + "</th>";
+      });
+    });
+    hP += "</tr></thead><tbody>";
+    if (customRefD) hP += creditSlopeCustomRowHtml(customRefD);
+    ["DTD", "MTD", "YTD"].forEach((k) => {
+      const refD = refMap[k];
+      if (!refD) {
+        hP += "<tr><td>" + k + "</td>";
+        for (let i = 0; i < slopeCols; i++) hP += "<td>—</td>";
+        hP += "</tr>";
+      } else hP += creditSlopeRowHtml(k, d0, true, refD, false);
+    });
+    if (dMtd) hP += creditSlopeRowHtml(fmtShortYmd(dMtd), dMtd, false, null, false);
+    if (dYtd) hP += creditSlopeRowHtml(fmtShortYmd(dYtd), dYtd, false, null, false);
+    histDates.forEach((d) => { hP += creditSlopeRowHtml(fmtShortYmd(d), d, false, null, true, d === d0); });
+    hP += "</tbody></table>";
+    ratesTableCreditSlopeWrap.innerHTML = hP;
+  }
+
+  /** CSV 재수신 후 차트·금리 표만 갱신(날짜/종목 선택·리스너는 건드리지 않음) */
+  function finalizeMarketDataAfterCsvParse() {
+    if (!rawRows.length) {
+      dates = [];
+      instruments = [];
+      rebuildDateYieldMap();
+      issuesByDate = new Map();
+      if (asOfDate) asOfDate.textContent = "기준일: —";
+      if (asOfFileDate) asOfFileDate.textContent = "파일 최신일: —";
+      dataStatus.textContent = "행 없음";
+      render();
+      render2();
+      renderRatesAnalysis();
+      return Promise.resolve();
+    }
+    const instSet = new Set();
+    const dateSet = new Set();
+    rawRows.forEach((r) => {
+      const i = (r.instrument || "").trim();
+      const d = (r.date || "").trim();
+      if (i) instSet.add(i);
+      if (d) dateSet.add(d);
+    });
+    instruments = sortInstruments(instSet);
+    dates = Array.from(dateSet).sort();
+    rebuildDateYieldMap();
+    const fallbackYear = dates.length ? parseInt(String(dates[dates.length - 1]).slice(0, 4), 10) : NaN;
+    return fetchCsvNoCache(ISSUES_PATH)
+      .then((r2) => {
+        if (!r2.ok) throw new Error("이슈 파일을 불러올 수 없습니다: " + ISSUES_PATH);
+        return r2.text();
+      })
+      .then((txt) => {
+        issuesByDate = buildIssuesMap(txt, fallbackYear);
+        const issueCount = Array.from(issuesByDate.values()).reduce((a, b) => a + b.length, 0);
+        dataStatus.textContent = "일자 " + dates.length + "일, 종목 " + instruments.length + "개, 이슈 " + issueCount + "건";
+        render();
+        render2();
+        renderRatesAnalysis();
+      })
+      .catch(() => {
+        issuesByDate = new Map();
+        dataStatus.textContent = "일자 " + dates.length + "일, 종목 " + instruments.length + "개";
+        render();
+        render2();
+        renderRatesAnalysis();
+      });
+  }
+
+  let marketCsvRefreshInFlight = false;
+  let marketCsvRefreshPending = false;
+  function refreshMarketCsvFromServer() {
+    if (marketCsvRefreshInFlight) {
+      marketCsvRefreshPending = true;
+      return;
+    }
+    marketCsvRefreshInFlight = true;
+    fetchCsvNoCache(CSV_PATH)
+      .then((r) => {
+        if (!r.ok) throw new Error("파일을 불러올 수 없습니다: " + CSV_PATH);
+        return r.text();
+      })
+      .then((text) => {
+        rawRows = parseCsv(text);
+        return finalizeMarketDataAfterCsvParse();
+      })
+      .catch((err) => {
+        console.warn("[market_db.csv]", err);
+      })
+      .finally(() => {
+        marketCsvRefreshInFlight = false;
+        if (marketCsvRefreshPending) {
+          marketCsvRefreshPending = false;
+          refreshMarketCsvFromServer();
+        }
+      });
+  }
+
+  const MARKET_CSV_POLL_MS = 90 * 1000;
+
   function loadData() {
     dataStatus.textContent = "불러오는 중…";
+    if (asOfDate) asOfDate.textContent = "기준일: —";
+    if (asOfFileDate) asOfFileDate.textContent = "파일 최신일: —";
     chartError.style.display = "none";
-    fetch(CSV_PATH)
+    return fetchCsvNoCache(CSV_PATH)
       .then(r => {
         if (!r.ok) throw new Error("파일을 불러올 수 없습니다: " + CSV_PATH);
         return r.text();
@@ -216,6 +2851,8 @@
         rawRows = parseCsv(text);
         if (!rawRows.length) {
           dataStatus.textContent = "행 없음";
+          if (asOfDate) asOfDate.textContent = "기준일: —";
+          if (asOfFileDate) asOfFileDate.textContent = "파일 최신일: —";
           return;
         }
         const instSet = new Set();
@@ -228,6 +2865,28 @@
         });
         instruments = sortInstruments(instSet);
         dates = Array.from(dateSet).sort();
+        rebuildDateYieldMap();
+        const fallbackYear = dates.length ? parseInt(String(dates[dates.length - 1]).slice(0, 4), 10) : NaN;
+        fetchCsvNoCache(ISSUES_PATH)
+          .then((r2) => {
+            if (!r2.ok) throw new Error("이슈 파일을 불러올 수 없습니다: " + ISSUES_PATH);
+            return r2.text();
+          })
+          .then((txt) => {
+            issuesByDate = buildIssuesMap(txt, fallbackYear);
+            const issueCount = Array.from(issuesByDate.values()).reduce((a, b) => a + b.length, 0);
+            dataStatus.textContent = "일자 " + dates.length + "일, 종목 " + instruments.length + "개, 이슈 " + issueCount + "건";
+            render();
+            render2();
+            renderRatesAnalysis();
+          })
+          .catch(() => {
+            issuesByDate = new Map();
+            dataStatus.textContent = "일자 " + dates.length + "일, 종목 " + instruments.length + "개";
+            render();
+            render2();
+            renderRatesAnalysis();
+          });
 
         const dMin = dates[0], dMax = dates[dates.length - 1];
         if (dMin) startDate.value = dMin;
@@ -235,29 +2894,70 @@
 
         fillSelect(line1Inst, ["기준금리"].filter(i => instSet.has(i)), null);
         const l1Tenors = getTenorsForInstrument("기준금리");
-        fillSelect(line1Tenor, l1Tenors.length ? l1Tenors : [1], tenorLabel);
+        fillSelect(line1Tenor, l1Tenors.length ? l1Tenors : [1], (t) => tenorLabel(t, "기준금리"));
 
         fillSelect(line2Inst, instruments, null);
         fillSelect(line3Inst, instruments, null);
-        if (instruments.includes("국고채")) line2Inst.value = "국고채";
-        if (instruments.includes("은행채")) line3Inst.value = "은행채";
+        if (instruments.includes("국고채")) {
+          line2Inst.value = "국고채";
+          line3Inst.value = "국고채";
+        }
         function updateLine2Tenor() {
           const tenors = getTenorsForInstrument(line2Inst.value);
-          fillSelect(line2Tenor, tenors.length ? tenors : [1], tenorLabel);
+          fillSelect(line2Tenor, tenors.length ? tenors : [1], (t) => tenorLabel(t, line2Inst.value));
         }
         function updateLine3Tenor() {
           const tenors = getTenorsForInstrument(line3Inst.value);
-          fillSelect(line3Tenor, tenors.length ? tenors : [1], tenorLabel);
+          fillSelect(line3Tenor, tenors.length ? tenors : [1], (t) => tenorLabel(t, line3Inst.value));
         }
         line2Inst.addEventListener("change", updateLine2Tenor);
         line3Inst.addEventListener("change", updateLine3Tenor);
         updateLine2Tenor();
         updateLine3Tenor();
+        // 기본값: 라인2 = 국고채 3Y, 라인3 = 국고채 10Y
+        if (line2Inst.value === "국고채") {
+          if ([...line2Tenor.options].some(o => o.value === "3")) line2Tenor.value = "3";
+        }
+        if (line3Inst.value === "국고채") {
+          if ([...line3Tenor.options].some(o => o.value === "10")) line3Tenor.value = "10";
+        }
+
+        fillSelect(line1Inst_2, ["기준금리"].filter(i => instSet.has(i)), null);
+        const l1Tenors_2 = getTenorsForInstrument("기준금리");
+        fillSelect(line1Tenor_2, l1Tenors_2.length ? l1Tenors_2 : [1], (t) => tenorLabel(t, "기준금리"));
+        fillSelect(line2Inst_2, instruments, null);
+        fillSelect(line3Inst_2, instruments, null);
+        if (instruments.includes("국고채")) {
+          line2Inst_2.value = "국고채";
+          line3Inst_2.value = "국고채";
+        }
+        function updateLine2Tenor_2() {
+          const tenors = getTenorsForInstrument(line2Inst_2.value);
+          fillSelect(line2Tenor_2, tenors.length ? tenors : [1], (t) => tenorLabel(t, line2Inst_2.value));
+        }
+        function updateLine3Tenor_2() {
+          const tenors = getTenorsForInstrument(line3Inst_2.value);
+          fillSelect(line3Tenor_2, tenors.length ? tenors : [1], (t) => tenorLabel(t, line3Inst_2.value));
+        }
+        line2Inst_2.addEventListener("change", updateLine2Tenor_2);
+        line3Inst_2.addEventListener("change", updateLine3Tenor_2);
+        updateLine2Tenor_2();
+        updateLine3Tenor_2();
+        if (line2Inst_2.value === "국고채") {
+          if ([...line2Tenor_2.options].some(o => o.value === "3")) line2Tenor_2.value = "3";
+        }
+        if (line3Inst_2.value === "국고채") {
+          if ([...line3Tenor_2.options].some(o => o.value === "10")) line3Tenor_2.value = "10";
+        }
+        if (dMin) startDate_2.value = dMin;
+        if (dMax) endDate_2.value = dMax;
 
         dataStatus.textContent = "일자 " + dates.length + "일, 종목 " + instruments.length + "개";
-        render();
+        renderRatesAnalysis();
       })
       .catch(err => {
+        if (asOfDate) asOfDate.textContent = "기준일: —";
+        if (asOfFileDate) asOfFileDate.textContent = "파일 최신일: —";
         dataStatus.textContent = "오류";
         chartError.textContent = err.message || "오류 발생";
         chartError.style.display = "block";
@@ -277,6 +2977,7 @@
         xaxis: { title: "Date", gridcolor: "rgba(255,255,255,0.08)", zeroline: false },
         yaxis: { title: "Yield", gridcolor: "rgba(255,255,255,0.08)", zerolinecolor: "rgba(255,255,255,0.12)" },
       });
+      updateHeaderAsOfDate(start, end, (startDate_2.value || "").trim() || dates[0], (endDate_2.value || "").trim() || dates[dates.length - 1]);
       return;
     }
 
@@ -284,12 +2985,15 @@
     const s2 = { inst: line2Inst, ten: line2Tenor };
     const s3 = { inst: line3Inst, ten: line3Tenor };
 
-    const f1 = s1 ? pickFiltered(s1.inst.value, s1.ten.value) : [];
-    const f2 = s2 ? pickFiltered(s2.inst.value, s2.ten.value) : [];
-    const f3 = s3 ? pickFiltered(s3.inst.value, s3.ten.value) : [];
+    let f1 = s1 ? pickFiltered(s1.inst.value, s1.ten.value) : [];
+    let f2 = s2 ? pickFiltered(s2.inst.value, s2.ten.value) : [];
+    let f3 = s3 ? pickFiltered(s3.inst.value, s3.ten.value) : [];
+    f1 = filterPointsByRange(f1, start, end);
+    f2 = filterPointsByRange(f2, start, end);
+    f3 = filterPointsByRange(f3, start, end);
 
     const traces = [];
-
+    let spreadTrace = null;
     if (f2.length && f3.length) {
       const map3 = new Map(f3.map(p => [p.d, p.y]));
       const spread = [];
@@ -298,52 +3002,62 @@
           spread.push({ d: p2.d, y: map3.get(p2.d) - p2.y });
         }
       });
-      const label2 = `${s2.inst.value} ${tenorLabel(s2.ten.value)}`;
-      const label3 = `${s3.inst.value} ${tenorLabel(s3.ten.value)}`;
-      traces.push({
+      const label2 = `${s2.inst.value} ${tenorLabel(s2.ten.value, s2.inst.value)}`;
+      const label3 = `${s3.inst.value} ${tenorLabel(s3.ten.value, s3.inst.value)}`;
+      spreadTrace = {
         x: spread.map(p => p.d),
         y: spread.map(p => p.y),
-        type: "bar",
+        type: "scatter",
+        mode: "lines",
+        fill: "tozeroy",
         name: `Spread (${label3} - ${label2})`,
         yaxis: "y2",
-        marker: { color: "#3b82f6", line: { width: 0 } },
-        width: 0.85,
-        base: 0,
-      });
+        line: { color: "rgba(59,130,246,0.8)", width: 1 },
+        fillcolor: "rgba(59,130,246,0.45)",
+        hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}<extra></extra>",
+      };
     }
 
     if (f1.length) {
+      const x1 = f1.map(p => p.d);
       traces.push({
-        x: f1.map(p => p.d),
+        x: x1,
         y: f1.map(p => p.y),
         type: "scatter",
         mode: "lines",
-        name: `기준금리 ${tenorLabel(s1.ten.value)}`,
-        line: { color: "#7dd3fc", width: 1, shape: "hv" },
+        name: `기준금리 ${tenorLabel(s1.ten.value, s1.inst.value)}`,
+        line: { color: "#ffffff", width: 2, shape: "hv" },
+        customdata: traceCustomData(x1),
+        hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>",
       });
     }
     if (f2.length) {
+      const x2 = f2.map(p => p.d);
       traces.push({
-        x: f2.map(p => p.d),
+        x: x2,
         y: f2.map(p => p.y),
         type: "scatter",
-        mode: "lines+markers",
-        name: s2.inst.value + " " + tenorLabel(s2.ten.value),
+        mode: "lines",
+        name: s2.inst.value + " " + tenorLabel(s2.ten.value, s2.inst.value),
         line: { color: "#22c55e", width: 1 },
-        marker: { size: 3, color: "#22c55e" },
+        customdata: traceCustomData(x2),
+        hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>",
       });
     }
     if (f3.length) {
+      const x3 = f3.map(p => p.d);
       traces.push({
-        x: f3.map(p => p.d),
+        x: x3,
         y: f3.map(p => p.y),
         type: "scatter",
-        mode: "lines+markers",
-        name: s3.inst.value + " " + tenorLabel(s3.ten.value),
+        mode: "lines",
+        name: s3.inst.value + " " + tenorLabel(s3.ten.value, s3.inst.value),
         line: { color: "#eab308", width: 1 },
-        marker: { size: 3, color: "#eab308" },
+        customdata: traceCustomData(x3),
+        hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>",
       });
     }
+    if (spreadTrace) traces.push(spreadTrace);
 
     const layout = {
       margin: { l: 55, r: 50, t: 18, b: 45 },
@@ -351,8 +3065,11 @@
       plot_bgcolor: "#0e1117",
       bargap: 0.05,
       font: { color: "#fff", family: "Malgun Gothic, Segoe UI, sans-serif" },
+      hoverlabel: { align: "left" },
       xaxis: {
         title: "Date",
+        type: "date",
+        hoverformat: "%Y-%m-%d",
         gridcolor: "rgba(255,255,255,0.08)",
         zeroline: false,
         linecolor: "rgba(255,255,255,0.15)",
@@ -360,10 +3077,10 @@
       },
       yaxis: {
         title: "Yield",
-        gridcolor: "rgba(255,255,255,0.08)",
-        zerolinecolor: "rgba(255,255,255,0.12)",
-        linecolor: "rgba(255,255,255,0.15)",
-        linewidth: 1,
+        gridcolor: "rgba(255,255,255,0.14)",
+        zerolinecolor: "rgba(255,255,255,0.3)",
+        linecolor: "rgba(255,255,255,0.6)",
+        linewidth: 1.5,
         rangemode: "normal",
         tickfont: { color: "#fff" },
       },
@@ -371,14 +3088,14 @@
         title: "Spread",
         overlaying: "y",
         side: "right",
-        gridcolor: "rgba(255,255,255,0.05)",
+        gridcolor: "rgba(59,130,246,0.25)",   // blue-ish grid for secondary axis
         zeroline: true,
-        zerolinecolor: "rgba(255,255,255,0.15)",
+        zerolinecolor: "rgba(59,130,246,0.7)",
         zerolinewidth: 1,
-        linecolor: "rgba(255,255,255,0.1)",
+        linecolor: "rgba(59,130,246,0.9)",
         linewidth: 1,
         rangemode: "normal",
-        tickfont: { color: "#fff" },
+        tickfont: { color: "#93c5fd" },
       },
       legend: {
         x: 1, y: 1, xanchor: "right",
@@ -403,6 +3120,83 @@
     }
 
     Plotly.react(chartDiv, traces, layout, { responsive: true });
+    updateHeaderAsOfDate(start, end, (startDate_2.value || "").trim() || dates[0], (endDate_2.value || "").trim() || dates[dates.length - 1]);
+  }
+
+  function render2() {
+    const start = (startDate_2.value || "").trim() || dates[0];
+    const end = (endDate_2.value || "").trim() || dates[dates.length - 1];
+    const dateFilter = dates.filter(d => d >= start && d <= end);
+    if (!dateFilter.length) {
+      Plotly.react(chartDiv2, [], {
+        margin: { l: 55, r: 50, t: 18, b: 45 },
+        paper_bgcolor: "#0e1117",
+        plot_bgcolor: "#0e1117",
+        font: { color: "#fff" },
+        xaxis: { title: "Date", gridcolor: "rgba(255,255,255,0.08)", zeroline: false },
+        yaxis: { title: "Yield", gridcolor: "rgba(255,255,255,0.08)", zerolinecolor: "rgba(255,255,255,0.12)" },
+      });
+      updateHeaderAsOfDate((startDate.value || "").trim() || dates[0], (endDate.value || "").trim() || dates[dates.length - 1], start, end);
+      return;
+    }
+    const s1 = { inst: line1Inst_2, ten: line1Tenor_2 };
+    const s2 = { inst: line2Inst_2, ten: line2Tenor_2 };
+    const s3 = { inst: line3Inst_2, ten: line3Tenor_2 };
+    let f1 = s1 ? pickFiltered(s1.inst.value, s1.ten.value) : [];
+    let f2 = s2 ? pickFiltered(s2.inst.value, s2.ten.value) : [];
+    let f3 = s3 ? pickFiltered(s3.inst.value, s3.ten.value) : [];
+    f1 = filterPointsByRange(f1, start, end);
+    f2 = filterPointsByRange(f2, start, end);
+    f3 = filterPointsByRange(f3, start, end);
+    const traces = [];
+    let spreadTrace = null;
+    if (f2.length && f3.length) {
+      const map3 = new Map(f3.map(p => [p.d, p.y]));
+      const spread = [];
+      f2.forEach(p2 => {
+        if (map3.has(p2.d)) spread.push({ d: p2.d, y: map3.get(p2.d) - p2.y });
+      });
+      const label2 = `${s2.inst.value} ${tenorLabel(s2.ten.value, s2.inst.value)}`;
+      const label3 = `${s3.inst.value} ${tenorLabel(s3.ten.value, s3.inst.value)}`;
+      spreadTrace = {
+        x: spread.map(p => p.d), y: spread.map(p => p.y), type: "scatter", mode: "lines", fill: "tozeroy",
+        name: `Spread (${label3} - ${label2})`, yaxis: "y2",
+        line: { color: "rgba(59,130,246,0.8)", width: 1 }, fillcolor: "rgba(59,130,246,0.45)",
+        hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}<extra></extra>",
+      };
+    }
+    if (f1.length) {
+      const x1 = f1.map(p => p.d);
+      traces.push({ x: x1, y: f1.map(p => p.y), type: "scatter", mode: "lines", name: `기준금리 ${tenorLabel(s1.ten.value, s1.inst.value)}`, line: { color: "#ffffff", width: 2, shape: "hv" }, customdata: traceCustomData(x1), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
+    }
+    if (f2.length) {
+      const x2 = f2.map(p => p.d);
+      traces.push({ x: x2, y: f2.map(p => p.y), type: "scatter", mode: "lines", name: s2.inst.value + " " + tenorLabel(s2.ten.value, s2.inst.value), line: { color: "#22c55e", width: 1 }, customdata: traceCustomData(x2), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
+    }
+    if (f3.length) {
+      const x3 = f3.map(p => p.d);
+      traces.push({ x: x3, y: f3.map(p => p.y), type: "scatter", mode: "lines", name: s3.inst.value + " " + tenorLabel(s3.ten.value, s3.inst.value), line: { color: "#eab308", width: 1 }, customdata: traceCustomData(x3), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
+    }
+    if (spreadTrace) traces.push(spreadTrace);
+    const layout = {
+      margin: { l: 55, r: 50, t: 18, b: 45 },
+      paper_bgcolor: "#0e1117", plot_bgcolor: "#0e1117", bargap: 0.05,
+      font: { color: "#fff", family: "Malgun Gothic, Segoe UI, sans-serif" },
+      hoverlabel: { align: "left" },
+      xaxis: { title: "Date", type: "date", hoverformat: "%Y-%m-%d", gridcolor: "rgba(255,255,255,0.08)", zeroline: false, linecolor: "rgba(255,255,255,0.15)", tickfont: { color: "#fff" } },
+      yaxis: { title: "Yield", gridcolor: "rgba(255,255,255,0.14)", zerolinecolor: "rgba(255,255,255,0.3)", linecolor: "rgba(255,255,255,0.6)", linewidth: 1.5, rangemode: "normal", tickfont: { color: "#fff" } },
+      yaxis2: { title: "Spread", overlaying: "y", side: "right", gridcolor: "rgba(59,130,246,0.25)", zeroline: true, zerolinecolor: "rgba(59,130,246,0.7)", zerolinewidth: 1, linecolor: "rgba(59,130,246,0.9)", linewidth: 1, rangemode: "normal", tickfont: { color: "#93c5fd" } },
+      legend: { x: 1, y: 1, xanchor: "right", bgcolor: "rgba(0,0,0,0.5)", font: { color: "#fff" } },
+    };
+    const yMinVal = parseFloat(yMin_2.value, 10);
+    const yMaxVal = parseFloat(yMax_2.value, 10);
+    if (!Number.isNaN(yMinVal) || !Number.isNaN(yMaxVal)) layout.yaxis.range = [Number.isNaN(yMinVal) ? undefined : yMinVal, Number.isNaN(yMaxVal) ? undefined : yMaxVal];
+    const y2MinVal = parseFloat(y2Min_2.value, 10);
+    const y2MaxVal = parseFloat(y2Max_2.value, 10);
+    if (!Number.isNaN(y2MinVal) || !Number.isNaN(y2MaxVal)) layout.yaxis2.range = [Number.isNaN(y2MinVal) ? undefined : y2MinVal, Number.isNaN(y2MaxVal) ? undefined : y2MaxVal];
+    if (traces.length === 0) layout.annotations = [{ x: 0.5, y: 0.5, text: "표시할 데이터 없음", showarrow: false, font: { size: 14, color: "#fff" } }];
+    Plotly.react(chartDiv2, traces, layout, { responsive: true });
+    updateHeaderAsOfDate((startDate.value || "").trim() || dates[0], (endDate.value || "").trim() || dates[dates.length - 1], start, end);
   }
 
   document.getElementById("btnDraw").addEventListener("click", render);
@@ -410,13 +3204,123 @@
     yMin.value = yMax.value = y2Min.value = y2Max.value = "";
     render();
   });
+  document.getElementById("btnDraw_2").addEventListener("click", render2);
+  document.getElementById("btnAutoAxis_2").addEventListener("click", () => {
+    yMin_2.value = yMax_2.value = y2Min_2.value = y2Max_2.value = "";
+    render2();
+  });
 
   [line1Inst, line1Tenor, line2Inst, line2Tenor, line3Inst, line3Tenor, yMin, yMax, y2Min, y2Max, startDate, endDate].forEach(el => {
     if (el) el.addEventListener("change", render);
     if (el && el.type !== "number") el.addEventListener("input", render);
   });
+  [line1Inst_2, line1Tenor_2, line2Inst_2, line2Tenor_2, line3Inst_2, line3Tenor_2, yMin_2, yMax_2, y2Min_2, y2Max_2, startDate_2, endDate_2].forEach(el => {
+    if (el) el.addEventListener("change", render2);
+    if (el && el.type !== "number") el.addEventListener("input", render2);
+  });
 
-  loadData();
+  function applyHashPage() {
+    const h = (location.hash || "#spread").slice(1);
+    if (h === "fund") setPage("fund");
+    else if (h === "rates") setPage("rates");
+    else if (h === "term") setPage("term");
+    else setPage("spread");
+  }
+  window.addEventListener("hashchange", applyHashPage);
+  /** 같은 해시(#rates 등)를 다시 눌렀을 때는 hashchange가 없어 탭 전환·CSV 갱신이 안 되므로 직접 처리 */
+  function pageKeyFromHashHref(href) {
+    const slug = (href || "").replace(/^#/, "") || "spread";
+    if (slug === "fund") return "fund";
+    if (slug === "rates") return "rates";
+    if (slug === "term") return "term";
+    if (slug === "spread") return "spread";
+    return null;
+  }
+  document.addEventListener("click", (e) => {
+    const a = e.target && e.target.closest && e.target.closest('a[href^="#"]');
+    if (!a) return;
+    const raw = a.getAttribute("href");
+    if (!raw || raw[0] !== "#") return;
+    const key = pageKeyFromHashHref(raw);
+    if (!key) return;
+    const cur = location.hash || "#spread";
+    if (raw !== cur) return;
+    e.preventDefault();
+    setPage(key);
+  });
+
+  if (pageTermEl) {
+    pageTermEl.addEventListener("change", (e) => {
+      const t = e.target;
+      if (t && t.matches && t.matches('input[name="termCpRating"], input[name="termCpCategory"], input[name="termBondRating"], input[name="termBondCategory"]')) {
+        if (termTableRows.length) renderTermStructureTables();
+      }
+    });
+  }
+
+  if (fundSummaryOuter) {
+    function onFundMetricsAsOfChange(e) {
+      if (e.target && (e.target.id === "fundMetricsAsOfInput" || e.target.id === "fundMetricsAsOfDateInput")) renderFundSummaryTables();
+    }
+    fundSummaryOuter.addEventListener("change", onFundMetricsAsOfChange);
+    fundSummaryOuter.addEventListener("input", onFundMetricsAsOfChange);
+  }
+
+  document.getElementById("btnDrawFund").addEventListener("click", renderFundChart);
+  document.getElementById("btnFundAutoAxis").addEventListener("click", () => {
+    fundYMin.value = fundYMax.value = "";
+    renderFundChart();
+  });
+  [fundChartMode, fundStartDate, fundEndDate, fundYMin, fundYMax].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("change", renderFundChart);
+    if (el.tagName !== "SELECT") el.addEventListener("input", renderFundChart);
+  });
+  if (fundStartDate && fundCompareStartDate) {
+    function syncCompareStartFromChart() {
+      const v = (fundStartDate.value || "").trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) fundCompareStartDate.value = v;
+    }
+    function onCompareStartChange() {
+      const v = (fundCompareStartDate.value || "").trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) fundStartDate.value = v;
+      renderFundChart();
+      renderFundCompareTable();
+    }
+    fundStartDate.addEventListener("change", syncCompareStartFromChart);
+    fundStartDate.addEventListener("input", syncCompareStartFromChart);
+    fundCompareStartDate.addEventListener("change", onCompareStartChange);
+    fundCompareStartDate.addEventListener("input", onCompareStartChange);
+  }
+  fundList.addEventListener("change", (e) => {
+    if (e.target && e.target.matches && e.target.matches("input[type=checkbox]")) {
+      renderFundChart();
+      renderFundCompareTable();
+    }
+  });
+
+  if (ratesHistoryDaysInput) {
+    ratesHistoryDaysInput.addEventListener("change", renderRatesAnalysis);
+    ratesHistoryDaysInput.addEventListener("input", renderRatesAnalysis);
+  }
+
+  // 커스텀 기준일(전역 입력) 변경 시 전체 다시 계산
+  if (ratesCustomDiffDateInput) {
+    function onRatesCustomDiffDateChange() {
+      ratesCustomDiffDate = (ratesCustomDiffDateInput.value || "").trim();
+      renderRatesAnalysis();
+    }
+    ratesCustomDiffDateInput.addEventListener("change", onRatesCustomDiffDateChange);
+    ratesCustomDiffDateInput.addEventListener("input", onRatesCustomDiffDateChange);
+  }
+
+  setInterval(refreshMarketCsvFromServer, MARKET_CSV_POLL_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshMarketCsvFromServer();
+  });
+
+  applyHashPage();
+  loadData().finally(() => applyHashPage());
 })();
   </script>
 </body>
