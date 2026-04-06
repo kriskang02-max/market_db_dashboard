@@ -187,8 +187,10 @@
     .rates-analysis-outer .rates-block { margin-bottom: 1.75rem; }
     .rates-analysis-outer .rates-block h3 { margin: 0 0 0.5rem; font-size: 1rem; font-weight: 600; color: rgba(255,255,255,0.92); }
     .rates-table-wrap {
-      overflow-x: auto; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-      display: flex; justify-content: center;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
     }
     .rates-analysis-table {
       border-collapse: collapse;
@@ -236,6 +238,29 @@
       box-shadow: inset 3px 0 0 rgba(147, 197, 253, 0.95);
       font-weight: 700;
       color: #fff;
+    }
+    /* 가로 스크롤 시 첫 열(구분·일자) 고정 — 스크롤은 .rates-table-wrap 기준 */
+    .rates-table-wrap .rates-analysis-table > thead > tr > th:first-child,
+    .rates-table-wrap .rates-analysis-table > tbody > tr > td:first-child {
+      position: sticky;
+      left: 0;
+    }
+    .rates-table-wrap .rates-analysis-table > thead > tr > th:first-child {
+      z-index: 4;
+      background: rgba(22, 33, 62, 0.99) !important;
+      box-shadow: 6px 0 12px -4px rgba(0, 0, 0, 0.55);
+    }
+    .rates-table-wrap .rates-analysis-table > tbody > tr > td:first-child {
+      z-index: 2;
+      background: rgba(14, 17, 23, 0.99);
+      box-shadow: 6px 0 12px -5px rgba(0, 0, 0, 0.5);
+    }
+    .rates-table-wrap .rates-analysis-table > tbody > tr.rates-table-row--history > td:first-child {
+      background: rgba(40, 38, 34, 0.99);
+    }
+    .rates-table-wrap .rates-analysis-table > tbody > tr.rates-table-row--history.rates-table-row--latest > td:first-child {
+      background: rgba(28, 48, 92, 0.99);
+      box-shadow: inset 3px 0 0 rgba(147, 197, 253, 0.95), 6px 0 12px -5px rgba(0, 0, 0, 0.5);
     }
     .rates-cell--neg { color: #f87171 !important; }
     .rates-analysis-note {
