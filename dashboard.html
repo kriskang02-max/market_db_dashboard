@@ -85,17 +85,14 @@
     .page-nav__sep { margin: 0 0.15rem; opacity: 0.35; user-select: none; color: rgba(255, 255, 255, 0.5); }
     .page-meta { margin-top: 0.5rem; }
     .page-meta[hidden] { display: none !important; }
-    .page-jump {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      margin-bottom: 0.85rem; padding: 0.45rem 0.75rem;
-      background: rgba(59, 130, 246, 0.18);
-      border: 1px solid rgba(59, 130, 246, 0.45);
-      border-radius: 10px; font-size: 0.9rem;
+    .spread-header-asof__line {
+      margin: 0.35rem 0 0;
+      font-size: 0.78rem;
+      line-height: 1.35;
+      opacity: 0.9;
+      color: rgba(255, 255, 255, 0.88);
     }
-    .page-jump a { color: #bfdbfe; font-weight: 700; text-decoration: none; }
-    .page-jump a:hover { color: #fff; text-decoration: underline; }
-    .page-jump--muted { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
-    .page-jump--muted a { color: #93c5fd; }
+    .spread-header-asof__sep { opacity: 0.45; padding: 0 0.1rem; }
     .fund-summary-outer { padding: 0 1rem 1rem; overflow-x: auto; background: #1a1a2e; }
     .fund-summary__title { font-size: 1.05rem; margin: 0; color: rgba(255,255,255,0.95); font-weight: 600; }
     .fund-summary__title--sub { margin-top: 1.35rem; }
@@ -105,6 +102,7 @@
     }
     .fund-summary__asof-inline { font-size: 0.88rem; color: rgba(255,255,255,0.82); font-weight: 600; white-space: nowrap; }
     .fund-summary__note { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin: 0 0 0.65rem; }
+    #fundSummaryNote.fund-summary__note--compact { font-size: 0.68rem; line-height: 1.4; }
     .fund-range-toolbar {
       display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem 0.75rem;
       margin: 0 0 0.65rem; padding: 0.4rem 0.55rem;
@@ -263,15 +261,16 @@
       box-shadow: inset 3px 0 0 rgba(147, 197, 253, 0.95), 6px 0 12px -5px rgba(0, 0, 0, 0.5);
     }
     .rates-cell--neg { color: #f87171 !important; }
-    .rates-analysis-note {
-      font-size: 0.75rem; color: rgba(255,255,255,0.45); margin: 0 0 1rem; line-height: 1.45;
-      white-space: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
+    .rates-inline-note {
+      font-size: 0.68rem;
+      color: rgba(255, 255, 255, 0.42);
+      margin: 0 0 0.75rem;
+      line-height: 1.4;
       width: 100%;
       max-width: 100%;
       box-sizing: border-box;
     }
+    .rates-inline-note__sep { opacity: 0.5; padding: 0 0.15rem; }
     .rates-history-toolbar {
       display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1rem;
       margin: 0 0 1rem; padding: 0.55rem 0.75rem;
@@ -402,7 +401,7 @@
     }
     .term-structure-block { margin-bottom: 2rem; }
     .term-structure-block > h3 { margin: 0 0 0.45rem; font-size: 1.05rem; font-weight: 600; color: rgba(255,255,255,0.92); }
-    .term-structure-hint { font-size: 0.78rem; color: rgba(255,255,255,0.5); margin: 0 0 0.65rem; line-height: 1.45; max-width: 52rem; }
+    #termStructureStatus.term-structure-load-msg { font-size: 0.68rem; color: #f87171; margin-bottom: 0.5rem !important; }
     .term-rating-bar {
       display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem;
       margin: 0 0 0.75rem; padding: 0.45rem 0.55rem;
@@ -467,11 +466,13 @@
       <span class="page-nav__sep" aria-hidden="true">|</span>
       <a href="#term" class="page-nav__link" id="navTerm">Term Structure</a>
     </nav>
-    <div id="spreadHeaderMeta" class="page-meta">
-      <p>기준금리 + 라인2/라인3 금리 및 스프레드(라인3−라인2) 조회</p>
-      <p id="asOfDate" style="margin:0.5rem 0 0; font-size:0.95rem; opacity:0.95;"
-         title="세 라인 모두 값이 있는 날짜 중 가장 늦은 날(비교 기준일)입니다. 종목마다 파일 최신일이 다르므로, 어떤 선만 더 최근까지 갈 수 있습니다.">기준일: —</p>
-      <p id="asOfFileDate" style="margin:0.25rem 0 0; font-size:0.8rem; opacity:0.75;">파일 최신일: —</p>
+    <div id="spreadHeaderMeta" class="page-meta spread-header-asof">
+      <p class="spread-header-asof__line">
+        <span id="asOfDate"
+          title="세 라인 모두 값이 있는 날짜 중 가장 늦은 날(비교 기준일)입니다. 종목마다 파일 최신일이 다르므로, 어떤 선만 더 최근까지 갈 수 있습니다.">기준일: —</span>
+        <span class="spread-header-asof__sep" aria-hidden="true"> · </span>
+        <span id="asOfFileDate">파일 최신일: —</span>
+      </p>
     </div>
   </header>
 
@@ -586,14 +587,6 @@
 
   <div id="page-rates" class="page">
     <div class="rates-analysis-outer">
-      <div class="page-jump page-jump--muted">
-        <span style="color:rgba(255,255,255,0.65);">다른 화면:</span>
-        <a href="#spread">스프레드 분석</a>
-        <span style="opacity:0.45;">·</span>
-        <a href="#fund">펀드 비교분석</a>
-        <span style="opacity:0.45;">·</span>
-        <a href="#term">Term Structure</a>
-      </div>
       <h2 class="rates-page-title">금리 분석</h2>
       <div class="rates-history-toolbar">
         <label for="ratesHistoryDays">일자별 수준 표시 거래일 수</label>
@@ -601,8 +594,11 @@
         <label for="ratesCustomDiffDateInput">기준일</label>
         <input type="date" id="ratesCustomDiffDateInput" class="rates-custom-date-global" title="비우면 첫 행 미표시 · 입력 시 최신일 대비 변동 행(모든 테이블 공통)을 표시합니다." />
       </div>
-      <p class="rates-analysis-note">DTD·MTD·YTD는 각각 전일·전월말·전년말 대비 변동(금리는 %p, 스프레드는 bp)입니다. 전월말·전년말 당일에 값이 없으면 파일상 그보다 이전의 최근 거래일을 기준으로 합니다. 크레딧 스프레드는 동일 만기 국고채 대비(bp)입니다. 일자별 행은 데이터가 있는 날짜만 최신일부터 채웁니다.</p>
-      <p id="ratesAnalysisStatus" class="fund-summary__note" style="margin-top:0;">—</p>
+      <p class="rates-inline-note">
+        <span class="rates-inline-note__static">DTD·MTD·YTD는 각각 전일·전월말·전년말 대비 변동(금리는 %p, 스프레드는 bp)입니다. 전월말·전년말 당일에 값이 없으면 파일상 그보다 이전의 최근 거래일을 기준으로 합니다. 크레딧 스프레드는 동일 만기 국고채 대비(bp)입니다. 일자별 행은 데이터가 있는 날짜만 최신일부터 채웁니다.</span>
+        <span class="rates-inline-note__sep" aria-hidden="true"> · </span>
+        <span id="ratesAnalysisStatus">—</span>
+      </p>
       <div class="rates-block">
         <h3>국고채 금리 및 국고채 만기 간 스프레드</h3>
         <p class="rates-block-hint">표 헤더와 동일: 변동 행은 bp, 일자별 행은 금리 %·스프레드 bp 수준.</p>
@@ -627,14 +623,11 @@
   <div id="page-term" class="page">
     <div class="term-structure-outer">
       <h2 class="rates-page-title">Term Structure</h2>
-      <p id="termStructureStatus" class="fund-summary__note" style="margin-top:0;">—</p>
+      <p id="termStructureStatus" class="fund-summary__note term-structure-load-msg" style="margin-top:0; display:none;" role="alert"></p>
 
       <div class="term-structure-cols">
         <div class="term-structure-block">
           <h3>CP term — 만기별 금리</h3>
-          <p class="term-structure-hint">
-            예: <strong>2.97(<span class="pct-down">▼3</span>, <span class="pct-down">▼4</span>)</strong> — 금리 옆 괄호 안이 T-1·T-2 대비 변동(bp). CSV <code>섹터</code> 열(지주·증권·카드·여전·일반)로 필터합니다.
-          </p>
           <div class="term-rating-bar" role="group" aria-label="CP 등급 필터">
             <span class="term-rating-bar__label">등급</span>
             <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A1" checked /><span>A1</span></label>
@@ -656,11 +649,10 @@
 
         <div class="term-structure-block">
           <h3>Bond term — 만기별 금리</h3>
-          <p class="term-structure-hint">등급·섹터 필터에 맞는 발행사만 표시합니다. 채권 <code>등급</code>이 비어 있으면(AS에서 못 찾은 경우) 해당 행은 <strong>모든 등급 라디오에서 통과</strong>해 섹터만으로 걸러집니다. 섹터는 CSV <code>섹터</code> 열 값을 씁니다.</p>
-        <div class="term-rating-bar" role="group" aria-label="채권 등급 필터">
-          <span class="term-rating-bar__label">등급</span>
-          <label class="term-radio-pill"><input type="radio" name="termBondRating" value="all" /><span>전체</span></label>
-          <label class="term-radio-pill"><input type="radio" name="termBondRating" value="AAA" checked /><span>AAA</span></label>
+          <div class="term-rating-bar" role="group" aria-label="채권 등급 필터">
+            <span class="term-rating-bar__label">등급</span>
+            <label class="term-radio-pill"><input type="radio" name="termBondRating" value="all" /><span>전체</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondRating" value="AAA" checked /><span>AAA</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondRating" value="AA+" /><span>AA+</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondRating" value="AA0" /><span>AA0</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondRating" value="AA-" /><span>AA-</span></label>
@@ -685,7 +677,7 @@
 
   <div id="page-fund" class="page">
     <div class="fund-summary-outer" id="fundSummaryOuter">
-      <p class="fund-summary__note" id="fundSummaryNote">
+      <p class="fund-summary__note fund-summary__note--compact" id="fundSummaryNote">
         수익률은 <strong>수정기준가</strong>(없으면 기준가) 구간 수익률을 <strong>연환산(단리, 365일)</strong>입니다. <strong>YTD</strong>는 전년 말(당해 1/1 이전 마지막 관측일) 대비, <strong>MTD</strong>는 당월 첫 관측일 대비입니다. 수익률 셀에 마우스를 올리면 사용한 일자·수정기준가·구간수익률·연환산 식을 볼 수 있습니다. 수탁고 변동은 <strong>설정액</strong> 차이(원)를 10⁸으로 나눈 값이며 <strong>소수점은 버립니다</strong>. 아래 <strong>구간 시작일</strong>을 넣으면 그 앞에 <strong>시작일~최신</strong> 열이 추가됩니다. 자펀드: 펀드명에 알파벳 <strong>C</strong> 포함(KCGI초단기우량채증권(채권)은 모펀드).
       </p>
       <div class="fund-range-toolbar" id="fundRangeToolbar">
@@ -1852,7 +1844,8 @@
       if (termTableRows.length) renderTermStructureTables();
       return termDataLoadPromise;
     }
-    termStructureStatus.textContent = "term_table_long.csv 불러오는 중…";
+    termStructureStatus.textContent = "";
+    termStructureStatus.style.display = "none";
     termDataLoadPromise = fetchCsvNoCache(TERM_CSV_PATH)
       .then((r) => {
         if (!r.ok) throw new Error("HTTP " + r.status);
@@ -1861,13 +1854,15 @@
       .then((text) => {
         termTableRows = parseCsv(text);
         if (!termTableRows.length) throw new Error("데이터 행이 없습니다.");
-        termStructureStatus.textContent = "행 수 " + termTableRows.length.toLocaleString() + " · term_table_long.csv";
+        termStructureStatus.textContent = "";
+        termStructureStatus.style.display = "none";
         renderTermStructureTables();
       })
       .catch((err) => {
         console.warn("[term_table_long.csv]", err);
         termTableRows = [];
         termStructureStatus.textContent = "불러오기 실패: " + (err && err.message ? err.message : String(err));
+        termStructureStatus.style.display = "block";
         if (termCpTableWrap) termCpTableWrap.innerHTML = "";
         if (termBondTableWrap) termBondTableWrap.innerHTML = "";
       });
