@@ -14,6 +14,20 @@
     .container { display: flex; min-height: calc(100vh - 60px); flex-direction: row; }
     .main { flex: 1; padding: 1rem; overflow: auto; min-width: 0; }
     .chart-wrap { min-height: 480px; background: #0e1117; border-radius: 8px; padding: 8px; }
+    #page-spread .container .main {
+      flex: 1 1 0%;
+      min-width: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    #page-spread .chart-wrap {
+      width: 100%;
+      max-width: 100%;
+      min-height: 480px;
+      flex: 0 0 auto;
+    }
     .sidebar {
       width: 320px; flex-shrink: 0;
       background: linear-gradient(180deg, #0b0e14 0%, #131822 50%, #1a1f2e 100%);
@@ -412,6 +426,18 @@
       background: rgba(0,0,0,0.22); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
     }
     .term-rating-bar__label { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.75); margin-right: 0.35rem; }
+    .term-issuer-filter-input {
+      flex: 1 1 10rem;
+      min-width: 5.5rem;
+      max-width: 20rem;
+      padding: 0.28rem 0.45rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 0.78rem;
+    }
+    .term-issuer-filter-input::placeholder { color: rgba(255,255,255,0.35); }
     .term-radio-pill {
       display: inline-flex; align-items: center; gap: 0.3rem;
       padding: 0.32rem 0.6rem; border-radius: 8px;
@@ -607,7 +633,7 @@
         <span id="ratesAnalysisStatus">—</span>
       </p>
       <div class="rates-block">
-        <h3>국고채 금리 및 국고채 만기 간 스프레드</h3>
+        <h3>국고채 금리</h3>
         <div class="rates-table-wrap" id="ratesTableKtbWrap"></div>
       </div>
       <div class="rates-block">
@@ -627,7 +653,6 @@
 
   <div id="page-term" class="page">
     <div class="term-structure-outer">
-      <h2 class="rates-page-title">Term Structure</h2>
       <p id="termStructureStatus" class="fund-summary__note term-structure-load-msg" style="margin-top:0; display:none;" role="alert"></p>
 
       <div class="term-structure-cols">
@@ -639,6 +664,8 @@
             <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2+" /><span>A2+</span></label>
             <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2" /><span>A2</span></label>
             <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2-" /><span>A2-</span></label>
+            <label for="termCpIssuerFilter" class="term-rating-bar__label" style="margin-left:0.5rem;">발행사</label>
+            <input type="search" id="termCpIssuerFilter" class="term-issuer-filter-input" placeholder="포함 검색…" autocomplete="off" title="발행사명에 입력 문자열이 포함된 행만 표시합니다. 비우면 전체." />
           </div>
           <div class="term-rating-bar" role="group" aria-label="CP 섹터 필터">
             <span class="term-rating-bar__label">섹터</span>
@@ -664,6 +691,8 @@
             <label class="term-radio-pill"><input type="radio" name="termBondRating" value="A+" /><span>A+</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondRating" value="A0" /><span>A0</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondRating" value="A-" /><span>A-</span></label>
+            <label for="termBondIssuerFilter" class="term-rating-bar__label" style="margin-left:0.5rem;">발행사</label>
+            <input type="search" id="termBondIssuerFilter" class="term-issuer-filter-input" placeholder="포함 검색…" autocomplete="off" title="발행사명에 입력 문자열이 포함된 행만 표시합니다. 비우면 전체." />
           </div>
           <div class="term-rating-bar" role="group" aria-label="채권 섹터 필터">
             <span class="term-rating-bar__label">섹터</span>
@@ -867,6 +896,16 @@
   const termStructureStatus = document.getElementById("termStructureStatus");
   const termCpTableWrap = document.getElementById("termCpTableWrap");
   const termBondTableWrap = document.getElementById("termBondTableWrap");
+
+  function resizeSpreadChartsIfVisible() {
+    if (!pageSpreadEl || !pageSpreadEl.classList.contains("is-active")) return;
+    requestAnimationFrame(() => {
+      try {
+        if (typeof Plotly !== "undefined" && chartDiv && chartDiv.querySelector(".js-plotly-plot")) Plotly.Plots.resize(chartDiv);
+        if (typeof Plotly !== "undefined" && chartDiv2 && chartDiv2.querySelector(".js-plotly-plot")) Plotly.Plots.resize(chartDiv2);
+      } catch (_) {}
+    });
+  }
 
   let ratesCustomDiffDate = "";
   let termTableRows = [];
@@ -1626,7 +1665,7 @@
     return "일반";
   }
 
-  function buildCpTermPivot(rows, ratingFilter, categoryFilter) {
+  function buildCpTermPivot(rows, ratingFilter, categoryFilter, issuerSearch) {
     const cat = (categoryFilter || "all").trim();
     const filtered = rows.filter((r) => {
       if ((r.section || "").trim() !== "cp_term") return false;
@@ -1652,7 +1691,9 @@
       const iss = (r["발행사명"] || "").trim();
       if (iss) issuerSet.add(iss);
     });
-    const issuers = Array.from(issuerSet).sort((a, b) => a.localeCompare(b, "ko"));
+    let issuers = Array.from(issuerSet).sort((a, b) => a.localeCompare(b, "ko"));
+    const qIss = (issuerSearch || "").trim();
+    if (qIss) issuers = issuers.filter((i) => String(i).includes(qIss));
     const tenorSet = new Set();
     filtered.forEach((r) => {
       const tn = (r["만기"] || "").trim();
@@ -1680,7 +1721,7 @@
     return { tenors, body };
   }
 
-  function buildBondTermPivot(rows, ratingFilter, categoryFilter) {
+  function buildBondTermPivot(rows, ratingFilter, categoryFilter, issuerSearch) {
     const cat = (categoryFilter || "all").trim();
     const isRatingAll = normTermRating(ratingFilter) === "ALL";
     const issuerSectorAll = buildBondIssuerSectorMap(rows);
@@ -1723,7 +1764,7 @@
       issuerSet.add(parts[0]);
       tenorSet.add(parts[1]);
     });
-    const issuers = Array.from(issuerSet);
+    let issuers = Array.from(issuerSet);
     if (isRatingAll) {
       issuers.sort((a, b) => {
         const ra = issuerBestRating.has(a) ? issuerBestRating.get(a).rating : "";
@@ -1737,6 +1778,8 @@
     } else {
       issuers.sort((a, b) => a.localeCompare(b, "ko"));
     }
+    const qIssBd = (issuerSearch || "").trim();
+    if (qIssBd) issuers = issuers.filter((i) => String(i).includes(qIssBd));
     const tenors = Array.from(tenorSet).sort((a, b) => {
       const ka = bondTenorSortKey(a);
       const kb = bondTenorSortKey(b);
@@ -1839,8 +1882,12 @@
     const cpCategory = getTermSelectedRadioValue("termCpCategory") || "all";
     const bdRating = getTermSelectedRadioValue("termBondRating") || "AAA";
     const bdCategory = getTermSelectedRadioValue("termBondCategory") || "all";
-    renderCpTermTable(buildCpTermPivot(termTableRows, cpRating, cpCategory));
-    renderBondTermTable(buildBondTermPivot(termTableRows, bdRating, bdCategory));
+    const cpIssEl = document.getElementById("termCpIssuerFilter");
+    const bdIssEl = document.getElementById("termBondIssuerFilter");
+    const cpIss = cpIssEl ? String(cpIssEl.value || "").trim() : "";
+    const bdIss = bdIssEl ? String(bdIssEl.value || "").trim() : "";
+    renderCpTermTable(buildCpTermPivot(termTableRows, cpRating, cpCategory, cpIss));
+    renderBondTermTable(buildBondTermPivot(termTableRows, bdRating, bdCategory, bdIss));
   }
 
   function ensureTermData() {
@@ -1938,6 +1985,7 @@
       refreshMarketCsvFromServer();
     }
     if (isTerm) ensureTermData();
+    if (isSpread) resizeSpreadChartsIfVisible();
   }
 
   function fundNameListMoOnly() {
@@ -2315,11 +2363,13 @@
     else if (items.length) sel.value = items[0];
   }
 
-  const RATES_KTB_TENORS = [1, 1.5, 2, 3, 5, 7, 10, 20, 30];
+  const RATES_KTB_TENORS = [1, 1.5, 2, 2.5, 3, 5, 7, 10, 20, 30];
   const RATES_KTB_SPREAD_PAIRS = [
     [1, 1.5],
     [1.5, 2],
     [1, 2],
+    [2, 2.5],
+    [2.5, 3],
     [2, 3],
     [3, 5],
     [3, 10],
@@ -2545,9 +2595,15 @@
       return String(p[0]) + "/" + String(p[1]);
     }
     const ktbTen = RATES_KTB_TENORS;
-    const ktbSpr = hideHalf
-      ? RATES_KTB_SPREAD_PAIRS.filter((p) => !((p[0] === 1 && p[1] === 1.5) || (p[0] === 1.5 && p[1] === 2)))
-      : RATES_KTB_SPREAD_PAIRS;
+    function ktbSpreadPairOmittedHalfStep(p) {
+      return (
+        (p[0] === 1 && p[1] === 1.5) ||
+        (p[0] === 1.5 && p[1] === 2) ||
+        (p[0] === 2 && p[1] === 2.5) ||
+        (p[0] === 2.5 && p[1] === 3)
+      );
+    }
+    const ktbSpr = hideHalf ? RATES_KTB_SPREAD_PAIRS.filter((p) => !ktbSpreadPairOmittedHalfStep(p)) : RATES_KTB_SPREAD_PAIRS;
     const credTen = hideHalf ? RATES_CREDIT_TENORS.filter((t) => t !== 1.5 && t !== 2.5) : RATES_CREDIT_TENORS;
     const slopeOmitHalf = hideHalf ? new Set(["1/1.5", "1.5/2", "2/2.5", "2.5/3"]) : null;
     const slopePairs = hideHalf
@@ -3013,6 +3069,7 @@
         yaxis: { title: "Yield", gridcolor: "rgba(255,255,255,0.08)", zerolinecolor: "rgba(255,255,255,0.12)" },
       });
       updateHeaderAsOfDate(start, end, (startDate_2.value || "").trim() || dates[0], (endDate_2.value || "").trim() || dates[dates.length - 1]);
+      resizeSpreadChartsIfVisible();
       return;
     }
 
@@ -3156,6 +3213,7 @@
 
     Plotly.react(chartDiv, traces, layout, { responsive: true });
     updateHeaderAsOfDate(start, end, (startDate_2.value || "").trim() || dates[0], (endDate_2.value || "").trim() || dates[dates.length - 1]);
+    resizeSpreadChartsIfVisible();
   }
 
   function render2() {
@@ -3172,6 +3230,7 @@
         yaxis: { title: "Yield", gridcolor: "rgba(255,255,255,0.08)", zerolinecolor: "rgba(255,255,255,0.12)" },
       });
       updateHeaderAsOfDate((startDate.value || "").trim() || dates[0], (endDate.value || "").trim() || dates[dates.length - 1], start, end);
+      resizeSpreadChartsIfVisible();
       return;
     }
     const s1 = { inst: line1Inst_2, ten: line1Tenor_2 };
@@ -3232,6 +3291,7 @@
     if (traces.length === 0) layout.annotations = [{ x: 0.5, y: 0.5, text: "표시할 데이터 없음", showarrow: false, font: { size: 14, color: "#fff" } }];
     Plotly.react(chartDiv2, traces, layout, { responsive: true });
     updateHeaderAsOfDate((startDate.value || "").trim() || dates[0], (endDate.value || "").trim() || dates[dates.length - 1], start, end);
+    resizeSpreadChartsIfVisible();
   }
 
   document.getElementById("btnDraw").addEventListener("click", render);
@@ -3291,6 +3351,10 @@
       if (t && t.matches && t.matches('input[name="termCpRating"], input[name="termCpCategory"], input[name="termBondRating"], input[name="termBondCategory"]')) {
         if (termTableRows.length) renderTermStructureTables();
       }
+    });
+    pageTermEl.addEventListener("input", (e) => {
+      const t = e.target;
+      if (t && (t.id === "termCpIssuerFilter" || t.id === "termBondIssuerFilter") && termTableRows.length) renderTermStructureTables();
     });
   }
 
