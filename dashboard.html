@@ -208,11 +208,15 @@
     }
     .rates-analysis-table th { background: rgba(22, 33, 62, 0.95); color: rgba(255,255,255,0.92); font-weight: 600; }
     .rates-analysis-table td:first-child, .rates-analysis-table th:first-child {
-      font-weight: 600; width: 3.75rem; min-width: 3.75rem; max-width: 3.75rem;
-      padding-left: 0.35rem; padding-right: 0.35rem;
+      font-weight: 600;
+      width: 7.25rem;
+      min-width: 7.25rem;
+      max-width: none;
+      padding-left: 0.4rem;
+      padding-right: 0.4rem;
     }
     /* colgroup으로 열 경계를 고정할 때 쓰는 클래스 */
-    .rates-analysis-table col.rates-col-label { width: 3.75rem; }
+    .rates-analysis-table col.rates-col-label { width: 7.25rem; }
     .rates-analysis-table col.rates-col-metric { width: 4.25rem; }
     .rates-analysis-table th:not(:first-child),
     .rates-analysis-table td:not(:first-child) {
@@ -291,8 +295,8 @@
       min-width: 0;
       box-sizing: border-box;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow: visible;
+      text-overflow: clip;
       font-family: inherit;
       font-size: inherit;
       line-height: inherit;
@@ -308,23 +312,23 @@
       width: 100%;
     }
     .rates-table-ktb col.rates-col-ktb-label {
-      width: 3.75rem;
+      width: 7.25rem;
     }
     .rates-table-ktb td:first-child, .rates-table-ktb th:first-child {
-      width: 3.75rem !important;
-      min-width: 3.75rem !important;
-      max-width: 3.75rem !important;
+      width: 7.25rem !important;
+      min-width: 7.25rem !important;
+      max-width: none !important;
       white-space: nowrap !important;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      padding: 0.2rem 0.32rem !important;
+      overflow: visible;
+      text-overflow: clip;
+      padding: 0.2rem 0.35rem !important;
     }
     /* Chrome/Edge: date input 기본 최소폭(~200px)이 1열을 밀어냄 → KTB에서만 축소 */
     .rates-table-ktb .rates-custom-date-wrap--ktb {
       display: block;
       width: 100%;
       max-width: 100%;
-      overflow: hidden;
+      overflow: visible;
       box-sizing: border-box;
     }
     .rates-table-ktb .rates-custom-date-wrap--ktb .rates-custom-date-input {
@@ -340,6 +344,23 @@
       cursor: pointer;
       transform: scale(0.85);
       transform-origin: center;
+    }
+    @media (max-width: 640px) {
+      .rates-analysis-table td:first-child,
+      .rates-analysis-table th:first-child {
+        width: 9.25rem;
+        min-width: 9.25rem;
+      }
+      .rates-analysis-table col.rates-col-label { width: 9.25rem; }
+      .rates-table-ktb col.rates-col-ktb-label { width: 9.25rem; }
+      .rates-table-ktb td:first-child,
+      .rates-table-ktb th:first-child {
+        width: 9.25rem !important;
+        min-width: 9.25rem !important;
+      }
+      .rates-analysis-table {
+        min-width: calc(52rem + 5.5rem);
+      }
     }
     /* Term Structure (CP/Bond term 테이블) */
     .term-structure-outer { padding: 1rem 1.25rem 2rem; max-width: 100%; overflow-x: auto; background: #1a1a2e; }
