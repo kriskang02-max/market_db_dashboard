@@ -70,14 +70,14 @@
     nav.page-nav {
       display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem;
       margin: 0.85rem 0 0; padding: 0.55rem 0.85rem;
-      font-size: 1rem; line-height: 1.45;
+      font-size: 0.88rem; line-height: 1.45;
       background: rgba(0, 0, 0, 0.28);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 10px;
     }
     .page-nav__label { font-size: 0.72rem; font-weight: 600; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 0.25rem; }
     .page-nav__link {
-      color: #93c5fd; text-decoration: none; font-weight: 700; font-size: 1.05rem;
+      color: #93c5fd; text-decoration: none; font-weight: 700; font-size: 0.88rem;
       padding: 0.2rem 0.35rem; border-radius: 6px;
     }
     .page-nav__link:hover { color: #fff; background: rgba(59, 130, 246, 0.25); }
@@ -224,7 +224,6 @@
       min-width: 4.25rem;
     }
     .rates-analysis-table thead th.group-head { text-align: center; background: rgba(30, 41, 59, 0.95); line-height: 1.2; padding: 0.18rem 0.28rem; }
-    .rates-block-hint { font-size: 0.78rem; color: rgba(255,255,255,0.5); margin: 0 0 0.45rem; line-height: 1.4; }
     .rates-table-row--history td { background: rgba(245, 230, 200, 0.12); color: rgba(255,255,255,0.92); }
     .rates-table-row--history td:first-child { color: rgba(255,255,255,0.95); }
     /* 일자별 블록 안 최신 거래일 행 */
@@ -278,6 +277,11 @@
       font-size: 0.85rem; color: rgba(255,255,255,0.88);
     }
     .rates-history-toolbar label { font-weight: 600; color: rgba(255,255,255,0.92); }
+    .rates-halfyear-wrap {
+      display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer;
+      font-weight: 600; color: rgba(255,255,255,0.92); user-select: none;
+    }
+    .rates-halfyear-wrap input { accent-color: #2563eb; margin: 0; cursor: pointer; }
     .rates-history-toolbar input[type="number"] {
       width: 4.5rem; padding: 0.35rem 0.45rem; border-radius: 6px;
       border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff;
@@ -458,13 +462,13 @@
     <h1>market_db 대시보드</h1>
     <nav class="page-nav" aria-label="페이지 이동">
       <span class="page-nav__label">페이지</span>
-      <a href="#spread" class="page-nav__link" id="navSpread">스프레드 분석</a>
-      <span class="page-nav__sep" aria-hidden="true">|</span>
       <a href="#rates" class="page-nav__link" id="navRates">금리 분석</a>
       <span class="page-nav__sep" aria-hidden="true">|</span>
-      <a href="#fund" class="page-nav__link" id="navFund">펀드 비교분석</a>
-      <span class="page-nav__sep" aria-hidden="true">|</span>
       <a href="#term" class="page-nav__link" id="navTerm">Term Structure</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#spread" class="page-nav__link" id="navSpread">스프레드 분석</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#fund" class="page-nav__link" id="navFund">펀드 분석</a>
     </nav>
     <div id="spreadHeaderMeta" class="page-meta spread-header-asof">
       <p class="spread-header-asof__line">
@@ -476,7 +480,7 @@
     </div>
   </header>
 
-  <div id="page-spread" class="page is-active">
+  <div id="page-spread" class="page">
   <div class="container">
     <main class="main">
       <p class="panel-head">그룹1</p>
@@ -585,14 +589,17 @@
   </div>
   </div>
 
-  <div id="page-rates" class="page">
+  <div id="page-rates" class="page is-active">
     <div class="rates-analysis-outer">
-      <h2 class="rates-page-title">금리 분석</h2>
       <div class="rates-history-toolbar">
         <label for="ratesHistoryDays">일자별 수준 표시 거래일 수</label>
         <input type="number" id="ratesHistoryDays" min="1" max="250" value="7" step="1" title="국고·크레딧 데이터가 있는 일자만, 최신일부터 이 개수만큼 표시합니다." />
         <label for="ratesCustomDiffDateInput">기준일</label>
         <input type="date" id="ratesCustomDiffDateInput" class="rates-custom-date-global" title="비우면 첫 행 미표시 · 입력 시 최신일 대비 변동 행(모든 테이블 공통)을 표시합니다." />
+        <label class="rates-halfyear-wrap" for="ratesHideHalfYearCols" title="체크 시 1/1.5·1.5/2·1.5Y·2.5Y 및 해당 스프레드/기울기 열을 숨깁니다.">
+          <input type="checkbox" id="ratesHideHalfYearCols" />
+          <span>0.5Y 단위 표시</span>
+        </label>
       </div>
       <p class="rates-inline-note">
         <span class="rates-inline-note__static">DTD·MTD·YTD는 각각 전일·전월말·전년말 대비 변동(금리는 %p, 스프레드는 bp)입니다. 전월말·전년말 당일에 값이 없으면 파일상 그보다 이전의 최근 거래일을 기준으로 합니다. 크레딧 스프레드는 동일 만기 국고채 대비(bp)입니다. 일자별 행은 데이터가 있는 날짜만 최신일부터 채웁니다.</span>
@@ -601,17 +608,15 @@
       </p>
       <div class="rates-block">
         <h3>국고채 금리 및 국고채 만기 간 스프레드</h3>
-        <p class="rates-block-hint">표 헤더와 동일: 변동 행은 bp, 일자별 행은 금리 %·스프레드 bp 수준.</p>
         <div class="rates-table-wrap" id="ratesTableKtbWrap"></div>
-      </div>
-      <div class="rates-block">
-        <h3>크레딧 금리</h3>
-        <p class="rates-block-hint">표 헤더와 동일: 변동 행 bp, 일자별 행은 금리 수준(%).</p>
-        <div class="rates-table-wrap" id="ratesTableCreditYldWrap"></div>
       </div>
       <div class="rates-block">
         <h3>크레딧 스프레드</h3>
         <div class="rates-table-wrap" id="ratesTableCreditSprWrap"></div>
+      </div>
+      <div class="rates-block">
+        <h3>크레딧 금리</h3>
+        <div class="rates-table-wrap" id="ratesTableCreditYldWrap"></div>
       </div>
       <div class="rates-block">
         <h3>크레딧 스프레드 일자별 변동</h3>
@@ -685,7 +690,6 @@
         <input type="date" id="fundMetricsAsOfDateInput" class="fund-refdate-input fund-refdate-input--toolbar" title="수익률·수탁고 등 표 지표를 이 날짜(또는 그 이전 최근 관측일) 기준으로 계산합니다." />
         <label for="fundMetricsAsOfInput" class="fund-range-toolbar__label">구간 시작일</label>
         <input type="date" id="fundMetricsAsOfInput" class="fund-refdate-input fund-refdate-input--toolbar" title="비우면 추가 열 없음 · 입력 시 시작일~최신 열 추가(기존 열 유지)" />
-        <span class="fund-range-toolbar__hint">비우면 추가 열 없음</span>
       </div>
       <div id="fundMoTitleRow" class="fund-summary__title-row"></div>
       <div id="fundTableMoWrap"></div>
@@ -859,6 +863,7 @@
   const ratesTableCreditSlopeWrap = document.getElementById("ratesTableCreditSlopeWrap");
   const ratesHistoryDaysInput = document.getElementById("ratesHistoryDays");
   const ratesCustomDiffDateInput = document.getElementById("ratesCustomDiffDateInput");
+  const ratesHideHalfYearInput = document.getElementById("ratesHideHalfYearCols");
   const termStructureStatus = document.getElementById("termStructureStatus");
   const termCpTableWrap = document.getElementById("termCpTableWrap");
   const termBondTableWrap = document.getElementById("termBondTableWrap");
@@ -1923,7 +1928,7 @@
     if (navFund) navFund.classList.toggle("is-current", isFund);
     if (navTerm) navTerm.classList.toggle("is-current", isTerm);
     let title = "스프레드 분석";
-    if (isFund) title = "펀드 비교분석";
+    if (isFund) title = "펀드 분석";
     else if (isRates) title = "금리 분석";
     else if (isTerm) title = "Term Structure";
     document.title = title + " · market_db 대시보드";
@@ -2535,14 +2540,28 @@
     }
     let customRefD = /^\d{4}-\d{2}-\d{2}$/.test(String(ratesCustomDiffDate || "").trim()) ? String(ratesCustomDiffDate).trim() : null;
     if (customRefD && d0 && customRefD > d0) customRefD = null;
-    const ktbPairs = RATES_KTB_TENORS.length + RATES_KTB_SPREAD_PAIRS.length;
-    const creditCols = RATES_CREDIT_LINES.length * RATES_CREDIT_TENORS.length;
+    const hideHalf = ratesHideHalfYearInput && ratesHideHalfYearInput.checked;
+    function slopePairKey(p) {
+      return String(p[0]) + "/" + String(p[1]);
+    }
+    const ktbTen = RATES_KTB_TENORS;
+    const ktbSpr = hideHalf
+      ? RATES_KTB_SPREAD_PAIRS.filter((p) => !((p[0] === 1 && p[1] === 1.5) || (p[0] === 1.5 && p[1] === 2)))
+      : RATES_KTB_SPREAD_PAIRS;
+    const credTen = hideHalf ? RATES_CREDIT_TENORS.filter((t) => t !== 1.5 && t !== 2.5) : RATES_CREDIT_TENORS;
+    const slopeOmitHalf = hideHalf ? new Set(["1/1.5", "1.5/2", "2/2.5", "2.5/3"]) : null;
+    const slopePairs = hideHalf
+      ? RATES_SPREAD_SLOPE_PAIRS.filter((p) => !slopeOmitHalf.has(slopePairKey(p)))
+      : RATES_SPREAD_SLOPE_PAIRS;
+    const ktbPairs = ktbTen.length + ktbSpr.length;
+    const creditCols = RATES_CREDIT_LINES.length * credTen.length;
+    const slopeCols = RATES_CREDIT_LINES.length * slopePairs.length;
 
     function ktbRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist) {
       let trCls = "";
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
-      RATES_KTB_TENORS.forEach((t) => {
+      ktbTen.forEach((t) => {
         const vA = ktbYield(dAnchor, t);
         if (isDelta && refD) {
           const vR = ktbYield(refD, t);
@@ -2551,7 +2570,7 @@
           h += tdVal(dBp, 1, true);
         } else h += tdVal(vA, 3, false);
       });
-      RATES_KTB_SPREAD_PAIRS.forEach(([a, b]) => {
+      ktbSpr.forEach(([a, b]) => {
         const sA = ktbTermSpreadBp(dAnchor, a, b);
         if (isDelta && refD) {
           const sR = ktbTermSpreadBp(refD, a, b);
@@ -2564,14 +2583,14 @@
     function ktbCustomRowHtml(dCustom) {
       const val = dCustom ? dCustom : "";
       let h = "<tr><td><div class=\"rates-custom-date-wrap rates-custom-date-wrap--ktb\"><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></div></td>";
-      RATES_KTB_TENORS.forEach((t) => {
+      ktbTen.forEach((t) => {
         const vA = ktbYield(d0, t);
         const vR = dCustom ? ktbYield(dCustom, t) : null;
         const dPct = vA !== null && vR !== null ? vA - vR : null;
         const dBp = dPct !== null ? dPct * 100 : null;
         h += tdVal(dBp, 1, true);
       });
-      RATES_KTB_SPREAD_PAIRS.forEach(([a, b]) => {
+      ktbSpr.forEach(([a, b]) => {
         const sA = ktbTermSpreadBp(d0, a, b);
         const sR = dCustom ? ktbTermSpreadBp(dCustom, a, b) : null;
         const dBp = sA !== null && sR !== null ? sA - sR : null;
@@ -2584,7 +2603,7 @@
       const val = dCustom ? dCustom : "";
       let h = "<tr><td><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></td>";
       RATES_CREDIT_LINES.forEach((line) => {
-        RATES_CREDIT_TENORS.forEach((ty) => {
+        credTen.forEach((ty) => {
           const vA = creditYield(d0, line.inst, ty);
           const vR = dCustom ? creditYield(dCustom, line.inst, ty) : null;
           const dPct = vA !== null && vR !== null ? vA - vR : null;
@@ -2599,7 +2618,7 @@
       const val = dCustom ? dCustom : "";
       let h = "<tr><td><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></td>";
       RATES_CREDIT_LINES.forEach((line) => {
-        RATES_CREDIT_TENORS.forEach((ty) => {
+        credTen.forEach((ty) => {
           const vA = creditSpreadBp(d0, line.inst, ty);
           const vR = dCustom ? creditSpreadBp(dCustom, line.inst, ty) : null;
           const dBp = vA !== null && vR !== null ? vA - vR : null;
@@ -2613,7 +2632,7 @@
       const val = dCustom ? dCustom : "";
       let h = "<tr><td><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></td>";
       RATES_CREDIT_LINES.forEach((line) => {
-        RATES_SPREAD_SLOPE_PAIRS.forEach(([a, b]) => {
+        slopePairs.forEach(([a, b]) => {
           const vA = spreadSlopeBp(d0, line.inst, a, b);
           const vR = dCustom ? spreadSlopeBp(dCustom, line.inst, a, b) : null;
           const dBp = vA !== null && vR !== null ? vA - vR : null;
@@ -2628,7 +2647,7 @@
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       RATES_CREDIT_LINES.forEach((line) => {
-        RATES_CREDIT_TENORS.forEach((ty) => {
+        credTen.forEach((ty) => {
           const vA = creditYield(dAnchor, line.inst, ty);
           if (isDelta && refD) {
             const vR = creditYield(refD, line.inst, ty);
@@ -2646,7 +2665,7 @@
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       RATES_CREDIT_LINES.forEach((line) => {
-        RATES_CREDIT_TENORS.forEach((ty) => {
+        credTen.forEach((ty) => {
           const vA = creditSpreadBp(dAnchor, line.inst, ty);
           if (isDelta && refD) {
             const vR = creditSpreadBp(refD, line.inst, ty);
@@ -2662,7 +2681,7 @@
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       RATES_CREDIT_LINES.forEach((line) => {
-        RATES_SPREAD_SLOPE_PAIRS.forEach(([a, b]) => {
+        slopePairs.forEach(([a, b]) => {
           const vA = spreadSlopeBp(dAnchor, line.inst, a, b);
           if (isDelta && refD) {
             const vR = spreadSlopeBp(refD, line.inst, a, b);
@@ -2675,10 +2694,10 @@
 
     let hK = "<table class=\"rates-analysis-table rates-table-ktb\"><colgroup><col class=\"rates-col-ktb-label rates-col-label\" /><col span=\"" + ktbPairs + "\" class=\"rates-col-metric\" /></colgroup><thead>";
     hK += "<tr><th rowspan=\"2\">구분</th>";
-    hK += "<th colspan=\"" + RATES_KTB_TENORS.length + "\" class=\"group-head\">국고채 금리<br><span style=\"font-size:0.78em;font-weight:500;opacity:0.85\">(일자별 % · DTD/MTD/YTD bp)</span></th>";
-    hK += "<th colspan=\"" + RATES_KTB_SPREAD_PAIRS.length + "\" class=\"group-head\">만기간 스프레드<br><span style=\"font-size:0.78em;font-weight:500;opacity:0.85\">(일자별 bp · 변동 bp)</span></th></tr><tr>";
-    RATES_KTB_TENORS.forEach((t) => { hK += "<th>" + t + "</th>"; });
-    RATES_KTB_SPREAD_PAIRS.forEach(([a, b]) => { hK += "<th>" + a + "/" + b + "</th>"; });
+    hK += "<th colspan=\"" + ktbTen.length + "\" class=\"group-head\">국고채 금리</th>";
+    hK += "<th colspan=\"" + ktbSpr.length + "\" class=\"group-head\">만기간 스프레드</th></tr><tr>";
+    ktbTen.forEach((t) => { hK += "<th>" + t + "</th>"; });
+    ktbSpr.forEach(([a, b]) => { hK += "<th>" + a + "/" + b + "</th>"; });
     hK += "</tr></thead><tbody>";
     if (customRefD) hK += ktbCustomRowHtml(customRefD);
     ["DTD", "MTD", "YTD"].forEach((k) => {
@@ -2698,11 +2717,11 @@
 
     let hY = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + creditCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
     RATES_CREDIT_LINES.forEach((line) => {
-      hY += "<th colspan=\"" + RATES_CREDIT_TENORS.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "<br><span style=\"font-size:0.78em;font-weight:500;opacity:0.85\">(일자별 % · DTD/MTD/YTD bp)</span></th>";
+      hY += "<th colspan=\"" + credTen.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
     });
     hY += "</tr><tr>";
     RATES_CREDIT_LINES.forEach(() => {
-      RATES_CREDIT_TENORS.forEach((ty) => { hY += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
+      credTen.forEach((ty) => { hY += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
     });
     hY += "</tr></thead><tbody>";
     if (customRefD) hY += creditYldCustomRowHtml(customRefD);
@@ -2722,11 +2741,11 @@
 
     let hS = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + creditCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
     RATES_CREDIT_LINES.forEach((line) => {
-      hS += "<th colspan=\"" + RATES_CREDIT_TENORS.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
+      hS += "<th colspan=\"" + credTen.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
     });
     hS += "</tr><tr>";
     RATES_CREDIT_LINES.forEach(() => {
-      RATES_CREDIT_TENORS.forEach((ty) => { hS += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
+      credTen.forEach((ty) => { hS += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
     });
     hS += "</tr></thead><tbody>";
     if (customRefD) hS += creditSprCustomRowHtml(customRefD);
@@ -2744,14 +2763,13 @@
     hS += "</tbody></table>";
     ratesTableCreditSprWrap.innerHTML = hS;
 
-    const slopeCols = RATES_CREDIT_LINES.length * RATES_SPREAD_SLOPE_PAIRS.length;
     let hP = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + slopeCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
     RATES_CREDIT_LINES.forEach((line) => {
-      hP += "<th colspan=\"" + RATES_SPREAD_SLOPE_PAIRS.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
+      hP += "<th colspan=\"" + slopePairs.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
     });
     hP += "</tr><tr>";
     RATES_CREDIT_LINES.forEach(() => {
-      RATES_SPREAD_SLOPE_PAIRS.forEach(([a, b]) => {
+      slopePairs.forEach(([a, b]) => {
         const la = a === 2.5 ? "2.5" : String(a);
         const lb = b === 2.5 ? "2.5" : String(b);
         hP += "<th>" + la + "/" + lb + "</th>";
@@ -3237,16 +3255,17 @@
   });
 
   function applyHashPage() {
-    const h = (location.hash || "#spread").slice(1);
+    const h = (location.hash || "#rates").slice(1);
     if (h === "fund") setPage("fund");
     else if (h === "rates") setPage("rates");
     else if (h === "term") setPage("term");
-    else setPage("spread");
+    else if (h === "spread") setPage("spread");
+    else setPage("rates");
   }
   window.addEventListener("hashchange", applyHashPage);
   /** 같은 해시(#rates 등)를 다시 눌렀을 때는 hashchange가 없어 탭 전환·CSV 갱신이 안 되므로 직접 처리 */
   function pageKeyFromHashHref(href) {
-    const slug = (href || "").replace(/^#/, "") || "spread";
+    const slug = (href || "").replace(/^#/, "") || "rates";
     if (slug === "fund") return "fund";
     if (slug === "rates") return "rates";
     if (slug === "term") return "term";
@@ -3260,7 +3279,7 @@
     if (!raw || raw[0] !== "#") return;
     const key = pageKeyFromHashHref(raw);
     if (!key) return;
-    const cur = location.hash || "#spread";
+    const cur = location.hash || "#rates";
     if (raw !== cur) return;
     e.preventDefault();
     setPage(key);
@@ -3319,6 +3338,9 @@
   if (ratesHistoryDaysInput) {
     ratesHistoryDaysInput.addEventListener("change", renderRatesAnalysis);
     ratesHistoryDaysInput.addEventListener("input", renderRatesAnalysis);
+  }
+  if (ratesHideHalfYearInput) {
+    ratesHideHalfYearInput.addEventListener("change", renderRatesAnalysis);
   }
 
   // 커스텀 기준일(전역 입력) 변경 시 전체 다시 계산
