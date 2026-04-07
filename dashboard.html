@@ -28,6 +28,12 @@
       min-height: 480px;
       flex: 0 0 auto;
     }
+    /* display:none 이었다가 복귀할 때 Plotly가 남긴 고정 폭으로 절반만 그려지는 현상 완화 */
+    #page-spread .chart-wrap .js-plotly-plot,
+    #page-spread .chart-wrap .plotly {
+      width: 100% !important;
+      max-width: 100%;
+    }
     .sidebar {
       width: 320px; flex-shrink: 0;
       background: linear-gradient(180deg, #0b0e14 0%, #131822 50%, #1a1f2e 100%);
@@ -665,7 +671,7 @@
             <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2" /><span>A2</span></label>
             <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2-" /><span>A2-</span></label>
             <label for="termCpIssuerFilter" class="term-rating-bar__label" style="margin-left:0.5rem;">발행사</label>
-            <input type="search" id="termCpIssuerFilter" class="term-issuer-filter-input" placeholder="포함 검색…" autocomplete="off" title="발행사명에 입력 문자열이 포함된 행만 표시합니다. 비우면 전체." />
+            <input type="search" id="termCpIssuerFilter" class="term-issuer-filter-input" placeholder="포함 검색…" autocomplete="off" title="입력 시 등급·섹터 필터 없이 발행사명 포함 일치만 적용합니다. 비우면 등급·섹터 필터대로 표시합니다." />
           </div>
           <div class="term-rating-bar" role="group" aria-label="CP 섹터 필터">
             <span class="term-rating-bar__label">섹터</span>
@@ -692,7 +698,7 @@
             <label class="term-radio-pill"><input type="radio" name="termBondRating" value="A0" /><span>A0</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondRating" value="A-" /><span>A-</span></label>
             <label for="termBondIssuerFilter" class="term-rating-bar__label" style="margin-left:0.5rem;">발행사</label>
-            <input type="search" id="termBondIssuerFilter" class="term-issuer-filter-input" placeholder="포함 검색…" autocomplete="off" title="발행사명에 입력 문자열이 포함된 행만 표시합니다. 비우면 전체." />
+            <input type="search" id="termBondIssuerFilter" class="term-issuer-filter-input" placeholder="포함 검색…" autocomplete="off" title="입력 시 등급·섹터 필터 없이 발행사명 포함 일치만 적용합니다. 비우면 등급·섹터 필터대로 표시합니다." />
           </div>
           <div class="term-rating-bar" role="group" aria-label="채권 섹터 필터">
             <span class="term-rating-bar__label">섹터</span>
@@ -899,13 +905,37 @@
 
   function resizeSpreadChartsIfVisible() {
     if (!pageSpreadEl || !pageSpreadEl.classList.contains("is-active")) return;
-    requestAnimationFrame(() => {
+    const run = () => {
       try {
-        if (typeof Plotly !== "undefined" && chartDiv && chartDiv.querySelector(".js-plotly-plot")) Plotly.Plots.resize(chartDiv);
-        if (typeof Plotly !== "undefined" && chartDiv2 && chartDiv2.querySelector(".js-plotly-plot")) Plotly.Plots.resize(chartDiv2);
+        if (typeof Plotly === "undefined") return;
+        [chartDiv, chartDiv2].forEach((gd) => {
+          if (gd && gd.querySelector(".js-plotly-plot")) Plotly.Plots.resize(gd);
+        });
       } catch (_) {}
+    };
+    requestAnimationFrame(() => {
+      requestAnimationFrame(run);
     });
   }
+
+  let spreadChartResizeRoTimer = null;
+  if (pageSpreadEl && typeof ResizeObserver !== "undefined") {
+    const spreadMainEl = pageSpreadEl.querySelector(".container .main");
+    if (spreadMainEl) {
+      const ro = new ResizeObserver(() => {
+        if (!pageSpreadEl.classList.contains("is-active")) return;
+        if (spreadChartResizeRoTimer) clearTimeout(spreadChartResizeRoTimer);
+        spreadChartResizeRoTimer = setTimeout(() => {
+          spreadChartResizeRoTimer = null;
+          resizeSpreadChartsIfVisible();
+        }, 40);
+      });
+      ro.observe(spreadMainEl);
+    }
+  }
+  window.addEventListener("resize", () => {
+    resizeSpreadChartsIfVisible();
+  });
 
   let ratesCustomDiffDate = "";
   let termTableRows = [];
@@ -1667,11 +1697,13 @@
 
   function buildCpTermPivot(rows, ratingFilter, categoryFilter, issuerSearch) {
     const cat = (categoryFilter || "all").trim();
+    const qIss = (issuerSearch || "").trim();
     const filtered = rows.filter((r) => {
       if ((r.section || "").trim() !== "cp_term") return false;
-      if (!matchesCpRating(r["등급"], ratingFilter)) return false;
       const iss = (r["발행사명"] || "").trim();
       if (!iss) return false;
+      if (qIss) return String(iss).includes(qIss);
+      if (!matchesCpRating(r["등급"], ratingFilter)) return false;
       if (cat !== "all" && !sectorFilterMatch(rowSectorCp(r), cat)) return false;
       return true;
     });
@@ -1692,7 +1724,6 @@
       if (iss) issuerSet.add(iss);
     });
     let issuers = Array.from(issuerSet).sort((a, b) => a.localeCompare(b, "ko"));
-    const qIss = (issuerSearch || "").trim();
     if (qIss) issuers = issuers.filter((i) => String(i).includes(qIss));
     const tenorSet = new Set();
     filtered.forEach((r) => {
@@ -1723,13 +1754,15 @@
 
   function buildBondTermPivot(rows, ratingFilter, categoryFilter, issuerSearch) {
     const cat = (categoryFilter || "all").trim();
+    const qIssBd = (issuerSearch || "").trim();
     const isRatingAll = normTermRating(ratingFilter) === "ALL";
     const issuerSectorAll = buildBondIssuerSectorMap(rows);
     const filtered = rows.filter((r) => {
       if ((r.section || "").trim() !== "bond_term") return false;
-      if (!matchesBondRating(r["등급"], ratingFilter)) return false;
       const iss = (r["발행사명"] || "").trim();
       if (!iss) return false;
+      if (qIssBd) return String(iss).includes(qIssBd);
+      if (!matchesBondRating(r["등급"], ratingFilter)) return false;
       if (cat !== "all") {
         const sec = bondSectorForRow(r, issuerSectorAll, iss);
         if (!sectorFilterMatch(sec, cat)) return false;
@@ -1765,7 +1798,7 @@
       tenorSet.add(parts[1]);
     });
     let issuers = Array.from(issuerSet);
-    if (isRatingAll) {
+    if (isRatingAll && !qIssBd) {
       issuers.sort((a, b) => {
         const ra = issuerBestRating.has(a) ? issuerBestRating.get(a).rating : "";
         const rb = issuerBestRating.has(b) ? issuerBestRating.get(b).rating : "";
@@ -1778,7 +1811,6 @@
     } else {
       issuers.sort((a, b) => a.localeCompare(b, "ko"));
     }
-    const qIssBd = (issuerSearch || "").trim();
     if (qIssBd) issuers = issuers.filter((i) => String(i).includes(qIssBd));
     const tenors = Array.from(tenorSet).sort((a, b) => {
       const ka = bondTenorSortKey(a);
@@ -1985,7 +2017,11 @@
       refreshMarketCsvFromServer();
     }
     if (isTerm) ensureTermData();
-    if (isSpread) resizeSpreadChartsIfVisible();
+    if (isSpread) {
+      resizeSpreadChartsIfVisible();
+      setTimeout(resizeSpreadChartsIfVisible, 80);
+      setTimeout(resizeSpreadChartsIfVisible, 280);
+    }
   }
 
   function fundNameListMoOnly() {
@@ -3061,6 +3097,7 @@
     const dateFilter = dates.filter(d => d >= start && d <= end);
     if (!dateFilter.length) {
       Plotly.react(chartDiv, [], {
+        autosize: true,
         margin: { l: 55, r: 50, t: 18, b: 45 },
         paper_bgcolor: "#0e1117",
         plot_bgcolor: "#0e1117",
@@ -3152,6 +3189,7 @@
     if (spreadTrace) traces.push(spreadTrace);
 
     const layout = {
+      autosize: true,
       margin: { l: 55, r: 50, t: 18, b: 45 },
       paper_bgcolor: "#0e1117",
       plot_bgcolor: "#0e1117",
@@ -3222,6 +3260,7 @@
     const dateFilter = dates.filter(d => d >= start && d <= end);
     if (!dateFilter.length) {
       Plotly.react(chartDiv2, [], {
+        autosize: true,
         margin: { l: 55, r: 50, t: 18, b: 45 },
         paper_bgcolor: "#0e1117",
         plot_bgcolor: "#0e1117",
@@ -3273,6 +3312,7 @@
     }
     if (spreadTrace) traces.push(spreadTrace);
     const layout = {
+      autosize: true,
       margin: { l: 55, r: 50, t: 18, b: 45 },
       paper_bgcolor: "#0e1117", plot_bgcolor: "#0e1117", bargap: 0.05,
       font: { color: "#fff", family: "Malgun Gothic, Segoe UI, sans-serif" },
