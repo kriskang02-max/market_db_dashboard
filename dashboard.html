@@ -628,7 +628,7 @@
         <input type="number" id="ratesHistoryDays" min="1" max="250" value="7" step="1" title="국고·크레딧 데이터가 있는 일자만, 최신일부터 이 개수만큼 표시합니다." />
         <label for="ratesCustomDiffDateInput">기준일</label>
         <input type="date" id="ratesCustomDiffDateInput" class="rates-custom-date-global" title="비우면 첫 행 미표시 · 입력 시 최신일 대비 변동 행(모든 테이블 공통)을 표시합니다." />
-        <label class="rates-halfyear-wrap" for="ratesHideHalfYearCols" title="체크 시 1/1.5·1.5/2·1.5Y·2.5Y 및 해당 스프레드/기울기 열을 숨깁니다.">
+        <label class="rates-halfyear-wrap" for="ratesHideHalfYearCols" title="체크 시 1/1.5·1.5/2·1.5Y·2.5Y 및 해당 만기간 금리차 열을 숨깁니다.">
           <input type="checkbox" id="ratesHideHalfYearCols" />
           <span>0.5Y 단위 표시</span>
         </label>
@@ -651,7 +651,7 @@
         <div class="rates-table-wrap" id="ratesTableCreditYldWrap"></div>
       </div>
       <div class="rates-block">
-        <h3>크레딧 스프레드 일자별 변동</h3>
+        <h3>크레딧 만기간 금리차</h3>
         <div class="rates-table-wrap" id="ratesTableCreditSlopeWrap"></div>
       </div>
     </div>
@@ -2484,11 +2484,12 @@
     return (c - k) * 100;
   }
 
-  function spreadSlopeBp(d, inst, a, b) {
-    const sa = creditSpreadBp(d, inst, a);
-    const sb = creditSpreadBp(d, inst, b);
-    if (sa === null || sb === null) return null;
-    return sb - sa;
+  /** 크레딧 만기 a→b 금리차(bp). 국고채 ktbTermSpreadBp와 동일하게 (Y_b−Y_a)×100 */
+  function creditTermSpreadBp(d, inst, a, b) {
+    const ya = creditYield(d, inst, a);
+    const yb = creditYield(d, inst, b);
+    if (ya === null || yb === null) return null;
+    return (yb - ya) * 100;
   }
 
   function dateHasRatesData(d) {
@@ -2725,8 +2726,8 @@
       let h = "<tr><td><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></td>";
       RATES_CREDIT_LINES.forEach((line) => {
         slopePairs.forEach(([a, b]) => {
-          const vA = spreadSlopeBp(d0, line.inst, a, b);
-          const vR = dCustom ? spreadSlopeBp(dCustom, line.inst, a, b) : null;
+          const vA = creditTermSpreadBp(d0, line.inst, a, b);
+          const vR = dCustom ? creditTermSpreadBp(dCustom, line.inst, a, b) : null;
           const dBp = vA !== null && vR !== null ? vA - vR : null;
           h += tdVal(dBp, 1, true);
         });
@@ -2774,9 +2775,9 @@
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       RATES_CREDIT_LINES.forEach((line) => {
         slopePairs.forEach(([a, b]) => {
-          const vA = spreadSlopeBp(dAnchor, line.inst, a, b);
+          const vA = creditTermSpreadBp(dAnchor, line.inst, a, b);
           if (isDelta && refD) {
-            const vR = spreadSlopeBp(refD, line.inst, a, b);
+            const vR = creditTermSpreadBp(refD, line.inst, a, b);
             h += tdVal(vA !== null && vR !== null ? vA - vR : null, 1, true);
           } else h += tdVal(vA, 1, false);
         });
