@@ -156,52 +156,13 @@
     .fund-metric-table .subhead { font-size: 0.62rem; font-weight: 500; color: rgba(255,255,255,0.55); }
     .pct-up { color: #f87171; }
     .pct-down { color: #60a5fa; }
-    .fund-check-list {
-      max-height: 240px; overflow: auto;
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.4rem 0.5rem;
-      font-size: 0.78rem; background: rgba(0,0,0,0.2);
+    .fund-mo-six-custody { width: 100%; max-width: 100%; }
+    .fund-mo-six-custody th:first-child,
+    .fund-mo-six-custody td:first-child { width: 4.2rem; vertical-align: top; }
+    .fund-mo-six-custody__body {
+      text-align: left; white-space: normal; line-height: 1.45;
+      color: rgba(255,255,255,0.92); word-break: keep-all;
     }
-    .fund-check-list label {
-      display: flex; align-items: flex-start; gap: 0.4rem; margin: 0.25rem 0; cursor: pointer;
-      color: rgba(255,255,255,0.88); line-height: 1.35;
-    }
-    .fund-check-list input { margin-top: 0.2rem; flex-shrink: 0; }
-    .fund-sidebar-pick--light {
-      background: #ffffff;
-      color: #0f172a;
-      border-radius: 10px;
-      padding: 0.75rem 0.7rem 0.85rem;
-      margin: 0.5rem 0 1rem;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-    }
-    .fund-sidebar-pick--light h2 { margin: 0 0 0.4rem !important; font-size: 0.85rem !important; font-weight: 700 !important; color: #0f172a !important; }
-    .fund-sidebar-pick--light label { color: #334155 !important; font-weight: 600; }
-    .fund-sidebar-pick--light .fund-check-list {
-      background: #f8fafc;
-      border-color: #e2e8f0;
-      max-height: 220px;
-    }
-    .fund-sidebar-pick--light .fund-check-list label { color: #0f172a !important; align-items: flex-start; }
-    .fund-sidebar-pick--light .fund-check-list label span {
-      color: #0f172a !important;
-      flex: 1 1 auto;
-      min-width: 0;
-      word-break: break-word;
-      line-height: 1.35;
-    }
-    .fund-sidebar-pick--light .fund-compare-start {
-      width: 100%;
-      margin-top: 0.2rem;
-      padding: 0.4rem 0.5rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      background: #fff;
-      color: #0f172a;
-      font-size: 0.85rem;
-    }
-    .fund-sidebar-pick--light .fund-compare-hint { margin: 0.45rem 0 0 !important; font-size: 0.68rem !important; color: #64748b !important; }
-    .fund-chart-compare-wrap { margin-top: 1rem; padding-top: 0.25rem; }
     .rates-analysis-outer { padding: 1rem 1.25rem 2rem; max-width: 100%; overflow-x: auto; background: #1a1a2e; }
     .rates-analysis-outer h2.rates-page-title { margin: 0 0 1rem; font-size: 1.35rem; font-weight: 700; color: rgba(255,255,255,0.96); }
     .rates-analysis-outer .rates-block { margin-bottom: 1.75rem; }
@@ -731,55 +692,11 @@
       <div id="fundTableMoWrap"></div>
       <div id="fundJaTitleRow" class="fund-summary__title-row fund-summary__title--sub"></div>
       <div id="fundTableJaWrap"></div>
-    </div>
-    <div class="container">
-      <main class="main">
-        <p class="panel-head">펀드 시계열 비교</p>
-        <p class="fund-summary__note" style="margin:0 0 0.5rem;">기간 <strong>시작일</strong>을 기준점으로 합니다. 설정액·순자산은 그날 값을 0으로 두고 이후 <strong>누적 변동</strong>만 그립니다. 수정기준가는 시작 관측 대비 <strong>기간수익률(%)</strong>을 날짜마다 표시합니다(시작일 이전 데이터가 없으면 그 이후 첫 관측을 기준으로 합니다).</p>
-        <div class="chart-wrap" id="chartFund"></div>
-        <p id="fundChartError" class="error" style="display:none;"></p>
-        <div class="fund-chart-compare-wrap" id="fundChartCompareBlock">
-          <p class="panel-head">구간 비교 표</p>
-          <p class="fund-summary__note" style="margin-bottom:0.5rem;">비교 시작일 이후 <strong>변동</strong>만 표시합니다. 수정기준가 기준 <strong>기간수익률</strong>, <strong>설정액 변동</strong>(원÷10⁸, 소수 절사). 그래프와 동일한 펀드 선택을 씁니다.</p>
-          <div id="fundCompareTableWrap"></div>
-        </div>
-      </main>
-      <aside class="sidebar">
-        <p class="panel-head">설정</p>
-        <h2>그래프 데이터</h2>
-        <label for="fundChartMode">표시 유형 (기준일=기간 시작)</label>
-        <select id="fundChartMode">
-          <option value="setup">설정액 누적변동 (시작일 대비 증감, 원)</option>
-          <option value="net">순자산 누적변동 (시작일 대비 증감, 원)</option>
-          <option value="navPeriod">수정기준가 기간수익률 (시작 관측 대비, %)</option>
-        </select>
-        <div class="fund-sidebar-pick--light">
-          <h2>구간 비교 · 표시 펀드 (모펀드만)</h2>
-          <label for="fundCompareStartDate">비교 시작일 (이후 누적)</label>
-          <input type="date" id="fundCompareStartDate" class="fund-compare-start" title="이 날짜 이후~최신일까지 비교" />
-          <label style="margin-top:0.75rem;">표시할 펀드 (복수 선택)</label>
-          <div id="fundList" class="fund-check-list"></div>
-          <p class="fund-compare-hint">차트와 동일한 선택이 적용됩니다. 펀드가 많으면 스크롤하세요.</p>
-        </div>
-        <h2>Y축</h2>
-        <label>y축 min · max</label>
-        <div class="axis-row">
-          <input type="number" id="fundYMin" step="any" placeholder="자동" />
-          <input type="number" id="fundYMax" step="any" placeholder="자동" />
-        </div>
-        <h2>기간</h2>
-        <label>시작일 · 종료일</label>
-        <div class="axis-row">
-          <input type="date" id="fundStartDate" title="시작일" />
-          <input type="date" id="fundEndDate" title="종료일" />
-        </div>
-        <div class="btn-wrap">
-          <button type="button" class="btn btn-primary" id="btnDrawFund">그래프 그리기</button>
-          <button type="button" class="btn btn-secondary" id="btnFundAutoAxis">축 자동</button>
-        </div>
-        <p style="margin-top:0.75rem; font-size:0.75rem; color:rgba(255,255,255,0.5);" id="fundDataStatus">—</p>
-        <p class="panel-foot">fund_db</p>
-      </aside>
+      <h3 class="fund-summary__title fund-summary__title--sub" style="margin-top:1.25rem;">6사 수탁고 변동</h3>
+      <p class="fund-summary__note" style="margin:0 0 0.45rem;">모펀드 표와 동일 기준일·구간 시작일을 씁니다. 신한·KB·우리·하나·키움·교보 초단기(유사) 펀드만 매칭합니다(설정액 차이÷10⁸억, 절사).</p>
+      <div class="rates-table-wrap" id="fundMoSixCustodyWrap"></div>
+      <p style="margin-top:0.75rem; font-size:0.75rem; color:rgba(255,255,255,0.5);" id="fundDataStatus">—</p>
+      <p class="panel-foot" style="margin-top:0.35rem; font-size:0.7rem; color:rgba(255,255,255,0.35);">fund_db</p>
     </div>
   </div>
 
@@ -867,15 +784,7 @@
   const endDate_2 = document.getElementById("endDate_2");
   const chartDiv2 = document.getElementById("chartDiv2");
   const chartError2 = document.getElementById("chartError2");
-  const chartFund = document.getElementById("chartFund");
-  const fundChartError = document.getElementById("fundChartError");
-  const fundChartMode = document.getElementById("fundChartMode");
-  const fundList = document.getElementById("fundList");
-  const fundStartDate = document.getElementById("fundStartDate");
-  const fundEndDate = document.getElementById("fundEndDate");
   const fundDataStatus = document.getElementById("fundDataStatus");
-  const fundYMin = document.getElementById("fundYMin");
-  const fundYMax = document.getElementById("fundYMax");
   const spreadHeaderMeta = document.getElementById("spreadHeaderMeta");
   const navSpread = document.getElementById("navSpread");
   const navRates = document.getElementById("navRates");
@@ -890,8 +799,7 @@
   const fundSummaryOuter = document.getElementById("fundSummaryOuter");
   const fundMoTitleRow = document.getElementById("fundMoTitleRow");
   const fundJaTitleRow = document.getElementById("fundJaTitleRow");
-  const fundCompareStartDate = document.getElementById("fundCompareStartDate");
-  const fundCompareTableWrap = document.getElementById("fundCompareTableWrap");
+  const fundMoSixCustodyWrap = document.getElementById("fundMoSixCustodyWrap");
   const ratesAnalysisStatus = document.getElementById("ratesAnalysisStatus");
   const ratesTableKtbWrap = document.getElementById("ratesTableKtbWrap");
   const ratesTableCreditYldWrap = document.getElementById("ratesTableCreditYldWrap");
@@ -947,11 +855,6 @@
   let fundNameList = [];
   let fundDateList = [];
   let fundDataLoadPromise = null;
-
-  const FUND_TRACE_COLORS = [
-    "#22c55e", "#14b8a6", "#f97316", "#eab308", "#a855f7", "#ec4899", "#3b82f6", "#f472b6",
-    "#38bdf8", "#c084fc", "#fbbf24", "#34d399", "#fb7185", "#94a3b8", "#fde047", "#ffffff",
-  ];
 
   function parseCsvLine(line) {
     const out = [];
@@ -1015,6 +918,26 @@
     return /C/.test(s);
   }
 
+  /** 모펀드 6사(약칭 순). fundNameList에서 첫 일치만 사용 */
+  const MO_BANK_SIX_SPEC = [
+    { short: "신한", pick: (n) => !isJaFundName(n) && n.indexOf("신한초단기채") >= 0 },
+    { short: "KB", pick: (n) => !isJaFundName(n) && n.indexOf("KB머니마켓액티브") >= 0 },
+    { short: "우리", pick: (n) => !isJaFundName(n) && n.indexOf("우리") >= 0 && n.indexOf("초단기") >= 0 },
+    { short: "하나", pick: (n) => !isJaFundName(n) && n.indexOf("하나") >= 0 && n.indexOf("초단기") >= 0 },
+    { short: "키움", pick: (n) => !isJaFundName(n) && n.indexOf("키움") >= 0 && n.indexOf("초단기") >= 0 },
+    { short: "교보", pick: (n) => !isJaFundName(n) && n.indexOf("교보") >= 0 && (n.indexOf("초단기") >= 0 || n.indexOf("내일환매") >= 0) },
+  ];
+
+  function resolveMoBankSixFundNames() {
+    const names = fundNameList || [];
+    return MO_BANK_SIX_SPEC.map((def) => {
+      for (let i = 0; i < names.length; i++) {
+        if (def.pick(names[i])) return { short: def.short, fund: names[i] };
+      }
+      return { short: def.short, fund: null };
+    });
+  }
+
   function ymdToDate(ymd) {
     const p = String(ymd || "").split("-");
     if (p.length !== 3) return null;
@@ -1076,13 +999,6 @@
     const arr = (pts || []).filter((p) => p.d >= fromYmd && p.d <= asOf);
     if (!arr.length) return null;
     return arr[0];
-  }
-
-  /** 기준일 이전 관측이 없으면 그 이후 첫 관측을 기준으로 사용(펀드별 상장·데이터 시작일 상이) */
-  function baselinePointOrFirstAfter(pts, asOf, startYmd) {
-    const b = valueOnOrBefore(pts, asOf, startYmd);
-    if (b) return b;
-    return firstObsInRange(pts, asOf, startYmd);
   }
 
   /** asOf 이전 시계열에서 boundaryYmd 미만인 날짜 중 마지막 관측(전년 말·전월 말 등) */
@@ -1180,6 +1096,42 @@
     const t = Math.trunc(x);
     const s = (t >= 0 ? "+" : "−") + Math.abs(t).toLocaleString("ko-KR");
     return "<td class=\"" + cls + "\">" + s + "</td>";
+  }
+
+  const MO_SIX_CUSTODY_PERIODS = [
+    ["1주", "a1w"],
+    ["1달", "a1m"],
+    ["3달", "a3m"],
+    ["6달", "a6m"],
+    ["1년", "a1y"],
+    ["MTD", "aMtd"],
+    ["YTD", "aYtd"],
+  ];
+
+  function fmtCustodyEokPlain(x) {
+    if (x === null || x === undefined || Number.isNaN(x)) return "—";
+    const t = Math.trunc(x);
+    const sign = t >= 0 ? "+" : "−";
+    return sign + Math.abs(t).toLocaleString("ko-KR") + "억";
+  }
+
+  function buildMoSixCustodyTableHtml(rangeStartYmd, metricsAsOfYmd) {
+    const banks = resolveMoBankSixFundNames();
+    const mRows = banks.map((b) => (b.fund ? metricsForFund(b.fund, rangeStartYmd || "", metricsAsOfYmd) : null));
+    let h = "<table class=\"fund-metric-table fund-metric-table--summary fund-mo-six-custody\"><thead><tr><th class=\"name-cell\">구분</th><th>내용</th></tr></thead><tbody>";
+    for (let pi = 0; pi < MO_SIX_CUSTODY_PERIODS.length; pi++) {
+      const plab = MO_SIX_CUSTODY_PERIODS[pi][0];
+      const ak = MO_SIX_CUSTODY_PERIODS[pi][1];
+      const parts = [];
+      for (let bi = 0; bi < banks.length; bi++) {
+        const m = mRows[bi];
+        const v = m && Object.prototype.hasOwnProperty.call(m, ak) ? m[ak] : null;
+        parts.push(banks[bi].short + " " + fmtCustodyEokPlain(v));
+      }
+      h += "<tr><td class=\"name-cell\">" + escapeHtml(plab) + "</td><td class=\"fund-mo-six-custody__body\">" + escapeHtml(parts.join(", ")) + "</td></tr>";
+    }
+    h += "</tbody></table>";
+    return h;
   }
 
   function fmtNetWorth(x) {
@@ -1349,87 +1301,6 @@
       if (bn !== an) return bn - an;
       return String(a.fund).localeCompare(b.fund, "ko");
     });
-  }
-
-  /** 그래프 섹션 구간 비교 표용: 비교 시작일~최신, 기간수익률·설정액 변동 */
-  function computeFundCompareRow(fund, startYmd) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(startYmd || "").trim())) return null;
-    const start = String(startYmd).trim();
-    const navPts = navSeriesForFund(fund);
-    const setupPts = setupSeriesForFund(fund);
-    const netPts = netWorthSeriesForFund(fund);
-    if (!navPts.length) return null;
-    const navEnd = navPts[navPts.length - 1];
-    const asOf = navEnd.d;
-    if (start > asOf) return null;
-    const navNow = navEnd.v;
-    const navStart = baselinePointOrFirstAfter(navPts, asOf, start);
-    if (!navStart) return null;
-    const days = calendarDaysBetween(navStart.d, asOf);
-    if (!days || days <= 0) return null;
-    const rawPct = pctChange(navNow, navStart.v);
-    const setupUpTo = filterPtsToAsOf(setupPts, asOf);
-    let aSetupEok = null;
-    const setupEndPt = setupUpTo.length ? setupUpTo[setupUpTo.length - 1] : null;
-    if (setupEndPt) {
-      const setupStartPt = baselinePointOrFirstAfter(setupPts, asOf, start);
-      if (setupStartPt && Number.isFinite(setupEndPt.v) && Number.isFinite(setupStartPt.v)) {
-        aSetupEok = aumDeltaEok(setupEndPt.v, setupStartPt.v);
-      }
-    }
-    const netOn = lastPointOnOrBefore(netPts, asOf);
-    const netWorthDisplay = netOn && Number.isFinite(netOn.v) ? netOn.v : null;
-    return {
-      fund,
-      asOf,
-      rawPct,
-      aSetupEok,
-      netWorthDisplay,
-    };
-  }
-
-  function renderFundCompareTable() {
-    if (!fundCompareTableWrap || !fundList) return;
-    if (!fundNameList.length) {
-      fundCompareTableWrap.innerHTML = "";
-      return;
-    }
-    const startYmd = (fundCompareStartDate && fundCompareStartDate.value || "").trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(startYmd)) {
-      fundCompareTableWrap.innerHTML = "<p class=\"fund-summary__note\">비교 시작일을 선택하세요.</p>";
-      return;
-    }
-    const selected = Array.from(fundList.querySelectorAll("input[type=checkbox]:checked")).map((cb) => cb.value);
-    if (!selected.length) {
-      fundCompareTableWrap.innerHTML = "<p class=\"fund-summary__note\">표시할 펀드를 한 개 이상 선택하세요.</p>";
-      return;
-    }
-    const rows = [];
-    selected.forEach((name) => {
-      const row = computeFundCompareRow(name, startYmd);
-      if (row) rows.push(row);
-    });
-    if (!rows.length) {
-      fundCompareTableWrap.innerHTML = "<p class=\"fund-summary__note\">해당 구간에 데이터가 있는 펀드가 없습니다.</p>";
-      return;
-    }
-    const sorted = sortRowsByNetWorthDesc(rows);
-    let h = "<table class=\"fund-metric-table\"><thead><tr>";
-    h += "<th class=\"name-cell\">펀드</th>";
-    h += "<th>최신일</th>";
-    h += "<th>기간수익률<br><span class=\"subhead\">(수정기준가·시작~최신)</span></th>";
-    h += "<th>설정액 변동<br><span class=\"subhead\">(원÷10⁸, 절사)</span></th>";
-    h += "</tr></thead><tbody>";
-    sorted.forEach((r) => {
-      const trCls = isFundSummaryHighlightRow(r.fund) ? " class=\"fund-metric-table__row--highlight\"" : "";
-      h += "<tr" + trCls + "><td class=\"name-cell\">" + escapeHtml(r.fund) + "</td>";
-      h += "<td>" + escapeHtml(r.asOf) + "</td>";
-      h += pctCellHtml(r.rawPct, undefined);
-      h += aumEokCellHtml(r.aSetupEok);
-      h += "</tr>";
-    });
-    h += "</tbody></table>";
-    fundCompareTableWrap.innerHTML = h;
   }
 
   /** 표에서 강조할 펀드(정확히 일치) */
@@ -1980,17 +1851,9 @@
         preservedRefDate: preserved,
       });
     }
-  }
-
-  function emptyLayoutFund() {
-    return {
-      margin: { l: 55, r: 45, t: 18, b: 45 },
-      paper_bgcolor: "#0e1117",
-      plot_bgcolor: "#0e1117",
-      font: { color: "#fff", family: "Malgun Gothic, Segoe UI, sans-serif" },
-      xaxis: { title: "Date", gridcolor: "rgba(255,255,255,0.08)", zeroline: false },
-      yaxis: { title: "값", gridcolor: "rgba(255,255,255,0.14)", zerolinecolor: "rgba(255,255,255,0.3)" },
-    };
+    if (fundMoSixCustodyWrap) {
+      fundMoSixCustodyWrap.innerHTML = buildMoSixCustodyTableHtml(preserved, metricsAsOfYmd);
+    }
   }
 
   function setPage(page) {
@@ -2025,41 +1888,9 @@
     }
   }
 
-  function fundNameListMoOnly() {
-    return fundNameList.filter((n) => !isJaFundName(n));
-  }
-
-  function buildFundCheckboxes() {
-    fundList.innerHTML = "";
-    const mo = fundNameListMoOnly();
-    if (!mo.length) {
-      const p = document.createElement("p");
-      p.className = "fund-compare-hint";
-      p.style.margin = "0";
-      p.textContent = "모펀드가 없습니다.";
-      fundList.appendChild(p);
-      return;
-    }
-    mo.forEach((name, i) => {
-      const id = "fundCb_" + i;
-      const lab = document.createElement("label");
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.value = name;
-      cb.id = id;
-      cb.checked = true;
-      lab.appendChild(cb);
-      const span = document.createElement("span");
-      span.textContent = name;
-      lab.appendChild(span);
-      fundList.appendChild(lab);
-    });
-  }
-
   function ensureFundData() {
     if (fundDataLoadPromise) return fundDataLoadPromise;
-    fundDataStatus.textContent = "불러오는 중…";
-    fundChartError.style.display = "none";
+    if (fundDataStatus) fundDataStatus.textContent = "불러오는 중…";
     fundDataLoadPromise = fetchCsvNoCache(FUND_CSV_PATH)
       .then((r) => {
         if (!r.ok) throw new Error("파일을 불러올 수 없습니다: " + FUND_CSV_PATH);
@@ -2094,144 +1925,23 @@
         fundFieldList = Array.from(fields).sort((a, b) => String(a).localeCompare(b, "ko"));
         fundNameList = Array.from(names).sort((a, b) => String(a).localeCompare(b, "ko"));
         fundDateList = Array.from(dset).sort();
-        buildFundCheckboxes();
-        const dMin = fundDateList[0];
-        const dMax = fundDateList[fundDateList.length - 1];
-        if (dMin) fundStartDate.value = dMin;
-        if (dMax) fundEndDate.value = dMax;
-        if (fundCompareStartDate && dMin) fundCompareStartDate.value = dMin;
+        const dMax = fundDateList.length ? fundDateList[fundDateList.length - 1] : "";
         const fundMetricsAsOfDateInput = document.getElementById("fundMetricsAsOfDateInput");
         if (fundMetricsAsOfDateInput && dMax) fundMetricsAsOfDateInput.value = dMax;
-        fundDataStatus.textContent = fundRows.length ? "행 " + fundRows.length + "건" : "데이터 없음";
+        if (fundDataStatus) fundDataStatus.textContent = fundRows.length ? "행 " + fundRows.length + "건" : "데이터 없음";
         renderFundSummaryTables();
-        renderFundCompareTable();
-        if (!fundFieldList.length) {
-          fundDataStatus.textContent = "유효 행 없음";
-          Plotly.react(chartFund, [], emptyLayoutFund(), { responsive: true });
-        } else renderFundChart();
+        if (!fundFieldList.length && fundDataStatus) fundDataStatus.textContent = "유효 행 없음";
       })
       .catch((err) => {
         fundDataLoadPromise = null;
-        fundDataStatus.textContent = "오류";
-        fundChartError.textContent = err.message || "오류 발생";
-        fundChartError.style.display = "block";
+        if (fundDataStatus) fundDataStatus.textContent = "오류: " + (err && err.message ? err.message : String(err));
         if (fundMoTitleRow) fundMoTitleRow.innerHTML = "";
         if (fundJaTitleRow) fundJaTitleRow.innerHTML = "";
         if (fundTableMoWrap) fundTableMoWrap.innerHTML = "";
         if (fundTableJaWrap) fundTableJaWrap.innerHTML = "";
-        if (fundCompareTableWrap) fundCompareTableWrap.innerHTML = "";
+        if (fundMoSixCustodyWrap) fundMoSixCustodyWrap.innerHTML = "";
       });
     return fundDataLoadPromise;
-  }
-
-  /** 기간 시작일 기준점 대비 누적(설정액·순자산) 또는 기간수익(수정기준가) 시계열 */
-  function buildFundChartCumulativeSeries(fname, mode, start, end) {
-    let pts;
-    if (mode === "navPeriod") {
-      pts = navSeriesForFund(fname);
-    } else {
-      const fld = mode === "setup" ? "설정액" : "순자산";
-      pts = fundSeriesMap.get(fname + "\0" + fld) || [];
-    }
-    if (!pts.length) return null;
-    const asOf = pts[pts.length - 1].d;
-    const base = baselinePointOrFirstAfter(pts, asOf, start);
-    if (!base) return null;
-    const inRange = pts.filter((p) => p.d >= start && p.d <= end);
-    const xs = [];
-    const ys = [];
-    if (mode === "navPeriod") {
-      inRange.forEach((p) => {
-        if (p.d < base.d) return;
-        const raw = pctChange(p.v, base.v);
-        if (raw === null || Number.isNaN(raw)) return;
-        xs.push(p.d);
-        ys.push(raw);
-      });
-    } else {
-      inRange.forEach((p) => {
-        if (p.d < base.d) return;
-        if (!Number.isFinite(p.v) || !Number.isFinite(base.v)) return;
-        xs.push(p.d);
-        ys.push(p.v - base.v);
-      });
-    }
-    return xs.length ? { x: xs, y: ys } : null;
-  }
-
-  function yAxisTitleForFundChartMode(mode) {
-    if (mode === "setup") return "설정액 누적변동 (원, 시작일=0)";
-    if (mode === "net") return "순자산 누적변동 (원, 시작일=0)";
-    return "기간수익률 (%, 시작 관측 대비)";
-  }
-
-  function renderFundChart() {
-    if (!fundChartMode || !chartFund) return;
-    fundChartError.style.display = "none";
-    const mode = (fundChartMode.value || "setup").trim();
-    const start = (fundStartDate.value || "").trim() || fundDateList[0];
-    const end = (fundEndDate.value || "").trim() || fundDateList[fundDateList.length - 1];
-    const selected = Array.from(fundList.querySelectorAll("input[type=checkbox]:checked")).map((cb) => cb.value);
-    if (!selected.length) {
-      const layout = emptyLayoutFund();
-      layout.annotations = [{
-        x: 0.5, y: 0.5, text: "표시할 모펀드를 선택하세요", showarrow: false, font: { size: 14, color: "#fff" },
-      }];
-      Plotly.react(chartFund, [], layout, { responsive: true });
-      return;
-    }
-    const traces = [];
-    selected.forEach((fname, idx) => {
-      const ser = buildFundChartCumulativeSeries(fname, mode, start, end);
-      if (!ser) return;
-      traces.push({
-        x: ser.x,
-        y: ser.y,
-        type: "scatter",
-        mode: "lines",
-        name: fname,
-        line: { width: 2, color: FUND_TRACE_COLORS[idx % FUND_TRACE_COLORS.length] },
-      });
-    });
-    const layout = {
-      margin: { l: 62, r: Math.min(120 + selected.length * 8, 360), t: 18, b: 45 },
-      paper_bgcolor: "#0e1117",
-      plot_bgcolor: "#0e1117",
-      font: { color: "#fff", family: "Malgun Gothic, Segoe UI, sans-serif" },
-      hoverlabel: { align: "left" },
-      xaxis: {
-        title: "Date",
-        gridcolor: "rgba(255,255,255,0.08)",
-        zeroline: false,
-        linecolor: "rgba(255,255,255,0.15)",
-        tickfont: { color: "#fff" },
-      },
-      yaxis: {
-        title: yAxisTitleForFundChartMode(mode),
-        gridcolor: "rgba(255,255,255,0.14)",
-        zeroline: mode === "setup" || mode === "net" || mode === "navPeriod",
-        zerolinecolor: "rgba(255,255,255,0.35)",
-        linecolor: "rgba(255,255,255,0.55)",
-        linewidth: 1.5,
-        tickfont: { color: "#fff" },
-      },
-      legend: {
-        x: 1.02, y: 1, xanchor: "left", yanchor: "top",
-        bgcolor: "rgba(0,0,0,0.45)",
-        font: { color: "#fff", size: 9 },
-      },
-    };
-    const yMinVal = parseFloat(fundYMin.value, 10);
-    const yMaxVal = parseFloat(fundYMax.value, 10);
-    if (!Number.isNaN(yMinVal) || !Number.isNaN(yMaxVal)) {
-      layout.yaxis.range = [Number.isNaN(yMinVal) ? undefined : yMinVal, Number.isNaN(yMaxVal) ? undefined : yMaxVal];
-    }
-    if (!traces.length) {
-      layout.annotations = [{
-        x: 0.5, y: 0.5, text: "선택한 조합에 표시할 데이터가 없습니다", showarrow: false, font: { size: 14, color: "#fff" },
-      }];
-    }
-    Plotly.react(chartFund, traces, layout, { responsive: true });
   }
 
   function escapeHtml(value) {
@@ -3438,39 +3148,6 @@
     fundSummaryOuter.addEventListener("change", onFundMetricsAsOfChange);
     fundSummaryOuter.addEventListener("input", onFundMetricsAsOfChange);
   }
-
-  document.getElementById("btnDrawFund").addEventListener("click", renderFundChart);
-  document.getElementById("btnFundAutoAxis").addEventListener("click", () => {
-    fundYMin.value = fundYMax.value = "";
-    renderFundChart();
-  });
-  [fundChartMode, fundStartDate, fundEndDate, fundYMin, fundYMax].forEach((el) => {
-    if (!el) return;
-    el.addEventListener("change", renderFundChart);
-    if (el.tagName !== "SELECT") el.addEventListener("input", renderFundChart);
-  });
-  if (fundStartDate && fundCompareStartDate) {
-    function syncCompareStartFromChart() {
-      const v = (fundStartDate.value || "").trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) fundCompareStartDate.value = v;
-    }
-    function onCompareStartChange() {
-      const v = (fundCompareStartDate.value || "").trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) fundStartDate.value = v;
-      renderFundChart();
-      renderFundCompareTable();
-    }
-    fundStartDate.addEventListener("change", syncCompareStartFromChart);
-    fundStartDate.addEventListener("input", syncCompareStartFromChart);
-    fundCompareStartDate.addEventListener("change", onCompareStartChange);
-    fundCompareStartDate.addEventListener("input", onCompareStartChange);
-  }
-  fundList.addEventListener("change", (e) => {
-    if (e.target && e.target.matches && e.target.matches("input[type=checkbox]")) {
-      renderFundChart();
-      renderFundCompareTable();
-    }
-  });
 
   if (ratesHistoryDaysInput) {
     ratesHistoryDaysInput.addEventListener("change", renderRatesAnalysis);
