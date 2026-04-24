@@ -177,7 +177,8 @@
     #fundTableMoWrap .fund-metric-table--summary thead tr:nth-child(2) th,
     #fundTableJaWrap .fund-metric-table--summary thead tr:nth-child(2) th {
       position: sticky;
-      top: 2.65rem;
+      /* 첫 헤더 행 실제 높이는 rowspan·열 수에 따라 달라짐 — JS가 --fund-metric-thead-r2-top(px) 설정 */
+      top: var(--fund-metric-thead-r2-top, 3.35rem);
       z-index: 3;
       background: rgba(14, 17, 23, 0.98);
       box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
@@ -922,6 +923,7 @@
   }
   window.addEventListener("resize", () => {
     resizeSpreadChartsIfVisible();
+    syncAllFundMetricStickySubheaderTops();
   });
 
   let ratesCustomDiffDate = "";
@@ -1900,6 +1902,23 @@
     return termDataLoadPromise;
   }
 
+  /** 펀드 요약 표: 두 번째 헤더 행(sticky)의 top을 첫 thead 행 높이에 맞춤 */
+  function syncFundMetricStickySubheaderTop(wrapEl) {
+    if (!wrapEl) return;
+    const tr = wrapEl.querySelector("table.fund-metric-table--summary thead tr:first-child");
+    if (!tr) {
+      wrapEl.style.removeProperty("--fund-metric-thead-r2-top");
+      return;
+    }
+    const h = tr.getBoundingClientRect().height;
+    wrapEl.style.setProperty("--fund-metric-thead-r2-top", Math.max(1, Math.ceil(h)) + "px");
+  }
+
+  function syncAllFundMetricStickySubheaderTops() {
+    syncFundMetricStickySubheaderTop(fundTableMoWrap);
+    syncFundMetricStickySubheaderTop(fundTableJaWrap);
+  }
+
   function renderFundSummaryTables() {
     const preserved = getFundRangeStartYmd();
     const rangeStart = preserved;
@@ -1929,6 +1948,9 @@
     if (fundMoSixCustodyWrap) {
       fundMoSixCustodyWrap.innerHTML = buildMoSixCustodyTableHtml(preserved, metricsAsOfYmd);
     }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(syncAllFundMetricStickySubheaderTops);
+    });
   }
 
   function setPage(page) {
@@ -1950,7 +1972,12 @@
     else if (isRates) title = "금리 분석";
     else if (isTerm) title = "Term Structure";
     document.title = title;
-    if (isFund) ensureFundData();
+    if (isFund) {
+      ensureFundData();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(syncAllFundMetricStickySubheaderTops);
+      });
+    }
     if (isRates) {
       renderRatesAnalysis();
       refreshMarketCsvFromServer();
