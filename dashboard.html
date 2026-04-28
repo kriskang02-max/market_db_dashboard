@@ -390,6 +390,27 @@
     .rates-table-ktb .rates-custom-date-wrap--ktb .rates-custom-date-text {
       padding: 0;
     }
+    .rates-monthend-table {
+      min-width: max-content;
+      width: max-content;
+      table-layout: auto;
+      font-size: 0.8rem;
+    }
+    .rates-monthend-table col.rates-col-label { width: 8.5rem; }
+    .rates-monthend-table th:not(:first-child),
+    .rates-monthend-table td:not(:first-child) {
+      min-width: 4.15rem;
+      width: 4.15rem;
+    }
+    .rates-monthend-table .rates-monthend-col--yearend {
+      background: rgba(147, 51, 234, 0.22);
+    }
+    .rates-monthend-table tbody td.rates-monthend-col--yearend {
+      background: rgba(147, 51, 234, 0.16);
+    }
+    .rates-monthend-table tbody tr:hover td.rates-monthend-col--yearend {
+      background: rgba(147, 51, 234, 0.24);
+    }
     /* 1번 테이블(국고채+스프레드): colgroup으로 첫 열 고정 + 셀 폭 강제 */
     .rates-table-ktb {
       table-layout: fixed !important;
@@ -698,6 +719,10 @@
         <h3>크레딧 만기간 금리차</h3>
         <div class="rates-table-wrap" id="ratesTableCreditSlopeWrap"></div>
       </div>
+      <div class="rates-block">
+        <h3>월말금리테이블</h3>
+        <div class="rates-table-wrap" id="ratesTableMonthEndWrap"></div>
+      </div>
     </div>
   </div>
 
@@ -884,6 +909,7 @@
   const ratesTableCreditYldWrap = document.getElementById("ratesTableCreditYldWrap");
   const ratesTableCreditSprWrap = document.getElementById("ratesTableCreditSprWrap");
   const ratesTableCreditSlopeWrap = document.getElementById("ratesTableCreditSlopeWrap");
+  const ratesTableMonthEndWrap = document.getElementById("ratesTableMonthEndWrap");
   const ratesHistoryDaysInput = document.getElementById("ratesHistoryDays");
   const ratesCustomDiffDateInput = document.getElementById("ratesCustomDiffDateInput");
   const ratesHideHalfYearInput = document.getElementById("ratesHideHalfYearCols");
@@ -2397,6 +2423,26 @@
     return out;
   }
 
+  function buildRecentMonthEndDates(monthCount) {
+    if (!dates.length || monthCount <= 0) return [];
+    const latest = String(dates[dates.length - 1] || "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(latest)) return [];
+    const y = parseInt(latest.slice(0, 4), 10);
+    const m = parseInt(latest.slice(5, 7), 10);
+    const out = [];
+    // 각 월말(달력) 기준으로, 해당일 데이터가 없으면 직전 최근 거래일 사용
+    for (let i = monthCount - 1; i >= 0; i--) {
+      const t = new Date(y, m - 1 - i + 1, 0); // month-end
+      const ty = t.getFullYear();
+      const tm = String(t.getMonth() + 1).padStart(2, "0");
+      const td = String(t.getDate()).padStart(2, "0");
+      const target = ty + "-" + tm + "-" + td;
+      const d = lastRatesDateOnOrBefore(target);
+      out.push(d || "");
+    }
+    return out;
+  }
+
   function fmtShortYmd(iso) {
     if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "—";
     return iso.slice(2, 4) + "/" + iso.slice(5, 7) + "/" + iso.slice(8, 10);
@@ -2416,6 +2462,7 @@
       ratesTableCreditYldWrap.innerHTML = "";
       ratesTableCreditSprWrap.innerHTML = "";
       ratesTableCreditSlopeWrap.innerHTML = "";
+      if (ratesTableMonthEndWrap) ratesTableMonthEndWrap.innerHTML = "";
       return;
     }
     const d0 = latestDateWithRatesData();
@@ -2425,6 +2472,7 @@
       ratesTableCreditYldWrap.innerHTML = "";
       ratesTableCreditSprWrap.innerHTML = "";
       ratesTableCreditSlopeWrap.innerHTML = "";
+      if (ratesTableMonthEndWrap) ratesTableMonthEndWrap.innerHTML = "";
       return;
     }
     const nRequested = parseRatesHistoryDaysInput();
@@ -2718,6 +2766,40 @@
     histDates.forEach((d) => { hP += creditSlopeRowHtml(fmtShortYmd(d), d, false, null, true, d === d0); });
     hP += "</tbody></table>";
     ratesTableCreditSlopeWrap.innerHTML = hP;
+
+    if (ratesTableMonthEndWrap) {
+      const monthEnds = buildRecentMonthEndDates(24);
+      const monthEndRows = [];
+      [1, 2, 3].forEach((tenor) => {
+        monthEndRows.push({ label: "국고채" + tenor + "년", inst: "국고채", tenor });
+        monthEndRows.push({ label: "특은채" + tenor + "년", inst: "특은채", tenor });
+        monthEndRows.push({ label: "은행채" + tenor + "년", inst: "은행채", tenor });
+        monthEndRows.push({ label: "카드채" + tenor + "년", inst: "카드채", tenor });
+        monthEndRows.push({ label: "여전채" + tenor + "년", inst: "여전채", tenor });
+      });
+      let hM = "<table class=\"rates-analysis-table rates-monthend-table\"><colgroup><col class=\"rates-col-label\" />";
+      for (let i = 0; i < monthEnds.length; i++) hM += "<col class=\"rates-col-metric\" />";
+      hM += "</colgroup><thead><tr><th>항목</th>";
+      monthEnds.forEach((d) => {
+        const isYearEnd = String(d).slice(5, 7) === "12";
+        const c = isYearEnd ? " class=\"rates-monthend-col--yearend\"" : "";
+        hM += "<th" + c + ">" + escapeHtml(fmtShortYmd(d)) + "</th>";
+      });
+      hM += "</tr></thead><tbody>";
+      monthEndRows.forEach((r) => {
+        hM += "<tr><td>" + escapeHtml(r.label) + "</td>";
+        monthEnds.forEach((d) => {
+          const isYearEnd = String(d).slice(5, 7) === "12";
+          const c = isYearEnd ? " class=\"rates-monthend-col--yearend\"" : "";
+          const v = r.inst === "국고채" ? ktbYield(d, r.tenor) : creditYield(d, r.inst, r.tenor);
+          if (v === null || v === undefined || Number.isNaN(v)) hM += "<td" + c + ">—</td>";
+          else hM += "<td" + c + ">" + v.toFixed(3) + "</td>";
+        });
+        hM += "</tr>";
+      });
+      hM += "</tbody></table>";
+      ratesTableMonthEndWrap.innerHTML = hM;
+    }
   }
 
   /** CSV 재수신 후 차트·금리 표만 갱신(날짜/종목 선택·리스너는 건드리지 않음) */
