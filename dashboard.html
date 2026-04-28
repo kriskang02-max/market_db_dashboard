@@ -391,9 +391,10 @@
       padding: 0;
     }
     .rates-monthend-table {
-      min-width: max-content;
-      width: max-content;
-      table-layout: auto;
+      width: 100%;
+      max-width: 100%;
+      min-width: 52rem;
+      table-layout: fixed;
       font-size: 0.8rem;
     }
     .rates-monthend-table col.rates-col-label { width: 8.5rem; }
@@ -410,6 +411,16 @@
     }
     .rates-monthend-table tbody tr:hover td.rates-monthend-col--yearend {
       background: rgba(147, 51, 234, 0.24);
+    }
+    .rates-monthend-table tbody tr.rates-monthend-row--ktb td {
+      background: rgba(59, 130, 246, 0.14);
+    }
+    .rates-monthend-table tbody tr.rates-monthend-row--ktb td:first-child {
+      box-shadow: inset 3px 0 0 rgba(147, 197, 253, 0.95);
+      font-weight: 700;
+    }
+    .rates-monthend-table tbody tr.rates-monthend-row--ktb td.rates-monthend-col--yearend {
+      background: rgba(99, 102, 241, 0.2);
     }
     /* 1번 테이블(국고채+스프레드): colgroup으로 첫 열 고정 + 셀 폭 강제 */
     .rates-table-ktb {
@@ -2440,7 +2451,8 @@
       const d = lastRatesDateOnOrBefore(target);
       out.push(d || "");
     }
-    return out;
+    // 최신 월말(또는 직전 거래일)이 왼쪽에 오도록 역순 정렬
+    return out.reverse();
   }
 
   function fmtShortYmd(iso) {
@@ -2771,7 +2783,7 @@
       const monthEnds = buildRecentMonthEndDates(24);
       const monthEndRows = [];
       [1, 2, 3].forEach((tenor) => {
-        monthEndRows.push({ label: "국고채" + tenor + "년", inst: "국고채", tenor });
+        monthEndRows.push({ label: "국고채" + tenor + "년", inst: "국고채", tenor, isKtb: true });
         monthEndRows.push({ label: "특은채" + tenor + "년", inst: "특은채", tenor });
         monthEndRows.push({ label: "은행채" + tenor + "년", inst: "은행채", tenor });
         monthEndRows.push({ label: "카드채" + tenor + "년", inst: "카드채", tenor });
@@ -2787,7 +2799,8 @@
       });
       hM += "</tr></thead><tbody>";
       monthEndRows.forEach((r) => {
-        hM += "<tr><td>" + escapeHtml(r.label) + "</td>";
+        const trCls = r.isKtb ? " class=\"rates-monthend-row--ktb\"" : "";
+        hM += "<tr" + trCls + "><td>" + escapeHtml(r.label) + "</td>";
         monthEnds.forEach((d) => {
           const isYearEnd = String(d).slice(5, 7) === "12";
           const c = isYearEnd ? " class=\"rates-monthend-col--yearend\"" : "";
