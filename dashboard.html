@@ -140,6 +140,30 @@
       min-width: 10rem;
       max-width: 22rem;
       cursor: pointer;
+      color: #f8fafc;
+      background-color: rgba(30, 41, 59, 0.95);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+    #fundSummaryOuter .fund-compare-toolbar select.fund-refdate-input--toolbar option {
+      color: #0f172a;
+      background-color: #ffffff;
+    }
+    .fund-compare-fixed-label {
+      display: inline-flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 0.28rem 0.45rem;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.78);
+      font-weight: 600;
+    }
+    .fund-compare-fixed-value {
+      color: #fff;
+      font-weight: 600;
+      max-width: min(22rem, 100%);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     #page-fund .fund-compare-chart-wrap.chart-wrap {
       min-height: 400px;
@@ -830,12 +854,10 @@
 
       <div class="fund-compare-block">
         <h3 class="fund-summary__title fund-summary__title--sub">모펀드 수익률 비교</h3>
-        <p class="fund-summary__note" style="margin:0 0 0.45rem;">수정기준가(없으면 기준가) 기준, 시작일 직전 최근 관측가 대비 <strong>누적 수익률(%)</strong>. 차이 = 펀드1 − 펀드2. 기준일은 상단 기준일 입력과 동일합니다.</p>
+        <p class="fund-summary__note" style="margin:0 0 0.45rem;">수정기준가(없으면 기준가) 기준, <strong>기준일 연도 1월 1일(연초)</strong> 직전 최근 관측가 대비 <strong>누적 수익률(%)</strong>. 펀드1은 <strong>신한초단기채</strong> 매칭 펀드로 고정입니다. 우측 보조축은 펀드1−펀드2 차이(%)입니다. 기준일은 상단 기준일과 동일합니다.</p>
         <div class="fund-range-toolbar fund-compare-toolbar">
-          <label class="fund-range-toolbar__label" for="fundCompareMoStart">시작일</label>
-          <input type="date" id="fundCompareMoStart" class="fund-refdate-input fund-refdate-input--toolbar" title="이 날짜(또는 직전 최근 관측일)을 기준가로 두고 이후 누적 수익률을 그립니다." />
-          <label class="fund-range-toolbar__label" for="fundCompareMoFund1">펀드1</label>
-          <select id="fundCompareMoFund1" class="fund-refdate-input fund-refdate-input--toolbar"></select>
+          <span class="fund-compare-fixed-label">시작일 <span class="fund-compare-fixed-value" id="fundCompareMoYearStart">—</span></span>
+          <span class="fund-compare-fixed-label">펀드1 <span class="fund-compare-fixed-value" id="fundCompareMoFund1Name">—</span></span>
           <label class="fund-range-toolbar__label" for="fundCompareMoFund2">펀드2</label>
           <select id="fundCompareMoFund2" class="fund-refdate-input fund-refdate-input--toolbar"></select>
         </div>
@@ -844,12 +866,10 @@
 
       <div class="fund-compare-block">
         <h3 class="fund-summary__title fund-summary__title--sub">자펀드 수익률 비교</h3>
-        <p class="fund-summary__note" style="margin:0 0 0.45rem;">모펀드 비교와 동일 방식입니다. 펀드 목록은 자펀드 표와 같습니다.</p>
+        <p class="fund-summary__note" style="margin:0 0 0.45rem;">모펀드 비교와 동일(연초·펀드1 고정). 펀드2만 자펀드 표에서 선택합니다.</p>
         <div class="fund-range-toolbar fund-compare-toolbar">
-          <label class="fund-range-toolbar__label" for="fundCompareJaStart">시작일</label>
-          <input type="date" id="fundCompareJaStart" class="fund-refdate-input fund-refdate-input--toolbar" title="이 날짜(또는 직전 최근 관측일)을 기준가로 두고 이후 누적 수익률을 그립니다." />
-          <label class="fund-range-toolbar__label" for="fundCompareJaFund1">펀드1</label>
-          <select id="fundCompareJaFund1" class="fund-refdate-input fund-refdate-input--toolbar"></select>
+          <span class="fund-compare-fixed-label">시작일 <span class="fund-compare-fixed-value" id="fundCompareJaYearStart">—</span></span>
+          <span class="fund-compare-fixed-label">펀드1 <span class="fund-compare-fixed-value" id="fundCompareJaFund1Name">—</span></span>
           <label class="fund-range-toolbar__label" for="fundCompareJaFund2">펀드2</label>
           <select id="fundCompareJaFund2" class="fund-refdate-input fund-refdate-input--toolbar"></select>
         </div>
@@ -1076,6 +1096,17 @@
     const s = String(name || "").trim();
     if (MO_FUND_NAME_OVERRIDES.has(s)) return false;
     return /C/.test(s);
+  }
+
+  /** 비교 차트 펀드1 고정: 모펀드 중 이름에 신한초단기채 포함(6사 매칭과 동일 규칙) */
+  function resolveShinhanChodangiFundName() {
+    const names = fundNameList || [];
+    for (let i = 0; i < names.length; i++) {
+      const n = names[i];
+      if (isJaFundName(n)) continue;
+      if (String(n).indexOf("신한초단기채") >= 0) return n;
+    }
+    return "";
   }
 
   /** 모펀드 6사(약칭 순). fundNameList에서 첫 일치만 사용 */
@@ -2011,15 +2042,6 @@
     } catch (_) {}
   }
 
-  function defaultFundCompareStartYmd(endYmd) {
-    if (!endYmd || !/^\d{4}-\d{2}-\d{2}$/.test(endYmd)) return "";
-    const cand = addCalendarDays(endYmd, -365);
-    if (!cand) return endYmd;
-    if (!fundDateList.length) return cand;
-    const lo = fundDateList[0];
-    return cand < lo ? lo : cand;
-  }
-
   function bindFundCompareControlsOnce() {
     if (fundCompareControlsBound || !fundSummaryOuter) return;
     fundCompareControlsBound = true;
@@ -2056,46 +2078,40 @@
     else sel.value = names[0];
   }
 
-  function ensureDistinctFundPair(sel1, sel2, sortedRows) {
+  function ensureFund2NotFixedFund(sel2, fixedName, sortedRows) {
+    if (!sel2 || !fixedName) return;
     const names = sortedRows.map((r) => r.fund).filter(Boolean);
-    if (!sel1 || !sel2 || names.length < 2) return;
-    if (sel1.value !== sel2.value) return;
-    const o = names.find((n) => n !== sel1.value);
-    if (o) sel2.value = o;
+    if (!names.length) return;
+    if (sel2.value !== fixedName) return;
+    const alt = names.find((n) => n !== fixedName);
+    if (alt) sel2.value = alt;
   }
 
   function populateFundCompareFromTables(moSorted, jaSorted) {
     bindFundCompareControlsOnce();
     const endYmd = getFundMetricsAsOfYmd();
-    const moStart = document.getElementById("fundCompareMoStart");
-    const jaStart = document.getElementById("fundCompareJaStart");
-    const def = defaultFundCompareStartYmd(endYmd);
-    if (moStart) {
-      const v = (moStart.value || "").trim();
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) moStart.value = def;
-      else if (endYmd && v > endYmd) moStart.value = endYmd;
-      else if (fundDateList.length && v < fundDateList[0]) moStart.value = fundDateList[0];
-    }
-    if (jaStart) {
-      const v = (jaStart.value || "").trim();
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) jaStart.value = def;
-      else if (endYmd && v > endYmd) jaStart.value = endYmd;
-      else if (fundDateList.length && v < fundDateList[0]) jaStart.value = fundDateList[0];
-    }
-    const mo1 = document.getElementById("fundCompareMoFund1");
+    const yStart = janFirstYmd(endYmd);
+    const yLabel = yStart ? yStart + " (연초)" : "—";
+    const elMoY = document.getElementById("fundCompareMoYearStart");
+    const elJaY = document.getElementById("fundCompareJaYearStart");
+    if (elMoY) elMoY.textContent = yLabel;
+    if (elJaY) elJaY.textContent = yLabel;
+    const sh = resolveShinhanChodangiFundName();
+    const nm = sh || "— (매칭 없음)";
+    const elMoN = document.getElementById("fundCompareMoFund1Name");
+    const elJaN = document.getElementById("fundCompareJaFund1Name");
+    if (elMoN) elMoN.textContent = nm;
+    if (elJaN) elJaN.textContent = nm;
     const mo2 = document.getElementById("fundCompareMoFund2");
-    const ja1 = document.getElementById("fundCompareJaFund1");
     const ja2 = document.getElementById("fundCompareJaFund2");
-    const pm1 = mo1 ? (mo1.value || "").trim() : "";
     const pm2 = mo2 ? (mo2.value || "").trim() : "";
-    const pj1 = ja1 ? (ja1.value || "").trim() : "";
     const pj2 = ja2 ? (ja2.value || "").trim() : "";
-    fillFundCompareSelect(mo1, moSorted, pm1);
     fillFundCompareSelect(mo2, moSorted, pm2);
-    ensureDistinctFundPair(mo1, mo2, moSorted);
-    fillFundCompareSelect(ja1, jaSorted, pj1);
     fillFundCompareSelect(ja2, jaSorted, pj2);
-    ensureDistinctFundPair(ja1, ja2, jaSorted);
+    if (sh) {
+      ensureFund2NotFixedFund(mo2, sh, moSorted);
+      ensureFund2NotFixedFund(ja2, sh, jaSorted);
+    }
   }
 
   function buildFundCompareSeries(fund1, fund2, startYmd, endYmd) {
@@ -2142,7 +2158,7 @@
       paper_bgcolor: "#0e1117",
       plot_bgcolor: "#0e1117",
       font: { color: "#e2e8f0", size: 11 },
-      margin: { l: 56, r: 18, t: 44, b: 44 },
+      margin: { l: 58, r: 78, t: 44, b: 44 },
       legend: { orientation: "h", yanchor: "bottom", y: 1.02, x: 0, font: { size: 10 } },
       xaxis: {
         title: "일자",
@@ -2155,6 +2171,18 @@
         title: "누적 수익률 (%)",
         gridcolor: "rgba(148,163,184,0.15)",
         zerolinecolor: "rgba(148,163,184,0.25)",
+        domain: [0, 1],
+      },
+      yaxis2: {
+        title: { text: "수익률 차이 (% · 펀드1−펀드2)", font: { color: "#7dd3fc", size: 11 } },
+        overlaying: "y",
+        side: "right",
+        showgrid: true,
+        gridcolor: "rgba(56, 189, 248, 0.14)",
+        zeroline: true,
+        zerolinecolor: "rgba(56, 189, 248, 0.55)",
+        zerolinewidth: 1.5,
+        tickfont: { color: "#bae6fd" },
       },
       hovermode: "x unified",
     };
@@ -2167,14 +2195,12 @@
 
   function renderFundComparePair(which) {
     const isMo = which === "mo";
-    const startEl = document.getElementById(isMo ? "fundCompareMoStart" : "fundCompareJaStart");
-    const s1 = document.getElementById(isMo ? "fundCompareMoFund1" : "fundCompareJaFund1");
     const s2 = document.getElementById(isMo ? "fundCompareMoFund2" : "fundCompareJaFund2");
     const el = document.getElementById(isMo ? "fundCompareMoChart" : "fundCompareJaChart");
     if (!el || typeof Plotly === "undefined") return;
     const endYmd = getFundMetricsAsOfYmd();
-    const startYmd = (startEl && (startEl.value || "").trim()) || "";
-    const f1 = s1 && (s1.value || "").trim();
+    const startYmd = janFirstYmd(endYmd) || "";
+    const f1 = resolveShinhanChodangiFundName();
     const f2 = s2 && (s2.value || "").trim();
     const titleText = isMo ? "모펀드 누적 수익률 비교" : "자펀드 누적 수익률 비교";
     const layout = fundComparePlotLayout(titleText);
@@ -2190,21 +2216,12 @@
     const traces = [
       {
         x: data.dates,
-        y: data.diff,
-        type: "scatter",
-        mode: "lines",
-        name: "차이 (펀드1−펀드2)",
-        line: { color: "rgba(56,189,248,0.95)", width: 1 },
-        fill: "tozeroy",
-        fillcolor: "rgba(56,189,248,0.22)",
-      },
-      {
-        x: data.dates,
         y: data.cum1,
         type: "scatter",
         mode: "lines",
         name: legendLabelFund(f1),
         line: { color: "#fbbf24", width: 2.2 },
+        yaxis: "y",
       },
       {
         x: data.dates,
@@ -2213,6 +2230,18 @@
         mode: "lines",
         name: legendLabelFund(f2),
         line: { color: "#a78bfa", width: 2.2 },
+        yaxis: "y",
+      },
+      {
+        x: data.dates,
+        y: data.diff,
+        type: "scatter",
+        mode: "lines",
+        name: "차이 (펀드1−펀드2)",
+        line: { color: "rgba(56,189,248,0.95)", width: 1.2 },
+        fill: "tozeroy",
+        fillcolor: "rgba(56,189,248,0.28)",
+        yaxis: "y2",
       },
     ];
     Plotly.react(el, traces, layout, { responsive: true });
