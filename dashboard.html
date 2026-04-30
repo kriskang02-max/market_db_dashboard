@@ -32,7 +32,9 @@
     }
     /* display:none 이었다가 복귀할 때 Plotly가 남긴 고정 폭으로 절반만 그려지는 현상 완화 */
     #page-spread .chart-wrap .js-plotly-plot,
-    #page-spread .chart-wrap .plotly {
+    #page-spread .chart-wrap .plotly,
+    #page-fund .fund-compare-chart-wrap .js-plotly-plot,
+    #page-fund .fund-compare-chart-wrap .plotly {
       width: 100% !important;
       max-width: 100%;
     }
@@ -130,6 +132,18 @@
       max-height: min(40vh, 22rem);
       overflow: auto;
       -webkit-overflow-scrolling: touch;
+    }
+    .fund-compare-block { margin-top: 1.5rem; padding-top: 0.25rem; border-top: 1px solid rgba(255,255,255,0.08); }
+    .fund-compare-toolbar .fund-refdate-input--toolbar { min-width: 10.5rem; max-width: 100%; }
+    .fund-compare-toolbar select.fund-refdate-input--toolbar {
+      flex: 1 1 12rem;
+      min-width: 10rem;
+      max-width: 22rem;
+      cursor: pointer;
+    }
+    #page-fund .fund-compare-chart-wrap.chart-wrap {
+      min-height: 400px;
+      margin-top: 0.5rem;
     }
     .fund-summary__title { font-size: 1.05rem; margin: 0; color: rgba(255,255,255,0.95); font-weight: 600; }
     .fund-summary__title--sub { margin-top: 1.35rem; }
@@ -813,6 +827,34 @@
       <h3 class="fund-summary__title fund-summary__title--sub" style="margin-top:1.25rem;">6사 수탁고 변동</h3>
       <p class="fund-summary__note" style="margin:0 0 0.45rem;">모펀드 표와 동일 기준일·구간 시작일을 씁니다. 신한·KB·우리·하나·키움·교보 초단기(유사) 펀드만 매칭합니다(설정액 차이÷10⁸억, 절사).</p>
       <div class="rates-table-wrap" id="fundMoSixCustodyWrap"></div>
+
+      <div class="fund-compare-block">
+        <h3 class="fund-summary__title fund-summary__title--sub">모펀드 수익률 비교</h3>
+        <p class="fund-summary__note" style="margin:0 0 0.45rem;">수정기준가(없으면 기준가) 기준, 시작일 직전 최근 관측가 대비 <strong>누적 수익률(%)</strong>. 차이 = 펀드1 − 펀드2. 기준일은 상단 기준일 입력과 동일합니다.</p>
+        <div class="fund-range-toolbar fund-compare-toolbar">
+          <label class="fund-range-toolbar__label" for="fundCompareMoStart">시작일</label>
+          <input type="date" id="fundCompareMoStart" class="fund-refdate-input fund-refdate-input--toolbar" title="이 날짜(또는 직전 최근 관측일)을 기준가로 두고 이후 누적 수익률을 그립니다." />
+          <label class="fund-range-toolbar__label" for="fundCompareMoFund1">펀드1</label>
+          <select id="fundCompareMoFund1" class="fund-refdate-input fund-refdate-input--toolbar"></select>
+          <label class="fund-range-toolbar__label" for="fundCompareMoFund2">펀드2</label>
+          <select id="fundCompareMoFund2" class="fund-refdate-input fund-refdate-input--toolbar"></select>
+        </div>
+        <div class="chart-wrap fund-compare-chart-wrap" id="fundCompareMoChart"></div>
+      </div>
+
+      <div class="fund-compare-block">
+        <h3 class="fund-summary__title fund-summary__title--sub">자펀드 수익률 비교</h3>
+        <p class="fund-summary__note" style="margin:0 0 0.45rem;">모펀드 비교와 동일 방식입니다. 펀드 목록은 자펀드 표와 같습니다.</p>
+        <div class="fund-range-toolbar fund-compare-toolbar">
+          <label class="fund-range-toolbar__label" for="fundCompareJaStart">시작일</label>
+          <input type="date" id="fundCompareJaStart" class="fund-refdate-input fund-refdate-input--toolbar" title="이 날짜(또는 직전 최근 관측일)을 기준가로 두고 이후 누적 수익률을 그립니다." />
+          <label class="fund-range-toolbar__label" for="fundCompareJaFund1">펀드1</label>
+          <select id="fundCompareJaFund1" class="fund-refdate-input fund-refdate-input--toolbar"></select>
+          <label class="fund-range-toolbar__label" for="fundCompareJaFund2">펀드2</label>
+          <select id="fundCompareJaFund2" class="fund-refdate-input fund-refdate-input--toolbar"></select>
+        </div>
+        <div class="chart-wrap fund-compare-chart-wrap" id="fundCompareJaChart"></div>
+      </div>
     </div>
   </div>
 
@@ -961,6 +1003,7 @@
   window.addEventListener("resize", () => {
     resizeSpreadChartsIfVisible();
     syncAllFundMetricStickySubheaderTops();
+    resizeFundCompareChartsIfVisible();
   });
 
   let ratesCustomDiffDate = "";
@@ -1956,6 +1999,225 @@
     syncFundMetricStickySubheaderTop(fundTableJaWrap);
   }
 
+  let fundCompareControlsBound = false;
+
+  function resizeFundCompareChartsIfVisible() {
+    if (!pageFundEl || !pageFundEl.classList.contains("is-active")) return;
+    try {
+      if (typeof Plotly === "undefined") return;
+      [document.getElementById("fundCompareMoChart"), document.getElementById("fundCompareJaChart")].forEach((gd) => {
+        if (gd && gd.querySelector(".js-plotly-plot")) Plotly.Plots.resize(gd);
+      });
+    } catch (_) {}
+  }
+
+  function defaultFundCompareStartYmd(endYmd) {
+    if (!endYmd || !/^\d{4}-\d{2}-\d{2}$/.test(endYmd)) return "";
+    const cand = addCalendarDays(endYmd, -365);
+    if (!cand) return endYmd;
+    if (!fundDateList.length) return cand;
+    const lo = fundDateList[0];
+    return cand < lo ? lo : cand;
+  }
+
+  function bindFundCompareControlsOnce() {
+    if (fundCompareControlsBound || !fundSummaryOuter) return;
+    fundCompareControlsBound = true;
+    fundSummaryOuter.addEventListener("change", (e) => {
+      const t = e.target;
+      if (!t || !t.id) return;
+      if (t.id === "fundMetricsAsOfInput" || t.id === "fundMetricsAsOfDateInput") return;
+      if (String(t.id).indexOf("fundCompareMo") === 0) renderFundComparePair("mo");
+      if (String(t.id).indexOf("fundCompareJa") === 0) renderFundComparePair("ja");
+    });
+    fundSummaryOuter.addEventListener("input", (e) => {
+      const t = e.target;
+      if (!t || !t.id) return;
+      if (t.id === "fundMetricsAsOfInput" || t.id === "fundMetricsAsOfDateInput") return;
+      if (String(t.id).indexOf("fundCompareMo") === 0) renderFundComparePair("mo");
+      if (String(t.id).indexOf("fundCompareJa") === 0) renderFundComparePair("ja");
+    });
+  }
+
+  function fillFundCompareSelect(sel, sortedRows, preferred) {
+    if (!sel) return;
+    const names = sortedRows.map((r) => r.fund).filter(Boolean);
+    const old = (sel.value || "").trim();
+    sel.innerHTML = "";
+    names.forEach((n) => {
+      const o = document.createElement("option");
+      o.value = n;
+      o.textContent = n;
+      sel.appendChild(o);
+    });
+    if (!names.length) return;
+    if (preferred && names.includes(preferred)) sel.value = preferred;
+    else if (old && names.includes(old)) sel.value = old;
+    else sel.value = names[0];
+  }
+
+  function ensureDistinctFundPair(sel1, sel2, sortedRows) {
+    const names = sortedRows.map((r) => r.fund).filter(Boolean);
+    if (!sel1 || !sel2 || names.length < 2) return;
+    if (sel1.value !== sel2.value) return;
+    const o = names.find((n) => n !== sel1.value);
+    if (o) sel2.value = o;
+  }
+
+  function populateFundCompareFromTables(moSorted, jaSorted) {
+    bindFundCompareControlsOnce();
+    const endYmd = getFundMetricsAsOfYmd();
+    const moStart = document.getElementById("fundCompareMoStart");
+    const jaStart = document.getElementById("fundCompareJaStart");
+    const def = defaultFundCompareStartYmd(endYmd);
+    if (moStart) {
+      const v = (moStart.value || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) moStart.value = def;
+      else if (endYmd && v > endYmd) moStart.value = endYmd;
+      else if (fundDateList.length && v < fundDateList[0]) moStart.value = fundDateList[0];
+    }
+    if (jaStart) {
+      const v = (jaStart.value || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) jaStart.value = def;
+      else if (endYmd && v > endYmd) jaStart.value = endYmd;
+      else if (fundDateList.length && v < fundDateList[0]) jaStart.value = fundDateList[0];
+    }
+    const mo1 = document.getElementById("fundCompareMoFund1");
+    const mo2 = document.getElementById("fundCompareMoFund2");
+    const ja1 = document.getElementById("fundCompareJaFund1");
+    const ja2 = document.getElementById("fundCompareJaFund2");
+    const pm1 = mo1 ? (mo1.value || "").trim() : "";
+    const pm2 = mo2 ? (mo2.value || "").trim() : "";
+    const pj1 = ja1 ? (ja1.value || "").trim() : "";
+    const pj2 = ja2 ? (ja2.value || "").trim() : "";
+    fillFundCompareSelect(mo1, moSorted, pm1);
+    fillFundCompareSelect(mo2, moSorted, pm2);
+    ensureDistinctFundPair(mo1, mo2, moSorted);
+    fillFundCompareSelect(ja1, jaSorted, pj1);
+    fillFundCompareSelect(ja2, jaSorted, pj2);
+    ensureDistinctFundPair(ja1, ja2, jaSorted);
+  }
+
+  function buildFundCompareSeries(fund1, fund2, startYmd, endYmd) {
+    if (!fund1 || !fund2 || fund1 === fund2) return null;
+    if (!startYmd || !endYmd || !/^\d{4}-\d{2}-\d{2}$/.test(startYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(endYmd)) return null;
+    if (startYmd > endYmd) return null;
+    const n1 = filterPtsToAsOf(navSeriesForFund(fund1), endYmd);
+    const n2 = filterPtsToAsOf(navSeriesForFund(fund2), endYmd);
+    if (!n1.length || !n2.length) return null;
+    const b1 = valueOnOrBefore(n1, endYmd, startYmd);
+    const b2 = valueOnOrBefore(n2, endYmd, startYmd);
+    if (!b1 || !b2 || !Number.isFinite(b1.v) || !Number.isFinite(b2.v) || b1.v === 0 || b2.v === 0) return null;
+    const dateSet = new Set();
+    n1.forEach((p) => {
+      if (p.d >= startYmd && p.d <= endYmd) dateSet.add(p.d);
+    });
+    n2.forEach((p) => {
+      if (p.d >= startYmd && p.d <= endYmd) dateSet.add(p.d);
+    });
+    const dates = Array.from(dateSet).sort();
+    const x = [];
+    const cum1 = [];
+    const cum2 = [];
+    const diff = [];
+    for (let i = 0; i < dates.length; i++) {
+      const d = dates[i];
+      const p1 = lastPointOnOrBefore(n1, d);
+      const p2 = lastPointOnOrBefore(n2, d);
+      if (!p1 || !p2) continue;
+      const u1 = (p1.v / b1.v - 1) * 100;
+      const u2 = (p2.v / b2.v - 1) * 100;
+      x.push(d);
+      cum1.push(u1);
+      cum2.push(u2);
+      diff.push(u1 - u2);
+    }
+    if (!x.length) return null;
+    return { dates: x, cum1, cum2, diff };
+  }
+
+  function fundComparePlotLayout(titleText) {
+    return {
+      title: { text: titleText || "", font: { size: 13, color: "#f8fafc" } },
+      paper_bgcolor: "#0e1117",
+      plot_bgcolor: "#0e1117",
+      font: { color: "#e2e8f0", size: 11 },
+      margin: { l: 56, r: 18, t: 44, b: 44 },
+      legend: { orientation: "h", yanchor: "bottom", y: 1.02, x: 0, font: { size: 10 } },
+      xaxis: {
+        title: "일자",
+        type: "date",
+        gridcolor: "rgba(148,163,184,0.15)",
+        zerolinecolor: "rgba(148,163,184,0.2)",
+        tickformat: "%Y-%m-%d",
+      },
+      yaxis: {
+        title: "누적 수익률 (%)",
+        gridcolor: "rgba(148,163,184,0.15)",
+        zerolinecolor: "rgba(148,163,184,0.25)",
+      },
+      hovermode: "x unified",
+    };
+  }
+
+  function legendLabelFund(name) {
+    const s = String(name || "");
+    return s.length > 30 ? s.slice(0, 28) + "…" : s;
+  }
+
+  function renderFundComparePair(which) {
+    const isMo = which === "mo";
+    const startEl = document.getElementById(isMo ? "fundCompareMoStart" : "fundCompareJaStart");
+    const s1 = document.getElementById(isMo ? "fundCompareMoFund1" : "fundCompareJaFund1");
+    const s2 = document.getElementById(isMo ? "fundCompareMoFund2" : "fundCompareJaFund2");
+    const el = document.getElementById(isMo ? "fundCompareMoChart" : "fundCompareJaChart");
+    if (!el || typeof Plotly === "undefined") return;
+    const endYmd = getFundMetricsAsOfYmd();
+    const startYmd = (startEl && (startEl.value || "").trim()) || "";
+    const f1 = s1 && (s1.value || "").trim();
+    const f2 = s2 && (s2.value || "").trim();
+    const titleText = isMo ? "모펀드 누적 수익률 비교" : "자펀드 누적 수익률 비교";
+    const layout = fundComparePlotLayout(titleText);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(endYmd)) || !/^\d{4}-\d{2}-\d{2}$/.test(startYmd) || !f1 || !f2 || f1 === f2) {
+      Plotly.react(el, [], layout, { responsive: true });
+      return;
+    }
+    const data = buildFundCompareSeries(f1, f2, startYmd, endYmd);
+    if (!data) {
+      Plotly.react(el, [], layout, { responsive: true });
+      return;
+    }
+    const traces = [
+      {
+        x: data.dates,
+        y: data.diff,
+        type: "scatter",
+        mode: "lines",
+        name: "차이 (펀드1−펀드2)",
+        line: { color: "rgba(56,189,248,0.95)", width: 1 },
+        fill: "tozeroy",
+        fillcolor: "rgba(56,189,248,0.22)",
+      },
+      {
+        x: data.dates,
+        y: data.cum1,
+        type: "scatter",
+        mode: "lines",
+        name: legendLabelFund(f1),
+        line: { color: "#fbbf24", width: 2.2 },
+      },
+      {
+        x: data.dates,
+        y: data.cum2,
+        type: "scatter",
+        mode: "lines",
+        name: legendLabelFund(f2),
+        line: { color: "#a78bfa", width: 2.2 },
+      },
+    ];
+    Plotly.react(el, traces, layout, { responsive: true });
+  }
+
   function renderFundSummaryTables() {
     const preserved = getFundRangeStartYmd();
     const rangeStart = preserved;
@@ -1985,8 +2247,14 @@
     if (fundMoSixCustodyWrap) {
       fundMoSixCustodyWrap.innerHTML = buildMoSixCustodyTableHtml(preserved, metricsAsOfYmd);
     }
+    populateFundCompareFromTables(moSorted, jaSorted);
+    renderFundComparePair("mo");
+    renderFundComparePair("ja");
     requestAnimationFrame(() => {
-      requestAnimationFrame(syncAllFundMetricStickySubheaderTops);
+      requestAnimationFrame(() => {
+        syncAllFundMetricStickySubheaderTops();
+        resizeFundCompareChartsIfVisible();
+      });
     });
   }
 
@@ -2012,8 +2280,13 @@
     if (isFund) {
       ensureFundData();
       requestAnimationFrame(() => {
-        requestAnimationFrame(syncAllFundMetricStickySubheaderTops);
+        requestAnimationFrame(() => {
+          syncAllFundMetricStickySubheaderTops();
+          resizeFundCompareChartsIfVisible();
+        });
       });
+      setTimeout(resizeFundCompareChartsIfVisible, 80);
+      setTimeout(resizeFundCompareChartsIfVisible, 280);
     }
     if (isRates) {
       renderRatesAnalysis();
@@ -2076,6 +2349,20 @@
         if (fundTableMoWrap) fundTableMoWrap.innerHTML = "";
         if (fundTableJaWrap) fundTableJaWrap.innerHTML = "";
         if (fundMoSixCustodyWrap) fundMoSixCustodyWrap.innerHTML = "";
+        const gMo = document.getElementById("fundCompareMoChart");
+        const gJa = document.getElementById("fundCompareJaChart");
+        try {
+          if (typeof Plotly !== "undefined") {
+            if (gMo) Plotly.purge(gMo);
+            if (gJa) Plotly.purge(gJa);
+          } else {
+            if (gMo) gMo.innerHTML = "";
+            if (gJa) gJa.innerHTML = "";
+          }
+        } catch (_) {
+          if (gMo) gMo.innerHTML = "";
+          if (gJa) gJa.innerHTML = "";
+        }
       });
     return fundDataLoadPromise;
   }
