@@ -364,6 +364,22 @@
       border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff;
       font-size: 0.9rem;
     }
+    .rates-analysis-matrix-toolbar {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem 0.85rem;
+      margin: 0 0 0.55rem; padding: 0.45rem 0.6rem;
+      background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.09);
+      font-size: 0.82rem; color: rgba(255,255,255,0.88);
+    }
+    .rates-analysis-matrix-toolbar__label { font-weight: 600; color: rgba(255,255,255,0.92); }
+    .rates-analysis-matrix-toolbar .fund-refdate-input {
+      width: 10.2rem; min-width: 9.8rem; padding: 0.25rem 0.38rem; font-size: 0.82rem;
+    }
+    .rates-analysis-matrix-mode {
+      display: inline-flex; align-items: center; gap: 0.28rem; cursor: pointer;
+      color: rgba(255,255,255,0.9); font-weight: 600; user-select: none;
+    }
+    .rates-analysis-matrix-mode input { accent-color: #60a5fa; margin: 0; cursor: pointer; }
+    .rates-analysis-table.rates-analysis-matrix-table { min-width: 48rem; }
     .rates-custom-date-input {
       width: 100%;
       min-width: 0;
@@ -755,6 +771,19 @@
         <h3>월말금리테이블</h3>
         <div class="rates-table-wrap" id="ratesTableMonthEndWrap"></div>
       </div>
+      <div class="rates-block">
+        <h3>분석용 금리 테이블</h3>
+        <div class="rates-analysis-matrix-toolbar">
+          <label class="rates-analysis-matrix-toolbar__label" for="ratesAnalysisBaseDateInput">기준일</label>
+          <input type="date" id="ratesAnalysisBaseDateInput" class="fund-refdate-input" />
+          <label class="rates-analysis-matrix-toolbar__label" for="ratesAnalysisCompareDateInput">비교일</label>
+          <input type="date" id="ratesAnalysisCompareDateInput" class="fund-refdate-input" />
+          <label class="rates-analysis-matrix-mode"><input type="radio" name="ratesAnalysisMatrixMode" value="base" checked />기준일</label>
+          <label class="rates-analysis-matrix-mode"><input type="radio" name="ratesAnalysisMatrixMode" value="compare" />비교일</label>
+          <label class="rates-analysis-matrix-mode"><input type="radio" name="ratesAnalysisMatrixMode" value="diff" />변동폭</label>
+        </div>
+        <div class="rates-table-wrap" id="ratesAnalysisMatrixWrap"></div>
+      </div>
     </div>
   </div>
 
@@ -970,9 +999,12 @@
   const ratesTableCreditSprWrap = document.getElementById("ratesTableCreditSprWrap");
   const ratesTableCreditSlopeWrap = document.getElementById("ratesTableCreditSlopeWrap");
   const ratesTableMonthEndWrap = document.getElementById("ratesTableMonthEndWrap");
+  const ratesAnalysisMatrixWrap = document.getElementById("ratesAnalysisMatrixWrap");
   const ratesHistoryDaysInput = document.getElementById("ratesHistoryDays");
   const ratesCustomDiffDateInput = document.getElementById("ratesCustomDiffDateInput");
   const ratesHideHalfYearInput = document.getElementById("ratesHideHalfYearCols");
+  const ratesAnalysisBaseDateInput = document.getElementById("ratesAnalysisBaseDateInput");
+  const ratesAnalysisCompareDateInput = document.getElementById("ratesAnalysisCompareDateInput");
   const termStructureStatus = document.getElementById("termStructureStatus");
   const termCpTableWrap = document.getElementById("termCpTableWrap");
   const termBondTableWrap = document.getElementById("termBondTableWrap");
@@ -2594,6 +2626,14 @@
     { inst: "카드채", label: "카드" },
     { inst: "여전채", label: "여전" },
   ];
+  const RATES_ANALYSIS_MATRIX_TENORS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const RATES_ANALYSIS_MATRIX_ROWS = [
+    { inst: "국고채", label: "국고채" },
+    { inst: "특은채", label: "특은채" },
+    { inst: "은행채", label: "은행채" },
+    { inst: "카드채", label: "카드채" },
+    { inst: "여전채", label: "여전채" },
+  ];
   const RATES_CREDIT_TENORS = [1, 1.5, 2, 2.5, 3];
   const RATES_SPREAD_SLOPE_PAIRS = [
     [1, 1.5],
@@ -2745,6 +2785,14 @@
     return lastRatesDateOnOrBefore(target);
   }
 
+  /** d0 기준 전전월말(달력) — 해당일 데이터 없으면 그 이전 최근 거래일 */
+  function dateRefPrevMtd(d0) {
+    const mtd = dateRefMtd(d0);
+    if (!mtd) return null;
+    const target = calendarPrevMonthEndISO(mtd);
+    return lastRatesDateOnOrBefore(target);
+  }
+
   function parseRatesHistoryDaysInput() {
     const raw = ratesHistoryDaysInput && (ratesHistoryDaysInput.value || "").trim();
     const n = parseInt(raw, 10);
@@ -2802,6 +2850,7 @@
       ratesTableCreditSprWrap.innerHTML = "";
       ratesTableCreditSlopeWrap.innerHTML = "";
       if (ratesTableMonthEndWrap) ratesTableMonthEndWrap.innerHTML = "";
+      if (ratesAnalysisMatrixWrap) ratesAnalysisMatrixWrap.innerHTML = "";
       return;
     }
     const d0 = latestDateWithRatesData();
@@ -2812,6 +2861,7 @@
       ratesTableCreditSprWrap.innerHTML = "";
       ratesTableCreditSlopeWrap.innerHTML = "";
       if (ratesTableMonthEndWrap) ratesTableMonthEndWrap.innerHTML = "";
+      if (ratesAnalysisMatrixWrap) ratesAnalysisMatrixWrap.innerHTML = "";
       return;
     }
     const nRequested = parseRatesHistoryDaysInput();
@@ -3139,6 +3189,44 @@
       });
       hM += "</tbody></table>";
       ratesTableMonthEndWrap.innerHTML = hM;
+    }
+
+    if (ratesAnalysisMatrixWrap) {
+      const baseDefault = dateRefMtd(d0);
+      const compareDefault = dateRefPrevMtd(d0);
+      let baseD = ratesAnalysisBaseDateInput ? (ratesAnalysisBaseDateInput.value || "").trim() : "";
+      let compareD = ratesAnalysisCompareDateInput ? (ratesAnalysisCompareDateInput.value || "").trim() : "";
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(baseD)) baseD = baseDefault || "";
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(compareD)) compareD = compareDefault || "";
+      baseD = baseD ? (lastRatesDateOnOrBefore(baseD) || "") : "";
+      compareD = compareD ? (lastRatesDateOnOrBefore(compareD) || "") : "";
+      if (ratesAnalysisBaseDateInput && baseD && ratesAnalysisBaseDateInput.value !== baseD) ratesAnalysisBaseDateInput.value = baseD;
+      if (ratesAnalysisCompareDateInput && compareD && ratesAnalysisCompareDateInput.value !== compareD) ratesAnalysisCompareDateInput.value = compareD;
+      let mode = "base";
+      const modeEl = document.querySelector('input[name="ratesAnalysisMatrixMode"]:checked');
+      if (modeEl && (modeEl.value === "base" || modeEl.value === "compare" || modeEl.value === "diff")) mode = modeEl.value;
+
+      function matrixVal(inst, tenor) {
+        const vBase = inst === "국고채" ? ktbYield(baseD, tenor) : creditYield(baseD, inst, tenor);
+        const vComp = inst === "국고채" ? ktbYield(compareD, tenor) : creditYield(compareD, inst, tenor);
+        if (mode === "base") return Number.isFinite(vBase) ? vBase.toFixed(3) : "—";
+        if (mode === "compare") return Number.isFinite(vComp) ? vComp.toFixed(3) : "—";
+        if (!Number.isFinite(vBase) || !Number.isFinite(vComp)) return "—";
+        return ((vComp - vBase) * 100).toFixed(1);
+      }
+
+      let hA = "<table class=\"rates-analysis-table rates-analysis-matrix-table\"><thead><tr><th>구분</th>";
+      RATES_ANALYSIS_MATRIX_TENORS.forEach((t) => { hA += "<th>" + t + "년</th>"; });
+      hA += "</tr></thead><tbody>";
+      RATES_ANALYSIS_MATRIX_ROWS.forEach((r) => {
+        hA += "<tr><td>" + escapeHtml(r.label) + "</td>";
+        RATES_ANALYSIS_MATRIX_TENORS.forEach((t) => {
+          hA += "<td>" + matrixVal(r.inst, t) + "</td>";
+        });
+        hA += "</tr>";
+      });
+      hA += "</tbody></table>";
+      ratesAnalysisMatrixWrap.innerHTML = hA;
     }
   }
 
@@ -3702,6 +3790,17 @@
   if (ratesHideHalfYearInput) {
     ratesHideHalfYearInput.addEventListener("change", renderRatesAnalysis);
   }
+  if (ratesAnalysisBaseDateInput) {
+    ratesAnalysisBaseDateInput.addEventListener("change", renderRatesAnalysis);
+    ratesAnalysisBaseDateInput.addEventListener("input", renderRatesAnalysis);
+  }
+  if (ratesAnalysisCompareDateInput) {
+    ratesAnalysisCompareDateInput.addEventListener("change", renderRatesAnalysis);
+    ratesAnalysisCompareDateInput.addEventListener("input", renderRatesAnalysis);
+  }
+  document.querySelectorAll('input[name="ratesAnalysisMatrixMode"]').forEach((el) => {
+    el.addEventListener("change", renderRatesAnalysis);
+  });
 
   // 커스텀 기준일(전역 입력) 변경 시 전체 다시 계산
   if (ratesCustomDiffDateInput) {
