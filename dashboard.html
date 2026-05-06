@@ -2626,7 +2626,7 @@
     { inst: "카드채", label: "카드" },
     { inst: "여전채", label: "여전" },
   ];
-  const RATES_ANALYSIS_MATRIX_TENORS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const RATES_ANALYSIS_MATRIX_TENORS = [1, 1.5, 2, 2.5, 3, 4, 5, 7, 10];
   const RATES_ANALYSIS_MATRIX_ROWS = [
     { inst: "국고채", label: "국고채" },
     { inst: "특은채", label: "특은채" },
@@ -3212,7 +3212,7 @@
         if (mode === "base") return Number.isFinite(vBase) ? vBase.toFixed(3) : "—";
         if (mode === "compare") return Number.isFinite(vComp) ? vComp.toFixed(3) : "—";
         if (!Number.isFinite(vBase) || !Number.isFinite(vComp)) return "—";
-        return ((vComp - vBase) * 100).toFixed(1);
+        return ((vBase - vComp) * 100).toFixed(1);
       }
 
       let hA = "<table class=\"rates-analysis-table rates-analysis-matrix-table\"><thead><tr><th>구분</th>";
