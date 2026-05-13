@@ -9,6 +9,13 @@
 - **펀드 비교분석** — **구간 시작일** 입력 시 **시작일~펀드별 최신일** 연환산 수익률·수탁고 변동만 표시. 비우면 1일·1주·…·YTD. 하단 시계열 차트.
 - **Overview** — 제목 페이지(차트·임베드 없음).
 
+### bond_db.xlsx → CSV
+
+`BondDb_ExportToCsv.bas`를 통합문서 VBA로 가져온 뒤 **`ExportBondDbToCsv`**(현재 책) 또는 **`ExportBondDbFromDefaultPath`**(고정 경로 `bond_db.xlsx` 열기) 실행.
+
+- 출력: `bond_db_ktb.csv`(국고채: 헤더 D10:M10, 데이터 D11:M400), `bond_db_msb.csv`(통안채: O10:X10, O11:X100), UTF-8 BOM
+- 저장 폴더: 통합문서와 같은 경로(미저장 새 책은 `market_db_dashboard` 폴더로 폴백)
+
 ## 실행 방법
 
 1. 이 폴더에서 로컬 서버 실행:
@@ -27,6 +34,8 @@
 - `fund_db.csv` — 펀드 롱 CSV (VBA `FundDb_ManualCsvExport` 로보내기)
 - `issues.csv` — (선택) 이슈 툴팁용
 - `term_table_long.csv` — Term Structure 탭 (없으면 해당 탭만 오류)
+- `bond_db.xlsx` — 채권 DB 원본 (선택); CSV는 `BondDb_ExportToCsv.bas`로 생성
+- `bond_db_ktb.csv`, `bond_db_msb.csv` — 국고채·통안채 표 형태 CSV (`BondDb_ExportToCsv`)
 
 ## 웹에 올리기 (정적 호스팅)
 
