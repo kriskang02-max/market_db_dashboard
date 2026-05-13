@@ -25,6 +25,9 @@ Private Const FALLBACK_HEADER_ROW As Long = 3
 Private Const FUND_DB_CSV_PATH As String = "C:\Users\infomax\Documents\market_db_dashboard\fund_db.csv"
 
 Private Const SKIP_WAIT_FOR_LOAD As Boolean = True
+Private Const IMDH_READY_CELL_ADDRESSES As String = "A2,F2,K2,P2"
+Private Const IMDH_WAIT_TIMEOUT_SECONDS As Long = 300
+Private Const IMDH_POLL_SECONDS As Long = 5
 
 ' ----------------------------------------------------------------
 Public Sub ExportFundDbToCsv()
@@ -55,6 +58,11 @@ Public Sub ExportFundDbToCsv()
     Set ws = ResolveFundSheet()
     If ws Is Nothing Then
         MsgBox "시트를 찾을 수 없습니다.", vbExclamation
+        Exit Sub
+    End If
+
+    If Not WaitForImdhReady(ws, IMDH_READY_CELL_ADDRESSES, IMDH_WAIT_TIMEOUT_SECONDS, IMDH_POLL_SECONDS) Then
+        MsgBox "IMDH 데이터가 준비되지 않았습니다. (" & IMDH_READY_CELL_ADDRESSES & ")", vbExclamation
         Exit Sub
     End If
 
@@ -198,6 +206,66 @@ ErrHandle:
     On Error GoTo 0
     MsgBox "오류: " & Err.Description, vbCritical
 End Sub
+
+Private Function WaitForImdhReady(ByVal ws As Worksheet, ByVal csvAddresses As String, ByVal timeoutSeconds As Long, ByVal pollSeconds As Long) As Boolean
+    Dim startedAt As Single
+    Dim elapsed As Single
+    Dim parts() As String
+    Dim i As Long
+    Dim addr As String
+    Dim v As Variant
+    Dim allReady As Boolean
+
+    If pollSeconds < 1 Then pollSeconds = 1
+    startedAt = Timer
+    parts = Split(csvAddresses, ",")
+
+    Do
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
+
+        allReady = True
+        For i = LBound(parts) To UBound(parts)
+            addr = Trim$(parts(i))
+            If Len(addr) = 0 Then GoTo NextAddr
+
+            On Error Resume Next
+            v = ws.Range(addr).Value2
+            If Err.Number <> 0 Then
+                Err.Clear
+                allReady = False
+                On Error GoTo 0
+                Exit For
+            End If
+            On Error GoTo 0
+
+            If IsError(v) Then
+                allReady = False
+                Exit For
+            End If
+            If Len(Trim$(CStr(v))) = 0 Then
+                allReady = False
+                Exit For
+            End If
+NextAddr:
+        Next i
+
+        If allReady Then
+            WaitForImdhReady = True
+            Exit Function
+        End If
+
+        elapsed = Timer - startedAt
+        If elapsed < 0 Then elapsed = elapsed + 86400
+        If elapsed >= timeoutSeconds Then Exit Do
+
+        Application.Wait Now + TimeSerial(0, 0, pollSeconds)
+        DoEvents
+    Loop
+
+    WaitForImdhReady = False
+End Function
 
 ' 헤더 행에서 "일자"인 열 = 각 펀드 블록의 시작 열
 Private Function CollectIljaBlockStarts(ByVal ws As Worksheet, ByVal hr As Long, ByVal lastCol As Long, ByRef nOut As Long) As Long()

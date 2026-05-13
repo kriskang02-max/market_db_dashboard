@@ -601,7 +601,7 @@
     .term-cell-stack .term-bp-line { font-size: 0.68rem; font-weight: 500; }
     .term-cp-rate-cell { font-size: 0.76rem; font-weight: 400; color: rgba(255,255,255,0.95); white-space: nowrap; }
     .term-muted { color: rgba(255,255,255,0.35); }
-    /* Overview — Yahoo Finance 차트 (finance.yahoo.com/chart/…) */
+    /* Overview — Trading Economics 임베드 */
     #page-overview .overview-outer {
       padding: 1rem 1.25rem 2rem;
       max-width: 100%;
@@ -621,14 +621,14 @@
       max-width: 52rem;
     }
     #page-overview .overview-page-note code { color: #93c5fd; font-size: 0.9em; }
-    #page-overview .yf-chart-stack { display: flex; flex-direction: column; gap: 1.5rem; }
-    #page-overview .yf-chart-block {
+    #page-overview .te-embed-block {
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(14, 17, 23, 0.55);
       overflow: hidden;
+      max-width: 100%;
     }
-    #page-overview .yf-chart-toolbar {
+    #page-overview .te-embed-toolbar {
       display: flex;
       flex-wrap: wrap;
       align-items: flex-end;
@@ -638,7 +638,7 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       font-size: 0.82rem;
     }
-    #page-overview .yf-chart-toolbar label {
+    #page-overview .te-embed-toolbar label {
       display: flex;
       flex-direction: column;
       gap: 0.2rem;
@@ -646,9 +646,8 @@
       font-weight: 600;
       color: rgba(255, 255, 255, 0.55);
     }
-    #page-overview .yf-chart-toolbar input[type="text"] {
-      min-width: 11rem;
-      max-width: 22rem;
+    #page-overview .te-embed-toolbar input[type="text"],
+    #page-overview .te-embed-toolbar input[type="number"] {
       padding: 0.38rem 0.5rem;
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.15);
@@ -657,25 +656,16 @@
       font-size: 0.85rem;
       font-family: ui-monospace, Consolas, monospace;
     }
-    #page-overview .yf-chart-toolbar select {
-      min-width: 5.5rem;
-      padding: 0.38rem 0.45rem;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: #fff;
-      color: #0f172a;
-      font-size: 0.85rem;
-      cursor: pointer;
-    }
-    #page-overview .yf-chart-toolbar select option { color: #0f172a; background: #fff; }
-    #page-overview .yf-chart-toolbar-actions {
+    #page-overview .te-embed-toolbar input#teEmbedSeries { min-width: 12rem; max-width: 28rem; }
+    #page-overview .te-embed-toolbar input[type="number"] { width: 5.2rem; }
+    #page-overview .te-embed-toolbar-actions {
       margin-left: auto;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 0.45rem 0.65rem;
     }
-    #page-overview .yf-chart-apply {
+    #page-overview .te-embed-apply {
       padding: 0.45rem 1rem;
       border-radius: 8px;
       border: none;
@@ -685,8 +675,8 @@
       background: #2563eb;
       color: #fff;
     }
-    #page-overview .yf-chart-apply:hover { background: #3b82f6; }
-    #page-overview .yf-chart-open {
+    #page-overview .te-embed-apply:hover { background: #3b82f6; }
+    #page-overview .te-embed-open {
       font-size: 0.82rem;
       font-weight: 600;
       color: #93c5fd;
@@ -695,46 +685,27 @@
       border-radius: 8px;
       border: 1px solid rgba(147, 197, 253, 0.35);
     }
-    #page-overview .yf-chart-open:hover { color: #fff; background: rgba(59, 130, 246, 0.25); }
-    #page-overview .yf-chart-frame-wrap {
+    #page-overview .te-embed-open:hover { color: #fff; background: rgba(59, 130, 246, 0.25); }
+    #page-overview .te-embed-body {
+      padding: 0.75rem;
+      background: #0e1117;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    #page-overview .te-embed-ratio-wrap {
       position: relative;
       width: 100%;
-      height: min(55vh, 560px);
+      margin: 0 auto;
       background: #0e1117;
     }
-    #page-overview .yf-chart-plot {
+    #page-overview .te-embed-frame {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
-    }
-    #page-overview .yf-chart-plot .js-plotly-plot,
-    #page-overview .yf-chart-plot .plotly {
-      width: 100% !important;
-      height: 100% !important;
-    }
-    #page-overview .yf-chart-fallback {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.85rem;
-      padding: 1.25rem 1rem;
-      text-align: center;
-      background: #0e1117;
-      color: rgba(255, 255, 255, 0.78);
-      font-size: 0.84rem;
-      line-height: 1.55;
-      max-width: 100%;
-    }
-    #page-overview .yf-chart-fallback[hidden] { display: none !important; }
-    #page-overview .yf-fallback-msg { margin: 0; max-width: 28rem; }
-    #page-overview .yf-fallback-msg code {
-      font-size: 0.88em;
-      color: #93c5fd;
-      word-break: break-all;
+      border: 0;
+      overflow: hidden;
     }
   </style>
 </head>
@@ -1035,78 +1006,32 @@
     <div class="overview-outer">
       <h2 class="overview-page-title">Overview</h2>
       <p class="overview-page-note">
-        <strong>Yahoo Finance</strong> 심볼(예: <code>CL=F</code>, <code>AAPL</code>, <code>^GSPC</code>)과 인터벌을 선택한 뒤 «적용»을 누르면, 이 페이지 안에 <strong>캔들차트(Plotly)</strong>를 그립니다.
-        야후 <strong>웹 차트 페이지</strong>는 보안 정책(<code>X-Frame-Options</code>) 때문에 다른 사이트 <strong>iframe에 넣을 수 없어</strong> «연결 거부»가 납니다 — 우회는 불가합니다.
-        인페이지 차트를 쓰려면 이 폴더에서 <code>python serve_market_dashboard.py</code> 로 서버를 띄운 뒤 같은 포트로 접속하세요(내장 <code>/api/yahoo-chart</code> 프록시). 그렇지 않으면 아래 «야후에서 열기»로 공식 차트만 새 탭에서 열 수 있습니다.
+        <strong>Trading Economics</strong> 제공 임베드 차트입니다. 기본은 미국 10년물 금리(<code>usgg10yr:ind</code>) · 600×300과 동일한 주소입니다.
+        시리즈·크기를 바꾼 뒤 «적용»을 누르면 iframe 주소가 갱신됩니다. 새 탭에서는 아래 «Trading Economics에서 열기»로 같은 임베드 URL을 열 수 있습니다.
       </p>
-      <div class="yf-chart-stack">
-        <div class="yf-chart-block" data-yf-slot="1">
-          <div class="yf-chart-toolbar">
-            <label for="yfSlot1Symbol">심볼</label>
-            <input type="text" id="yfSlot1Symbol" value="CL=F" spellcheck="false" autocomplete="off" />
-            <label for="yfSlot1Interval">인터벌</label>
-            <select id="yfSlot1Interval">
-              <option value="1m">1m</option><option value="2m">2m</option><option value="5m">5m</option><option value="15m">15m</option>
-              <option value="30m">30m</option><option value="60m">60m</option><option value="90m">90m</option><option value="1h">1h</option>
-              <option value="1d" selected>1d</option><option value="5d">5d</option><option value="1wk">1wk</option><option value="1mo">1mo</option><option value="3mo">3mo</option>
-            </select>
-            <div class="yf-chart-toolbar-actions">
-              <button type="button" class="yf-chart-apply" data-yf-apply="1">적용</button>
-              <a class="yf-chart-open" id="yfSlot1Open" href="https://finance.yahoo.com/chart/CL=F" target="_blank" rel="noopener noreferrer">야후에서 열기</a>
-            </div>
-          </div>
-          <div class="yf-chart-frame-wrap">
-            <div id="yfSlot1Plot" class="yf-chart-plot" aria-label="Yahoo Finance 캔들차트 1"></div>
-            <div id="yfSlot1Fallback" class="yf-chart-fallback" hidden>
-              <p class="yf-fallback-msg"></p>
-              <a class="yf-chart-open yf-fallback-link" target="_blank" rel="noopener noreferrer" href="https://finance.yahoo.com/chart/CL=F">야후에서 열기</a>
-            </div>
+      <div class="te-embed-block">
+        <div class="te-embed-toolbar">
+          <label for="teEmbedSeries">시리즈 (s)</label>
+          <input type="text" id="teEmbedSeries" value="usgg10yr:ind" spellcheck="false" autocomplete="off" title="예: usgg10yr:ind" />
+          <label for="teEmbedW">너비 (w)</label>
+          <input type="number" id="teEmbedW" min="200" max="1200" value="600" step="1" />
+          <label for="teEmbedH">높이 (h)</label>
+          <input type="number" id="teEmbedH" min="150" max="900" value="300" step="1" />
+          <div class="te-embed-toolbar-actions">
+            <button type="button" class="te-embed-apply" id="teEmbedApply">적용</button>
+            <a class="te-embed-open" id="teEmbedOpen" href="https://tradingeconomics.com/embed/?s=usgg10yr%3aind&amp;h=300&amp;w=600" target="_blank" rel="noopener noreferrer">Trading Economics에서 열기</a>
           </div>
         </div>
-        <div class="yf-chart-block" data-yf-slot="2">
-          <div class="yf-chart-toolbar">
-            <label for="yfSlot2Symbol">심볼</label>
-            <input type="text" id="yfSlot2Symbol" value="AAPL" spellcheck="false" autocomplete="off" />
-            <label for="yfSlot2Interval">인터벌</label>
-            <select id="yfSlot2Interval">
-              <option value="1m">1m</option><option value="2m">2m</option><option value="5m">5m</option><option value="15m">15m</option>
-              <option value="30m">30m</option><option value="60m">60m</option><option value="90m">90m</option><option value="1h">1h</option>
-              <option value="1d" selected>1d</option><option value="5d">5d</option><option value="1wk">1wk</option><option value="1mo">1mo</option><option value="3mo">3mo</option>
-            </select>
-            <div class="yf-chart-toolbar-actions">
-              <button type="button" class="yf-chart-apply" data-yf-apply="2">적용</button>
-              <a class="yf-chart-open" id="yfSlot2Open" href="https://finance.yahoo.com/chart/AAPL" target="_blank" rel="noopener noreferrer">야후에서 열기</a>
-            </div>
-          </div>
-          <div class="yf-chart-frame-wrap">
-            <div id="yfSlot2Plot" class="yf-chart-plot" aria-label="Yahoo Finance 캔들차트 2"></div>
-            <div id="yfSlot2Fallback" class="yf-chart-fallback" hidden>
-              <p class="yf-fallback-msg"></p>
-              <a class="yf-chart-open yf-fallback-link" target="_blank" rel="noopener noreferrer" href="https://finance.yahoo.com/chart/AAPL">야후에서 열기</a>
-            </div>
-          </div>
-        </div>
-        <div class="yf-chart-block" data-yf-slot="3">
-          <div class="yf-chart-toolbar">
-            <label for="yfSlot3Symbol">심볼</label>
-            <input type="text" id="yfSlot3Symbol" value="^GSPC" spellcheck="false" autocomplete="off" />
-            <label for="yfSlot3Interval">인터벌</label>
-            <select id="yfSlot3Interval">
-              <option value="1m">1m</option><option value="2m">2m</option><option value="5m">5m</option><option value="15m">15m</option>
-              <option value="30m">30m</option><option value="60m">60m</option><option value="90m">90m</option><option value="1h">1h</option>
-              <option value="1d" selected>1d</option><option value="5d">5d</option><option value="1wk">1wk</option><option value="1mo">1mo</option><option value="3mo">3mo</option>
-            </select>
-            <div class="yf-chart-toolbar-actions">
-              <button type="button" class="yf-chart-apply" data-yf-apply="3">적용</button>
-              <a class="yf-chart-open" id="yfSlot3Open" href="https://finance.yahoo.com/chart/%5EGSPC" target="_blank" rel="noopener noreferrer">야후에서 열기</a>
-            </div>
-          </div>
-          <div class="yf-chart-frame-wrap">
-            <div id="yfSlot3Plot" class="yf-chart-plot" aria-label="Yahoo Finance 캔들차트 3"></div>
-            <div id="yfSlot3Fallback" class="yf-chart-fallback" hidden>
-              <p class="yf-fallback-msg"></p>
-              <a class="yf-chart-open yf-fallback-link" target="_blank" rel="noopener noreferrer" href="https://finance.yahoo.com/chart/%5EGSPC">야후에서 열기</a>
-            </div>
+        <div class="te-embed-body">
+          <div class="te-embed-ratio-wrap" id="teEmbedRatioWrap" style="aspect-ratio: 600 / 300; max-width: 600px; width: 100%;">
+            <iframe
+              id="teEmbedFrame"
+              class="te-embed-frame"
+              title="Trading Economics 차트"
+              loading="lazy"
+              scrolling="no"
+              referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
           </div>
         </div>
       </div>
@@ -1230,206 +1155,52 @@
   const termCpTableWrap = document.getElementById("termCpTableWrap");
   const termBondTableWrap = document.getElementById("termBondTableWrap");
 
-  function buildYahooFinanceChartUrl(symbol, interval) {
-    const raw = String(symbol || "CL=F").trim().replace(/\s+/g, "") || "CL=F";
-    const symPart = encodeURIComponent(raw);
-    const iv = String(interval || "1d").trim() || "1d";
-    return "https://finance.yahoo.com/chart/" + symPart + "?interval=" + encodeURIComponent(iv);
+  function buildTradingEconomicsEmbedUrl(series, w, h) {
+    const s = String(series || "usgg10yr:ind").trim() || "usgg10yr:ind";
+    const wi = Math.max(200, Math.min(1200, parseInt(String(w), 10) || 600));
+    const he = Math.max(150, Math.min(900, parseInt(String(h), 10) || 300));
+    return (
+      "https://tradingeconomics.com/embed/?s=" +
+      encodeURIComponent(s) +
+      "&h=" +
+      encodeURIComponent(String(he)) +
+      "&w=" +
+      encodeURIComponent(String(wi))
+    );
   }
 
-  function yahooDefaultRangeForApi(interval) {
-    const iv = String(interval || "1d").trim();
-    if (iv === "1m" || iv === "2m" || iv === "5m") return "5d";
-    if (iv === "15m" || iv === "30m") return "1mo";
-    if (iv === "60m" || iv === "90m" || iv === "1h") return "3mo";
-    if (iv === "1d") return "2y";
-    if (iv === "5d") return "5y";
-    if (iv === "1wk") return "10y";
-    if (iv === "1mo" || iv === "3mo") return "max";
-    return "1y";
-  }
-
-  function yahooChartJsonToOhlc(j) {
-    const res = j && j.chart && j.chart.result && j.chart.result[0];
-    if (!res) return null;
-    const ts = res.timestamp;
-    const q = res.indicators && res.indicators.quote && res.indicators.quote[0];
-    if (!ts || !q || !q.close) return null;
-    const o = q.open || [];
-    const h = q.high || [];
-    const l = q.low || [];
-    const c = q.close || [];
-    const x = [];
-    const open = [];
-    const high = [];
-    const low = [];
-    const close = [];
-    for (let i = 0; i < ts.length; i++) {
-      const cl = c[i];
-      if (cl == null || !Number.isFinite(Number(cl))) continue;
-      const cln = Number(cl);
-      const on = o[i] != null && Number.isFinite(Number(o[i])) ? Number(o[i]) : cln;
-      const hn = h[i] != null && Number.isFinite(Number(h[i])) ? Number(h[i]) : cln;
-      const ln = l[i] != null && Number.isFinite(Number(l[i])) ? Number(l[i]) : cln;
-      x.push(new Date(ts[i] * 1000));
-      open.push(on);
-      high.push(hn);
-      low.push(ln);
-      close.push(cln);
+  function refreshTradingEconomicsEmbed() {
+    const sEl = document.getElementById("teEmbedSeries");
+    const wEl = document.getElementById("teEmbedW");
+    const hEl = document.getElementById("teEmbedH");
+    const frame = document.getElementById("teEmbedFrame");
+    const wrap = document.getElementById("teEmbedRatioWrap");
+    const openA = document.getElementById("teEmbedOpen");
+    const series = (sEl && sEl.value || "usgg10yr:ind").trim() || "usgg10yr:ind";
+    let w = parseInt(wEl && wEl.value, 10);
+    let h = parseInt(hEl && hEl.value, 10);
+    if (!Number.isFinite(w)) w = 600;
+    if (!Number.isFinite(h)) h = 300;
+    w = Math.max(200, Math.min(1200, w));
+    h = Math.max(150, Math.min(900, h));
+    if (sEl) sEl.value = series;
+    if (wEl) wEl.value = String(w);
+    if (hEl) hEl.value = String(h);
+    const url = buildTradingEconomicsEmbedUrl(series, w, h);
+    if (frame) frame.src = url;
+    if (openA) openA.href = url;
+    if (wrap) {
+      wrap.style.aspectRatio = w + " / " + h;
+      wrap.style.maxWidth = w + "px";
     }
-    if (x.length < 2) return null;
-    return { x: x, open: open, high: high, low: low, close: close };
   }
 
-  function showYahooOverviewFallback(slot, chartUrl, detail) {
-    const n = String(slot);
-    const plotEl = document.getElementById("yfSlot" + n + "Plot");
-    const fb = document.getElementById("yfSlot" + n + "Fallback");
-    if (plotEl && typeof Plotly !== "undefined") {
-      try {
-        Plotly.purge(plotEl);
-      } catch (_) {}
-      plotEl.innerHTML = "";
-    }
-    if (!fb) return;
-    const msg = fb.querySelector(".yf-fallback-msg");
-    const link = fb.querySelector(".yf-fallback-link");
-    if (link) link.href = chartUrl;
-    const lines = [
-      "야후 웹 차트는 다른 사이트 iframe에 표시할 수 없습니다.",
-      "이 대시보드 안에 캔들차트를 보려면 이 폴더에서 python serve_market_dashboard.py 로 접속하세요.",
-      "또는 아래 버튼으로 야후 공식 차트를 새 탭에서 여세요.",
-    ];
-    if (detail) lines.splice(1, 0, String(detail));
-    if (msg) msg.innerHTML = lines.join("<br/>");
-    fb.hidden = false;
-  }
-
-  function hideYahooOverviewFallback(slot) {
-    const fb = document.getElementById("yfSlot" + String(slot) + "Fallback");
-    if (fb) fb.hidden = true;
-  }
-
-  function renderYahooOverviewPlot(slot, ohlc, title) {
-    const el = document.getElementById("yfSlot" + String(slot) + "Plot");
-    if (!el || typeof Plotly === "undefined") return;
-    const trace = {
-      type: "candlestick",
-      x: ohlc.x,
-      open: ohlc.open,
-      high: ohlc.high,
-      low: ohlc.low,
-      close: ohlc.close,
-      increasing: { line: { color: "#26a69a" } },
-      decreasing: { line: { color: "#ef5350" } },
-    };
-    const layout = {
-      title: { text: title || "", font: { color: "rgba(255,255,255,0.88)", size: 13 } },
-      margin: { l: 52, r: 16, t: 34, b: 40 },
-      paper_bgcolor: "#0e1117",
-      plot_bgcolor: "#0e1117",
-      xaxis: { gridcolor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)", zeroline: false },
-      yaxis: { gridcolor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)", side: "right", zeroline: false },
-      showlegend: false,
-      autosize: true,
-    };
-    const config = { responsive: true, displayModeBar: true, displaylogo: false, modeBarButtonsToRemove: ["lasso2d", "select2d"] };
-    try {
-      Plotly.purge(el);
-    } catch (_) {}
-    Plotly.newPlot(el, [trace], layout, config);
-  }
-
-  async function refreshOverviewYahooSlot(slot) {
-    const n = String(slot);
-    const symEl = document.getElementById("yfSlot" + n + "Symbol");
-    const intEl = document.getElementById("yfSlot" + n + "Interval");
-    const openA = document.getElementById("yfSlot" + n + "Open");
-    if (!symEl || !intEl) return;
-    const sym = String(symEl.value || "").trim().replace(/\s+/g, "") || "CL=F";
-    const iv = String(intEl.value || "1d").trim() || "1d";
-    symEl.value = sym;
-    intEl.value = iv;
-    const chartUrl = buildYahooFinanceChartUrl(sym, iv);
-    if (openA) openA.href = chartUrl;
-
-    if (location.protocol !== "http:" && location.protocol !== "https:") {
-      showYahooOverviewFallback(slot, chartUrl, "file:// 로는 /api/yahoo-chart 를 호출할 수 없습니다.");
-      return;
-    }
-
-    const range = yahooDefaultRangeForApi(iv);
-    let j = null;
-    try {
-      const api = new URL("/api/yahoo-chart", location.origin);
-      api.searchParams.set("symbol", sym);
-      api.searchParams.set("interval", iv);
-      api.searchParams.set("range", range);
-      const res = await fetch(api.href, { cache: "no-store" });
-      const ct = (res.headers.get("content-type") || "").toLowerCase();
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      if (!ct.includes("application/json")) throw new Error("no_proxy");
-      j = await res.json();
-    } catch (e) {
-      showYahooOverviewFallback(
-        slot,
-        chartUrl,
-        "로컬 프록시가 없습니다. python serve_market_dashboard.py 로 같은 포트에서 열었는지 확인하세요."
-      );
-      return;
-    }
-
-    if (j.chart && j.chart.error) {
-      const d = (j.chart.error && (j.chart.error.description || j.chart.error.code)) || "yahoo_error";
-      showYahooOverviewFallback(slot, chartUrl, "야후 API: " + String(d));
-      return;
-    }
-    const ohlc = yahooChartJsonToOhlc(j);
-    if (!ohlc) {
-      showYahooOverviewFallback(slot, chartUrl, "가격 데이터가 비었습니다.");
-      return;
-    }
-    try {
-      hideYahooOverviewFallback(slot);
-      renderYahooOverviewPlot(slot, ohlc, sym + " · " + iv + " (Yahoo)");
-    } catch (e2) {
-      showYahooOverviewFallback(
-        slot,
-        chartUrl,
-        "차트 그리기 오류: " + String(e2 && e2.message ? e2.message : e2)
-      );
-      return;
-    }
-    requestAnimationFrame(function () {
-      resizeOverviewYahooPlotsIfVisible();
-    });
-  }
-
-  let overviewYahooControlsBound = false;
-  function bindOverviewYahooControlsOnce() {
-    if (overviewYahooControlsBound) return;
-    overviewYahooControlsBound = true;
-    [1, 2, 3].forEach(function (slot) {
-      var btn = document.querySelector('[data-yf-apply="' + slot + '"]');
-      if (btn) btn.addEventListener("click", function () { refreshOverviewYahooSlot(slot); });
-    });
-  }
-
-  function refreshAllOverviewYahooSlots() {
-    [1, 2, 3].forEach(function (s) {
-      refreshOverviewYahooSlot(s);
-    });
-  }
-
-  function resizeOverviewYahooPlotsIfVisible() {
-    if (!pageOverviewEl || !pageOverviewEl.classList.contains("is-active")) return;
-    if (typeof Plotly === "undefined") return;
-    try {
-      [1, 2, 3].forEach(function (n) {
-        const el = document.getElementById("yfSlot" + n + "Plot");
-        if (el && el.querySelector(".js-plotly-plot")) Plotly.Plots.resize(el);
-      });
-    } catch (_) {}
+  let tradingEconomicsEmbedBound = false;
+  function bindTradingEconomicsEmbedOnce() {
+    if (tradingEconomicsEmbedBound) return;
+    tradingEconomicsEmbedBound = true;
+    const btn = document.getElementById("teEmbedApply");
+    if (btn) btn.addEventListener("click", refreshTradingEconomicsEmbed);
   }
 
   function resizeSpreadChartsIfVisible() {
@@ -1466,7 +1237,6 @@
     resizeSpreadChartsIfVisible();
     syncAllFundMetricStickySubheaderTops();
     resizeFundCompareChartsIfVisible();
-    resizeOverviewYahooPlotsIfVisible();
   });
 
   let ratesCustomDiffDate = "";
@@ -2799,10 +2569,9 @@
       setTimeout(resizeSpreadChartsIfVisible, 280);
     }
     if (isOverview) {
-      bindOverviewYahooControlsOnce();
+      bindTradingEconomicsEmbedOnce();
       requestAnimationFrame(function () {
-        refreshAllOverviewYahooSlots();
-        setTimeout(resizeOverviewYahooPlotsIfVisible, 120);
+        refreshTradingEconomicsEmbed();
       });
     }
   }
