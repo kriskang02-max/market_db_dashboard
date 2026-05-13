@@ -601,6 +601,97 @@
     .term-cell-stack .term-bp-line { font-size: 0.68rem; font-weight: 500; }
     .term-cp-rate-cell { font-size: 0.76rem; font-weight: 400; color: rgba(255,255,255,0.95); white-space: nowrap; }
     .term-muted { color: rgba(255,255,255,0.35); }
+    /* Overview — TradingView widget embeds */
+    #page-overview .overview-outer {
+      padding: 1rem 1.25rem 2rem;
+      max-width: 100%;
+      background: #1a1a2e;
+    }
+    #page-overview .overview-page-title {
+      margin: 0 0 0.35rem;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.96);
+    }
+    #page-overview .overview-page-note {
+      margin: 0 0 1.25rem;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.55);
+      max-width: 52rem;
+    }
+    #page-overview .tv-widget-stack { display: flex; flex-direction: column; gap: 1.5rem; }
+    #page-overview .tv-widget-block {
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.55);
+      overflow: hidden;
+    }
+    #page-overview .tv-widget-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.65rem 1rem;
+      padding: 0.65rem 0.85rem;
+      background: rgba(0, 0, 0, 0.28);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.82rem;
+    }
+    #page-overview .tv-widget-toolbar label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    #page-overview .tv-widget-toolbar input[type="text"] {
+      min-width: 11rem;
+      max-width: 22rem;
+      padding: 0.38rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 0.85rem;
+      font-family: ui-monospace, Consolas, monospace;
+    }
+    #page-overview .tv-widget-toolbar select {
+      min-width: 5.5rem;
+      padding: 0.38rem 0.45rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: #fff;
+      color: #0f172a;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    #page-overview .tv-widget-toolbar select option { color: #0f172a; background: #fff; }
+    #page-overview .tv-widget-toolbar .tv-apply-btn {
+      margin-left: auto;
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: #2563eb;
+      color: #fff;
+    }
+    #page-overview .tv-widget-toolbar .tv-apply-btn:hover { background: #3b82f6; }
+    #page-overview .tv-widget-frame-wrap {
+      position: relative;
+      width: 100%;
+      height: min(55vh, 560px);
+      background: #0e1117;
+    }
+    #page-overview .tv-widget-frame-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
   </style>
 </head>
 <body>
@@ -614,6 +705,8 @@
       <a href="#spread" class="page-nav__link" id="navSpread">스프레드 분석</a>
       <span class="page-nav__sep" aria-hidden="true">|</span>
       <a href="#fund" class="page-nav__link" id="navFund">펀드 분석</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#overview" class="page-nav__link" id="navOverview">Overview</a>
     </nav>
     <div id="spreadHeaderMeta" class="page-meta spread-header-asof">
       <p class="spread-header-asof__line">
@@ -894,6 +987,65 @@
     </div>
   </div>
 
+  <div id="page-overview" class="page">
+    <div class="overview-outer">
+      <h2 class="overview-page-title">Overview</h2>
+      <p class="overview-page-note">
+        TradingView 차트 임베드(공식 widgetembed)입니다. 티커는 <strong>거래소:심볼</strong> 형식(예: <code style="color:#93c5fd;">KRX:005930</code>, <code style="color:#93c5fd;">NASDAQ:NDX</code>)으로 입력한 뒤 «적용»을 누르면 해당 위젯만 갱신됩니다.
+      </p>
+      <div class="tv-widget-stack">
+        <div class="tv-widget-block" data-tv-slot="1">
+          <div class="tv-widget-toolbar">
+            <label for="tvSlot1Ticker">티커</label>
+            <input type="text" id="tvSlot1Ticker" value="KRX:005930" spellcheck="false" autocomplete="off" />
+            <label for="tvSlot1Interval">인터벌</label>
+            <select id="tvSlot1Interval">
+              <option value="1">1</option><option value="3">3</option><option value="5">5</option><option value="15">15</option>
+              <option value="30">30</option><option value="60">60</option><option value="120">120</option><option value="240">240</option>
+              <option value="D" selected>D</option><option value="W">W</option><option value="M">M</option>
+            </select>
+            <button type="button" class="tv-apply-btn" data-tv-apply="1">적용</button>
+          </div>
+          <div class="tv-widget-frame-wrap">
+            <iframe id="tvSlot1Frame" title="TradingView 1" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+        </div>
+        <div class="tv-widget-block" data-tv-slot="2">
+          <div class="tv-widget-toolbar">
+            <label for="tvSlot2Ticker">티커</label>
+            <input type="text" id="tvSlot2Ticker" value="KRX:KOSPI" spellcheck="false" autocomplete="off" />
+            <label for="tvSlot2Interval">인터벌</label>
+            <select id="tvSlot2Interval">
+              <option value="1">1</option><option value="3">3</option><option value="5">5</option><option value="15">15</option>
+              <option value="30">30</option><option value="60">60</option><option value="120">120</option><option value="240">240</option>
+              <option value="D" selected>D</option><option value="W">W</option><option value="M">M</option>
+            </select>
+            <button type="button" class="tv-apply-btn" data-tv-apply="2">적용</button>
+          </div>
+          <div class="tv-widget-frame-wrap">
+            <iframe id="tvSlot2Frame" title="TradingView 2" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+        </div>
+        <div class="tv-widget-block" data-tv-slot="3">
+          <div class="tv-widget-toolbar">
+            <label for="tvSlot3Ticker">티커</label>
+            <input type="text" id="tvSlot3Ticker" value="NASDAQ:NDX" spellcheck="false" autocomplete="off" />
+            <label for="tvSlot3Interval">인터벌</label>
+            <select id="tvSlot3Interval">
+              <option value="1">1</option><option value="3">3</option><option value="5">5</option><option value="15">15</option>
+              <option value="30">30</option><option value="60">60</option><option value="120">120</option><option value="240">240</option>
+              <option value="D" selected>D</option><option value="W">W</option><option value="M">M</option>
+            </select>
+            <button type="button" class="tv-apply-btn" data-tv-apply="3">적용</button>
+          </div>
+          <div class="tv-widget-frame-wrap">
+            <iframe id="tvSlot3Frame" title="TradingView 3" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
 (function () {
   const PREFERRED_ORDER = [
@@ -983,10 +1135,12 @@
   const navRates = document.getElementById("navRates");
   const navFund = document.getElementById("navFund");
   const navTerm = document.getElementById("navTerm");
+  const navOverview = document.getElementById("navOverview");
   const pageSpreadEl = document.getElementById("page-spread");
   const pageRatesEl = document.getElementById("page-rates");
   const pageFundEl = document.getElementById("page-fund");
   const pageTermEl = document.getElementById("page-term");
+  const pageOverviewEl = document.getElementById("page-overview");
   const fundTableMoWrap = document.getElementById("fundTableMoWrap");
   const fundTableJaWrap = document.getElementById("fundTableJaWrap");
   const fundSummaryOuter = document.getElementById("fundSummaryOuter");
@@ -1008,6 +1162,45 @@
   const termStructureStatus = document.getElementById("termStructureStatus");
   const termCpTableWrap = document.getElementById("termCpTableWrap");
   const termBondTableWrap = document.getElementById("termBondTableWrap");
+
+  function buildTradingViewWidgetEmbedUrl(symbol, interval) {
+    const sym = encodeURIComponent(String(symbol || "NASDAQ:AAPL").trim());
+    const iv = encodeURIComponent(String(interval || "D").trim());
+    return (
+      "https://www.tradingview.com/widgetembed/?symbol=" +
+      sym +
+      "&interval=" +
+      iv +
+      "&hidesidetoolbar=1&hidetoptoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FSeoul&locale=kr&withdateranges=1"
+    );
+  }
+
+  function refreshOverviewTvSlot(slot) {
+    const n = String(slot);
+    const tickerEl = document.getElementById("tvSlot" + n + "Ticker");
+    const intEl = document.getElementById("tvSlot" + n + "Interval");
+    const frame = document.getElementById("tvSlot" + n + "Frame");
+    if (!tickerEl || !intEl || !frame) return;
+    const sym = String(tickerEl.value || "").trim() || "NASDAQ:AAPL";
+    const iv = String(intEl.value || "D").trim() || "D";
+    tickerEl.value = sym;
+    intEl.value = iv;
+    frame.src = buildTradingViewWidgetEmbedUrl(sym, iv);
+  }
+
+  let overviewTvControlsBound = false;
+  function bindOverviewTvControlsOnce() {
+    if (overviewTvControlsBound) return;
+    overviewTvControlsBound = true;
+    [1, 2, 3].forEach(function (slot) {
+      var btn = document.querySelector('[data-tv-apply="' + slot + '"]');
+      if (btn) btn.addEventListener("click", function () { refreshOverviewTvSlot(slot); });
+    });
+  }
+
+  function refreshAllOverviewTvSlots() {
+    [1, 2, 3].forEach(function (s) { refreshOverviewTvSlot(s); });
+  }
 
   function resizeSpreadChartsIfVisible() {
     if (!pageSpreadEl || !pageSpreadEl.classList.contains("is-active")) return;
@@ -2335,19 +2528,23 @@
     const isFund = page === "fund";
     const isRates = page === "rates";
     const isTerm = page === "term";
+    const isOverview = page === "overview";
     if (pageSpreadEl) pageSpreadEl.classList.toggle("is-active", isSpread);
     if (pageRatesEl) pageRatesEl.classList.toggle("is-active", isRates);
     if (pageFundEl) pageFundEl.classList.toggle("is-active", isFund);
     if (pageTermEl) pageTermEl.classList.toggle("is-active", isTerm);
+    if (pageOverviewEl) pageOverviewEl.classList.toggle("is-active", isOverview);
     if (spreadHeaderMeta) spreadHeaderMeta.hidden = !isSpread;
     if (navSpread) navSpread.classList.toggle("is-current", isSpread);
     if (navRates) navRates.classList.toggle("is-current", isRates);
     if (navFund) navFund.classList.toggle("is-current", isFund);
     if (navTerm) navTerm.classList.toggle("is-current", isTerm);
+    if (navOverview) navOverview.classList.toggle("is-current", isOverview);
     let title = "스프레드 분석";
     if (isFund) title = "펀드 분석";
     else if (isRates) title = "금리 분석";
     else if (isTerm) title = "Term Structure";
+    else if (isOverview) title = "Overview";
     document.title = title;
     if (isFund) {
       ensureFundData();
@@ -2369,6 +2566,12 @@
       resizeSpreadChartsIfVisible();
       setTimeout(resizeSpreadChartsIfVisible, 80);
       setTimeout(resizeSpreadChartsIfVisible, 280);
+    }
+    if (isOverview) {
+      bindOverviewTvControlsOnce();
+      requestAnimationFrame(function () {
+        refreshAllOverviewTvSlots();
+      });
     }
   }
 
@@ -3700,8 +3903,8 @@
     if (el && el.type !== "number") el.addEventListener("input", render2);
   });
 
-  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 분석 → 펀드 분석 (순환) */
-  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund"];
+  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 분석 → 펀드 분석 → Overview (순환) */
+  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview"];
 
   function applyHashPage() {
     const h = (location.hash || "#rates").slice(1);
@@ -3709,6 +3912,7 @@
     else if (h === "rates") setPage("rates");
     else if (h === "term") setPage("term");
     else if (h === "spread") setPage("spread");
+    else if (h === "overview") setPage("overview");
     else setPage("rates");
   }
   window.addEventListener("hashchange", applyHashPage);
@@ -3747,6 +3951,7 @@
     if (slug === "rates") return "rates";
     if (slug === "term") return "term";
     if (slug === "spread") return "spread";
+    if (slug === "overview") return "overview";
     return null;
   }
   document.addEventListener("click", (e) => {
