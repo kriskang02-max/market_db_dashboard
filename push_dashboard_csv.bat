@@ -18,7 +18,7 @@ if not exist ".git" (
   exit /b 1
 )
 
-git add market_db.csv fund_db.csv term_table_long.csv
+git add market_db.csv fund_db.csv term_table_long.csv bond_db_ktb.csv bond_db_msb.csv
 if errorlevel 1 (
   echo git add 실패 ^(파일 경로를 확인하세요^)
   exit /b 1
@@ -26,11 +26,11 @@ if errorlevel 1 (
 
 git diff --cached --quiet
 if not errorlevel 1 (
-  echo 커밋할 변경이 없습니다. ^(세 CSV가 이전 커밋과 동일합니다^)
+  echo 커밋할 변경이 없습니다. ^(추적 CSV가 이전 커밋과 동일합니다^)
   exit /b 0
 )
 
-git commit -m "chore: update market_db, fund_db, term_table_long CSV"
+git commit -m "chore: update market_db, fund_db, term_table_long, bond_db CSV"
 if errorlevel 1 (
   echo git commit 실패
   exit /b 1
