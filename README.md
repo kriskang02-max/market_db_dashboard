@@ -14,6 +14,7 @@
 `BondDb_ExportToCsv.bas`를 통합문서 VBA로 가져온 뒤 **`ExportBondDbToCsv`**(현재 책) 또는 **`ExportBondDbFromDefaultPath`**(고정 경로 `bond_db.xlsx` 열기) 실행.
 
 - 출력: `bond_db_ktb.csv`(국고채: 헤더 D10:M10, 데이터 D11:M400), `bond_db_msb.csv`(통안채: O10:X10, O11:X100), UTF-8 BOM
+- 만기 축약 `25-4`, `24-12` 형식은 CSV에 선행 `'`를 붙여 Excel에서 텍스트로 열리게 함.
 - 저장 폴더: 통합문서와 같은 경로(미저장 새 책은 `market_db_dashboard` 폴더로 폴백)
 
 ## 실행 방법

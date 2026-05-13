@@ -12,6 +12,7 @@ Attribute VB_Name = "BondDb_ExportToCsv"
 '
 ' 빈 행: 블록 하단에서 연속 빈 행은 출력에서 제외 (마지막 유효 행까지).
 ' 인코딩: UTF-8 BOM (Excel에서 한글 열기 호환)
+' 만기 축약 YY-M / YY-MM (예: 25-4, 24-12)은 CSV에 선행 작은따옴표(')를 붙여 Excel이 날짜로 해석하지 않게 함.
 '
 ' 실행:
 '   1) bond_db.xlsx 열어둔 상태에서 ExportBondDbToCsv
@@ -156,7 +157,7 @@ Private Sub ExportBlock(ByVal ws As Worksheet, _
 
     ReDim hdr(1 To nCols)
     For c = colFirst To colLast
-        hdr(c - colFirst + 1) = CellToCsvField(ws.Cells(headerRow, c).Value2)
+        hdr(c - colFirst + 1) = CellToCsvFieldFromRange(ws.Cells(headerRow, c))
     Next c
 
     lastDataRow = LastNonEmptyRowInBlock(ws, rowFirst, rowLast, colFirst, colLast)
@@ -172,7 +173,7 @@ Private Sub ExportBlock(ByVal ws As Worksheet, _
     For r = rowFirst To lastDataRow
         ReDim fields(1 To nCols)
         For ci = 1 To nCols
-            fields(ci) = CellToCsvField(ws.Cells(r, colFirst + ci - 1).Value2)
+            fields(ci) = CellToCsvFieldFromRange(ws.Cells(r, colFirst + ci - 1))
         Next ci
         n = n + 1
         If n > UBound(lines) Then
@@ -205,30 +206,69 @@ Private Function LastNonEmptyRowInBlock(ByVal ws As Worksheet, _
     LastNonEmptyRowInBlock = rowFirst - 1
 End Function
 
-Private Function CellToCsvField(ByVal v As Variant) As String
+Private Function IsKtbTenorAbbrevPattern(ByVal s As String) As Boolean
+    ' 국고채 만기 축약: 두 자리-한 자리(25-4) 또는 두 자리-두 자리(24-12), 하이픈은 3번째
+    Dim t As String
+    t = Trim$(s)
+    If Len(t) <> 4 And Len(t) <> 5 Then Exit Function
+    If Mid$(t, 3, 1) <> "-" Then Exit Function
+    If Not Mid$(t, 1, 2) Like "##" Then Exit Function
+    If Len(t) = 4 Then
+        IsKtbTenorAbbrevPattern = Mid$(t, 4, 1) Like "#"
+    Else
+        IsKtbTenorAbbrevPattern = Mid$(t, 4, 2) Like "##"
+    End If
+End Function
+
+' Excel에서 CSV 열 때 날짜 자동 변환 방지 (표시는 축약 그대로, 셀은 텍스트)
+Private Function ForceCsvTextForExcel(ByVal tenorAbbrev As String) As String
+    ForceCsvTextForExcel = "'" & tenorAbbrev
+End Function
+
+Private Function CellToCsvFieldFromRange(ByVal cel As Range) As String
+    Dim tDisp As String
+    Dim s As String
+
+    tDisp = Trim$(cel.Text)
+    If Len(tDisp) > 0 Then
+        If IsKtbTenorAbbrevPattern(tDisp) Then
+            CellToCsvFieldFromRange = ForceCsvTextForExcel(tDisp)
+            Exit Function
+        End If
+    End If
+
+    s = CellToCsvFieldScalar(cel.Value2)
+    If IsKtbTenorAbbrevPattern(s) Then
+        CellToCsvFieldFromRange = ForceCsvTextForExcel(s)
+    Else
+        CellToCsvFieldFromRange = s
+    End If
+End Function
+
+Private Function CellToCsvFieldScalar(ByVal v As Variant) As String
     Dim d As Double
     On Error Resume Next
     If IsEmpty(v) Then
-        CellToCsvField = ""
+        CellToCsvFieldScalar = ""
         Exit Function
     End If
     If VarType(v) = vbDate Then
-        CellToCsvField = Format$(CDate(v), "yyyy-mm-dd")
+        CellToCsvFieldScalar = Format$(CDate(v), "yyyy-mm-dd")
         Exit Function
     End If
     If IsNumeric(v) Then
         d = CDbl(v)
         If d >= XL_DATE_SERIAL_MIN And d <= XL_DATE_SERIAL_MAX Then
-            CellToCsvField = Format$(CDate(v), "yyyy-mm-dd")
+            CellToCsvFieldScalar = Format$(CDate(v), "yyyy-mm-dd")
             If Err.Number <> 0 Then
                 Err.Clear
-                CellToCsvField = Trim$(Replace(CStr(d), ",", ""))
+                CellToCsvFieldScalar = Trim$(Replace(CStr(d), ",", ""))
             End If
             Exit Function
         End If
-        CellToCsvField = Trim$(Replace(CStr(d), ",", ""))
+        CellToCsvFieldScalar = Trim$(Replace(CStr(d), ",", ""))
     Else
-        CellToCsvField = Trim$(CStr(v))
+        CellToCsvFieldScalar = Trim$(CStr(v))
     End If
 End Function
 
