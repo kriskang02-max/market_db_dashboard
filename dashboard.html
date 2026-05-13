@@ -633,9 +633,10 @@
       margin-bottom: 0.5rem;
     }
     #page-overview .overview-prevday-toolbar--compact .sidebar.btn {
-      padding: 0.2rem 0.42rem;
-      font-size: 0.7rem;
-      line-height: 1.25;
+      padding: 0.14rem 0.2rem;
+      font-size: 0.66rem;
+      line-height: 1.2;
+      min-width: 0;
       color: #fff;
     }
     #page-overview .overview-prevday-toolbar--compact .sidebar.btn-secondary {
@@ -649,7 +650,7 @@
       font-weight: 400;
       cursor: default;
       pointer-events: none;
-      padding: 0.2rem 0.28rem;
+      padding: 0.14rem 0.1rem;
     }
     #page-overview .overview-prevday-csv-asof {
       font-size: 0.7rem;
@@ -745,6 +746,16 @@
     }
     #page-overview .overview-prevday-table input.ovpd-input--abbrev {
       max-width: 9rem;
+    }
+    #page-overview .overview-prevday-table input.ovpd-applied,
+    #page-overview .overview-prevday-table input.ovpd-diff {
+      max-width: 4.67rem;
+    }
+    #page-overview .overview-prevday-table .ovpd-breed-plain,
+    #page-overview .overview-prevday-table .ovpd-tenor-plain {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.72rem;
+      font-variant-numeric: tabular-nums;
     }
     #page-overview .overview-prevday-table .ovpd-btn-del {
       padding: 0.15rem 0.35rem;
@@ -1288,6 +1299,8 @@
   let bondKtbByCode = new Map();
   let bondMsbByAbbrev = new Map();
   let bondMsbByCode = new Map();
+  let bondByAbbrev = new Map();
+  let bondByCode = new Map();
   let overviewBondCsvAsOfMs = 0;
   /** @type {{ id: string, breed: string, tenor: string, abbrev: string, appliedU: string, diffU: string }[]} */
   let overviewPrevDayRows = [];
@@ -1325,19 +1338,21 @@
     });
   }
 
-  function getBondMapsForBreed(breed) {
-    const b = String(breed || "").trim();
-    if (b === "통안") return { abbrevMap: bondMsbByAbbrev, codeMap: bondMsbByCode };
-    return { abbrevMap: bondKtbByAbbrev, codeMap: bondKtbByCode };
+  function overviewPrevDayRebuildMergedBondMaps() {
+    bondByAbbrev.clear();
+    bondByCode.clear();
+    bondKtbByAbbrev.forEach((v, k) => bondByAbbrev.set(k, v));
+    bondKtbByCode.forEach((v, k) => bondByCode.set(k, v));
+    bondMsbByAbbrev.forEach((v, k) => bondByAbbrev.set(k, v));
+    bondMsbByCode.forEach((v, k) => bondByCode.set(k, v));
   }
 
-  function findBondEntryForUserKey(raw, breed) {
+  function findBondEntryForUserKey(raw) {
     const trimmed = String(raw || "").trim();
     if (!trimmed) return null;
-    const { abbrevMap, codeMap } = getBondMapsForBreed(breed);
-    const byAbbrev = abbrevMap.get(normalizeBondAbbrev(trimmed));
+    const byAbbrev = bondByAbbrev.get(normalizeBondAbbrev(trimmed));
     if (byAbbrev) return byAbbrev;
-    return codeMap.get(trimmed) || null;
+    return bondByCode.get(trimmed) || null;
   }
 
   function formatNumFixed(n, decimals) {
@@ -1362,10 +1377,13 @@
     return formatNumFixed(prevFair, 4).replace(/\.?0+$/, "") || String(prevFair);
   }
 
-  function ovpdRowBreed(tr) {
-    const sel = tr.querySelector(".ovpd-breed");
-    const v = sel && sel.value ? String(sel.value).trim() : "";
-    return v === "통안" ? "통안" : "국고";
+  function ovpdMaturityYyMmDd(maturityYmd) {
+    const p = String(maturityYmd || "").trim().split("-");
+    if (p.length !== 3) return "—";
+    const yy = String(p[0]).slice(-2);
+    const mm = String(p[1]).padStart(2, "0");
+    const dd = String(p[2]).padStart(2, "0");
+    return yy + "/" + mm + "/" + dd;
   }
 
   function ovpdIsCompleteNumberStr(s) {
@@ -1413,6 +1431,27 @@
     overviewPrevDaySyncToolbarLockUi();
   }
 
+  function overviewPrevDaySyncRowBreedTenorLockUi() {
+    if (!overviewPrevDayTbody) return;
+    const locked = overviewPrevDayIsToolbarLocked();
+    overviewPrevDayTbody.querySelectorAll("tr[data-ovpd-id]").forEach((tr) => {
+      [["ovpd-breed", "ovpd-breed-plain"], ["ovpd-tenor", "ovpd-tenor-plain"]].forEach(([selC, plainC]) => {
+        const sel = tr.querySelector("." + selC);
+        const plain = tr.querySelector("." + plainC);
+        if (!sel || !plain) return;
+        if (locked) {
+          const opt = sel.options[sel.selectedIndex];
+          plain.textContent = opt ? String(opt.textContent || "").trim() : "";
+          sel.style.display = "none";
+          plain.style.display = "";
+        } else {
+          sel.style.display = "";
+          plain.style.display = "none";
+        }
+      });
+    });
+  }
+
   function overviewPrevDaySyncToolbarLockUi() {
     const locked = overviewPrevDayIsToolbarLocked();
     if (overviewPrevDayLock) {
@@ -1424,6 +1463,7 @@
       btn.disabled = locked;
       btn.classList.toggle("ovpd-toolbar-textlike", locked);
     });
+    overviewPrevDaySyncRowBreedTenorLockUi();
   }
 
   function overviewPrevDayFormatCsvAsOfLine() {
@@ -1515,8 +1555,7 @@
   }
 
   function overviewPrevDayApplyBondToRow(tr, abbrevRaw, preserveOverrides) {
-    const breed = ovpdRowBreed(tr);
-    const ent = findBondEntryForUserKey(abbrevRaw, breed);
+    const ent = findBondEntryForUserKey(abbrevRaw);
     const resEl = tr.querySelector(".ovpd-residual");
     const matEl = tr.querySelector(".ovpd-maturity-date");
     const durEl = tr.querySelector(".ovpd-duration");
@@ -1530,7 +1569,7 @@
     let prevFair = NaN;
     let csvVolBp = NaN;
     if (ent) {
-      matEl.textContent = ent.maturity || "—";
+      matEl.textContent = ovpdMaturityYyMmDd(ent.maturity);
       durEl.textContent = ent.duration || "—";
       prevFair = ent.prevFair;
       csvVolBp = ent.csvVolBp;
@@ -1553,11 +1592,10 @@
       diffEl.readOnly = false;
     }
 
-    overviewPrevDayRefreshRowDerived(tr);
-    tr.dataset.ovpdBreedSnap = ovpdRowBreed(tr);
+    overviewPrevDayRefreshRowDerived(tr, false);
   }
 
-  function overviewPrevDayRefreshRowDerived(tr) {
+  function overviewPrevDayRefreshRowDerived(tr, skipReverse) {
     const prevFair = parseBondCsvNum(tr.dataset.ovpdPrevFair || "");
     const csvVolBp = parseBondCsvNum(tr.dataset.ovpdCsvVol || "");
     const appliedEl = tr.querySelector(".ovpd-applied");
@@ -1581,7 +1619,13 @@
 
     appliedEl.readOnly = false;
 
-    if (!ovpdIsCompleteNumberStr(appliedTrim) && ovpdIsCompleteNumberStr(diffTrim) && Number.isFinite(diffNum) && Number.isFinite(prevFair)) {
+    if (
+      !skipReverse &&
+      !ovpdIsCompleteNumberStr(appliedTrim) &&
+      ovpdIsCompleteNumberStr(diffTrim) &&
+      Number.isFinite(diffNum) &&
+      Number.isFinite(prevFair)
+    ) {
       const appl = prevFair + diffNum / 100;
       appliedEl.readOnly = true;
       appliedEl.value = formatNumFixed(appl, 3);
@@ -1602,9 +1646,7 @@
     const raw = abbrevEl.value.trim();
     const norm = normalizeBondAbbrev(raw);
     const prevNorm = tr.dataset.ovpdAbbrevNorm || "";
-    const breed = ovpdRowBreed(tr);
-    const prevBreed = tr.dataset.ovpdBreedSnap || "";
-    const preserveOverrides = norm !== "" && norm === prevNorm && breed === prevBreed;
+    const preserveOverrides = norm !== "" && norm === prevNorm;
     tr.dataset.ovpdAbbrevNorm = norm;
     tr.dataset.ovpdAbbrevRaw = raw;
     overviewPrevDayApplyBondToRow(tr, raw, preserveOverrides);
@@ -1625,20 +1667,21 @@
     tr.dataset.ovpdId = r.id;
     tr.dataset.ovpdAbbrevNorm = "";
     tr.dataset.ovpdAbbrevRaw = "";
-    tr.dataset.ovpdBreedSnap = "";
     const breed = r.breed === "통안" ? "통안" : "국고";
     const tenor = OVPD_TENOR_OPTIONS.indexOf(String(r.tenor || "")) >= 0 ? String(r.tenor) : "";
     tr.innerHTML =
-      '<td><select class="ovpd-select ovpd-breed">' +
+      '<td class="ovpd-breed-wrap">' +
+      '<select class="ovpd-select ovpd-breed">' +
       '<option value="국고"' +
       (breed === "통안" ? "" : " selected") +
       ">국고</option>" +
       '<option value="통안"' +
       (breed === "통안" ? " selected" : "") +
-      ">통안</option></select></td>" +
-      "<td>" +
+      ">통안</option></select>" +
+      '<span class="ovpd-breed-plain" style="display:none" aria-hidden="true"></span></td>' +
+      '<td class="ovpd-tenor-wrap">' +
       overviewPrevDayTenorSelectHtml(tenor) +
-      "</td>" +
+      '<span class="ovpd-tenor-plain" style="display:none" aria-hidden="true"></span></td>' +
       '<td class="ovpd-residual">—</td>' +
       '<td class="ovpd-col-abbrev"><input type="text" class="ovpd-input ovpd-input--abbrev ovpd-abbrev" autocomplete="off" spellcheck="false" /></td>' +
       '<td class="ovpd-maturity-date">—</td>' +
@@ -1671,9 +1714,9 @@
       const norm = normalizeBondAbbrev(r.abbrev);
       tr.dataset.ovpdAbbrevNorm = norm;
       tr.dataset.ovpdAbbrevRaw = String(r.abbrev || "").trim();
-      tr.dataset.ovpdBreedSnap = r.breed === "통안" ? "통안" : "국고";
       overviewPrevDayApplyBondToRow(tr, r.abbrev, true);
     });
+    overviewPrevDaySyncRowBreedTenorLockUi();
   }
 
   function loadOverviewBondCsvFresh() {
@@ -1697,6 +1740,7 @@
       bondMsbByCode.clear();
       mergeBondLookupFromRowsInto(parseCsv(a.text), bondKtbByAbbrev, bondKtbByCode);
       mergeBondLookupFromRowsInto(parseCsv(b.text), bondMsbByAbbrev, bondMsbByCode);
+      overviewPrevDayRebuildMergedBondMaps();
       const tMs = [a.lm, b.lm]
         .map((s) => {
           if (!s) return 0;
@@ -1731,7 +1775,7 @@
           }
         }
       }
-      if (t.classList.contains("ovpd-applied") || t.classList.contains("ovpd-diff")) overviewPrevDayRefreshRowDerived(tr);
+      if (t.classList.contains("ovpd-applied") || t.classList.contains("ovpd-diff")) overviewPrevDayRefreshRowDerived(tr, true);
     });
     overviewPrevDayTbody.addEventListener("change", (e) => {
       const t = e.target;
@@ -1739,11 +1783,7 @@
       if (!tr) return;
       const abEl = tr.querySelector(".ovpd-abbrev");
       const abbrevRaw = abEl ? abEl.value.trim() : "";
-      if (t.classList.contains("ovpd-breed")) {
-        overviewPrevDayApplyBondToRow(tr, abbrevRaw, false);
-        return;
-      }
-      if (t.classList.contains("ovpd-tenor")) {
+      if (t.classList.contains("ovpd-breed") || t.classList.contains("ovpd-tenor")) {
         overviewPrevDayApplyBondToRow(tr, abbrevRaw, true);
       }
     });
@@ -1751,10 +1791,11 @@
       "blur",
       (e) => {
         const t = e.target;
-        if (t && t.classList && t.classList.contains("ovpd-abbrev")) {
-          const row = t.closest && t.closest("tr[data-ovpd-id]");
-          if (row) overviewPrevDayOnAbbrevCommit(row);
-        }
+        if (!t || !t.classList) return;
+        const row = t.closest && t.closest("tr[data-ovpd-id]");
+        if (!row) return;
+        if (t.classList.contains("ovpd-abbrev")) overviewPrevDayOnAbbrevCommit(row);
+        else if (t.classList.contains("ovpd-applied") || t.classList.contains("ovpd-diff")) overviewPrevDayRefreshRowDerived(row, false);
       },
       true
     );
@@ -1781,7 +1822,7 @@
           diff.value = "";
           diff.readOnly = false;
         }
-        overviewPrevDayRefreshRowDerived(tr);
+        overviewPrevDayRefreshRowDerived(tr, false);
         return;
       }
       const delBtn = e.target && e.target.closest && e.target.closest(".ovpd-btn-del");
@@ -1795,6 +1836,7 @@
     overviewPrevDayAddRow.addEventListener("click", () => {
       if (overviewPrevDayIsToolbarLocked() || !overviewPrevDayTbody) return;
       overviewPrevDayTbody.appendChild(overviewPrevDayCreateRowEl(overviewPrevDayDefaultRow()));
+      overviewPrevDaySyncRowBreedTenorLockUi();
     });
   }
   if (overviewPrevDayLock) {
