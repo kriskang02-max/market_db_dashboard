@@ -601,111 +601,17 @@
     .term-cell-stack .term-bp-line { font-size: 0.68rem; font-weight: 500; }
     .term-cp-rate-cell { font-size: 0.76rem; font-weight: 400; color: rgba(255,255,255,0.95); white-space: nowrap; }
     .term-muted { color: rgba(255,255,255,0.35); }
-    /* Overview — Trading Economics 임베드 */
+    /* Overview (본문 전용 — 차트·임베드 없음) */
     #page-overview .overview-outer {
       padding: 1rem 1.25rem 2rem;
       max-width: 100%;
       background: #1a1a2e;
     }
     #page-overview .overview-page-title {
-      margin: 0 0 0.35rem;
+      margin: 0;
       font-size: 1.35rem;
       font-weight: 700;
       color: rgba(255, 255, 255, 0.96);
-    }
-    #page-overview .overview-page-note {
-      margin: 0 0 1.25rem;
-      font-size: 0.82rem;
-      line-height: 1.45;
-      color: rgba(255, 255, 255, 0.55);
-      max-width: 52rem;
-    }
-    #page-overview .overview-page-note code { color: #93c5fd; font-size: 0.9em; }
-    #page-overview .te-embed-block {
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(14, 17, 23, 0.55);
-      overflow: hidden;
-      max-width: 100%;
-    }
-    #page-overview .te-embed-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-end;
-      gap: 0.65rem 1rem;
-      padding: 0.65rem 0.85rem;
-      background: rgba(0, 0, 0, 0.28);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: 0.82rem;
-    }
-    #page-overview .te-embed-toolbar label {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.55);
-    }
-    #page-overview .te-embed-toolbar input[type="text"],
-    #page-overview .te-embed-toolbar input[type="number"] {
-      padding: 0.38rem 0.5rem;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-      font-size: 0.85rem;
-      font-family: ui-monospace, Consolas, monospace;
-    }
-    #page-overview .te-embed-toolbar input#teEmbedSeries { min-width: 12rem; max-width: 28rem; }
-    #page-overview .te-embed-toolbar input[type="number"] { width: 5.2rem; }
-    #page-overview .te-embed-toolbar-actions {
-      margin-left: auto;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.45rem 0.65rem;
-    }
-    #page-overview .te-embed-apply {
-      padding: 0.45rem 1rem;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 0.82rem;
-      font-weight: 600;
-      background: #2563eb;
-      color: #fff;
-    }
-    #page-overview .te-embed-apply:hover { background: #3b82f6; }
-    #page-overview .te-embed-open {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #93c5fd;
-      text-decoration: none;
-      padding: 0.35rem 0.5rem;
-      border-radius: 8px;
-      border: 1px solid rgba(147, 197, 253, 0.35);
-    }
-    #page-overview .te-embed-open:hover { color: #fff; background: rgba(59, 130, 246, 0.25); }
-    #page-overview .te-embed-body {
-      padding: 0.75rem;
-      background: #0e1117;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
-    #page-overview .te-embed-ratio-wrap {
-      position: relative;
-      width: 100%;
-      margin: 0 auto;
-      background: #0e1117;
-    }
-    #page-overview .te-embed-frame {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      overflow: hidden;
     }
   </style>
 </head>
@@ -1005,36 +911,6 @@
   <div id="page-overview" class="page">
     <div class="overview-outer">
       <h2 class="overview-page-title">Overview</h2>
-      <p class="overview-page-note">
-        <strong>Trading Economics</strong> 제공 임베드 차트입니다. 기본은 미국 10년물 금리(<code>usgg10yr:ind</code>) · 600×300과 동일한 주소입니다.
-        시리즈·크기를 바꾼 뒤 «적용»을 누르면 iframe 주소가 갱신됩니다. 새 탭에서는 아래 «Trading Economics에서 열기»로 같은 임베드 URL을 열 수 있습니다.
-      </p>
-      <div class="te-embed-block">
-        <div class="te-embed-toolbar">
-          <label for="teEmbedSeries">시리즈 (s)</label>
-          <input type="text" id="teEmbedSeries" value="usgg10yr:ind" spellcheck="false" autocomplete="off" title="예: usgg10yr:ind" />
-          <label for="teEmbedW">너비 (w)</label>
-          <input type="number" id="teEmbedW" min="200" max="1200" value="600" step="1" />
-          <label for="teEmbedH">높이 (h)</label>
-          <input type="number" id="teEmbedH" min="150" max="900" value="300" step="1" />
-          <div class="te-embed-toolbar-actions">
-            <button type="button" class="te-embed-apply" id="teEmbedApply">적용</button>
-            <a class="te-embed-open" id="teEmbedOpen" href="https://tradingeconomics.com/embed/?s=usgg10yr%3aind&amp;h=300&amp;w=600" target="_blank" rel="noopener noreferrer">Trading Economics에서 열기</a>
-          </div>
-        </div>
-        <div class="te-embed-body">
-          <div class="te-embed-ratio-wrap" id="teEmbedRatioWrap" style="aspect-ratio: 600 / 300; max-width: 600px; width: 100%;">
-            <iframe
-              id="teEmbedFrame"
-              class="te-embed-frame"
-              title="Trading Economics 차트"
-              loading="lazy"
-              scrolling="no"
-              referrerpolicy="no-referrer-when-downgrade"
-            ></iframe>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -1154,54 +1030,6 @@
   const termStructureStatus = document.getElementById("termStructureStatus");
   const termCpTableWrap = document.getElementById("termCpTableWrap");
   const termBondTableWrap = document.getElementById("termBondTableWrap");
-
-  function buildTradingEconomicsEmbedUrl(series, w, h) {
-    const s = String(series || "usgg10yr:ind").trim() || "usgg10yr:ind";
-    const wi = Math.max(200, Math.min(1200, parseInt(String(w), 10) || 600));
-    const he = Math.max(150, Math.min(900, parseInt(String(h), 10) || 300));
-    return (
-      "https://tradingeconomics.com/embed/?s=" +
-      encodeURIComponent(s) +
-      "&h=" +
-      encodeURIComponent(String(he)) +
-      "&w=" +
-      encodeURIComponent(String(wi))
-    );
-  }
-
-  function refreshTradingEconomicsEmbed() {
-    const sEl = document.getElementById("teEmbedSeries");
-    const wEl = document.getElementById("teEmbedW");
-    const hEl = document.getElementById("teEmbedH");
-    const frame = document.getElementById("teEmbedFrame");
-    const wrap = document.getElementById("teEmbedRatioWrap");
-    const openA = document.getElementById("teEmbedOpen");
-    const series = (sEl && sEl.value || "usgg10yr:ind").trim() || "usgg10yr:ind";
-    let w = parseInt(wEl && wEl.value, 10);
-    let h = parseInt(hEl && hEl.value, 10);
-    if (!Number.isFinite(w)) w = 600;
-    if (!Number.isFinite(h)) h = 300;
-    w = Math.max(200, Math.min(1200, w));
-    h = Math.max(150, Math.min(900, h));
-    if (sEl) sEl.value = series;
-    if (wEl) wEl.value = String(w);
-    if (hEl) hEl.value = String(h);
-    const url = buildTradingEconomicsEmbedUrl(series, w, h);
-    if (frame) frame.src = url;
-    if (openA) openA.href = url;
-    if (wrap) {
-      wrap.style.aspectRatio = w + " / " + h;
-      wrap.style.maxWidth = w + "px";
-    }
-  }
-
-  let tradingEconomicsEmbedBound = false;
-  function bindTradingEconomicsEmbedOnce() {
-    if (tradingEconomicsEmbedBound) return;
-    tradingEconomicsEmbedBound = true;
-    const btn = document.getElementById("teEmbedApply");
-    if (btn) btn.addEventListener("click", refreshTradingEconomicsEmbed);
-  }
 
   function resizeSpreadChartsIfVisible() {
     if (!pageSpreadEl || !pageSpreadEl.classList.contains("is-active")) return;
@@ -2567,12 +2395,6 @@
       resizeSpreadChartsIfVisible();
       setTimeout(resizeSpreadChartsIfVisible, 80);
       setTimeout(resizeSpreadChartsIfVisible, 280);
-    }
-    if (isOverview) {
-      bindTradingEconomicsEmbedOnce();
-      requestAnimationFrame(function () {
-        refreshTradingEconomicsEmbed();
-      });
     }
   }
 
