@@ -7,6 +7,7 @@
 
 - **스프레드 분석** — `market_db.csv` 기준금리·라인2/라인3·스프레드(라인3−라인2)
 - **펀드 비교분석** — **구간 시작일** 입력 시 **시작일~펀드별 최신일** 연환산 수익률·수탁고 변동만 표시. 비우면 1일·1주·…·YTD. 하단 시계열 차트.
+- **Overview** — Yahoo Finance 심볼·인터벌; 인페이지 캔들차트는 `serve_market_dashboard.py` 사용 시(프록시). 웹 차트는 새 탭으로만 열 수 있음.
 
 ## 실행 방법
 
@@ -17,6 +18,21 @@
    ```
 2. 브라우저: **http://localhost:8000/dashboard.html**  
    (`file://` 로 열어도 되며, CSV 경로는 스크립트에 이 폴더가 박혀 있습니다.)
+
+### Overview — 야후 캔들차트(선택)
+
+야후 **웹 차트**(`finance.yahoo.com/chart/...`)는 `X-Frame-Options` 때문에 다른 사이트 **iframe에 넣을 수 없습니다.**  
+Overview 탭의 **인페이지 캔들차트**는 같은 출처의 **`/api/yahoo-chart` 프록시**가 있을 때만 동작합니다. 아래처럼 실행하세요.
+
+```powershell
+cd C:\Users\infomax\Documents\market_db_dashboard
+python serve_market_dashboard.py
+```
+
+기본 주소: **http://127.0.0.1:8765/dashboard.html#overview**  
+포트 변경: `set PORT=9000` 후 같은 명령(또는 PowerShell에서 `$env:PORT=9000`).
+
+`python -m http.server` 만 쓰면 프록시가 없어 Overview는 «야후에서 열기» 안내만 표시됩니다.
 
 ## 필요한 파일
 
@@ -29,7 +45,8 @@
 
 ## 웹에 올리기 (정적 호스팅)
 
-대시보드는 **서버 사이드 코드 없이** HTML·CSV·Plotly CDN만 쓰므로, 아래처럼 **같은 폴더 구조로** 올리면 됩니다. 브라우저는 `http(s)://도메인/...` 로 열었을 때 `market_db.csv` 등을 **같은 출처**에서 `fetch`합니다.
+대시보드는 **정적** HTML·CSV·Plotly CDN을 쓰며, `http(s)://` 로 열었을 때 `market_db.csv` 등을 **같은 출처**에서 `fetch`합니다.  
+(GitHub Pages 등 **순정적** 호스팅에서는 Overview의 **인페이지 야후 캔들차트**용 `/api/yahoo-chart`가 없으므로, 해당 탭은 «야후에서 열기» 안내만 됩니다. 로컬에서 `serve_market_dashboard.py`를 쓰면 프록시가 포함됩니다.)
 
 1. **올릴 파일** (최소): `index.html`, `dashboard.html`, `market_db.csv`, `fund_db.csv`, `issues.csv`(선택), `term_table_long.csv`(Term 사용 시)
 2. **VBA·`.bas` 파일**은 웹 서버에 넣을 필요 없음 (로컬 Excel용).

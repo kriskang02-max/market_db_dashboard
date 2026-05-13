@@ -702,12 +702,39 @@
       height: min(55vh, 560px);
       background: #0e1117;
     }
-    #page-overview .yf-chart-frame-wrap iframe {
+    #page-overview .yf-chart-plot {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
-      border: 0;
+    }
+    #page-overview .yf-chart-plot .js-plotly-plot,
+    #page-overview .yf-chart-plot .plotly {
+      width: 100% !important;
+      height: 100% !important;
+    }
+    #page-overview .yf-chart-fallback {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      padding: 1.25rem 1rem;
+      text-align: center;
+      background: #0e1117;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 0.84rem;
+      line-height: 1.55;
+      max-width: 100%;
+    }
+    #page-overview .yf-chart-fallback[hidden] { display: none !important; }
+    #page-overview .yf-fallback-msg { margin: 0; max-width: 28rem; }
+    #page-overview .yf-fallback-msg code {
+      font-size: 0.88em;
+      color: #93c5fd;
+      word-break: break-all;
     }
   </style>
 </head>
@@ -1008,8 +1035,9 @@
     <div class="overview-outer">
       <h2 class="overview-page-title">Overview</h2>
       <p class="overview-page-note">
-        <strong>Yahoo Finance</strong> 차트 페이지를 불러옵니다. 심볼은 야후 티커 형식입니다(예: 원유 선물 <code>CL=F</code>, 애플 <code>AAPL</code>, S&amp;P 500 <code>^GSPC</code>).
-        «적용» 시 아래 영역과 «야후에서 열기» 링크가 같은 주소로 맞춰집니다. 일부 브라우저·보안 설정에서는 야후 쪽에서 iframe 삽입을 막아 빈 화면이 될 수 있으니, 그때는 <strong>야후에서 열기</strong>를 사용하세요.
+        <strong>Yahoo Finance</strong> 심볼(예: <code>CL=F</code>, <code>AAPL</code>, <code>^GSPC</code>)과 인터벌을 선택한 뒤 «적용»을 누르면, 이 페이지 안에 <strong>캔들차트(Plotly)</strong>를 그립니다.
+        야후 <strong>웹 차트 페이지</strong>는 보안 정책(<code>X-Frame-Options</code>) 때문에 다른 사이트 <strong>iframe에 넣을 수 없어</strong> «연결 거부»가 납니다 — 우회는 불가합니다.
+        인페이지 차트를 쓰려면 이 폴더에서 <code>python serve_market_dashboard.py</code> 로 서버를 띄운 뒤 같은 포트로 접속하세요(내장 <code>/api/yahoo-chart</code> 프록시). 그렇지 않으면 아래 «야후에서 열기»로 공식 차트만 새 탭에서 열 수 있습니다.
       </p>
       <div class="yf-chart-stack">
         <div class="yf-chart-block" data-yf-slot="1">
@@ -1028,7 +1056,11 @@
             </div>
           </div>
           <div class="yf-chart-frame-wrap">
-            <iframe id="yfSlot1Frame" title="Yahoo Finance 1" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            <div id="yfSlot1Plot" class="yf-chart-plot" aria-label="Yahoo Finance 캔들차트 1"></div>
+            <div id="yfSlot1Fallback" class="yf-chart-fallback" hidden>
+              <p class="yf-fallback-msg"></p>
+              <a class="yf-chart-open yf-fallback-link" target="_blank" rel="noopener noreferrer" href="https://finance.yahoo.com/chart/CL=F">야후에서 열기</a>
+            </div>
           </div>
         </div>
         <div class="yf-chart-block" data-yf-slot="2">
@@ -1047,7 +1079,11 @@
             </div>
           </div>
           <div class="yf-chart-frame-wrap">
-            <iframe id="yfSlot2Frame" title="Yahoo Finance 2" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            <div id="yfSlot2Plot" class="yf-chart-plot" aria-label="Yahoo Finance 캔들차트 2"></div>
+            <div id="yfSlot2Fallback" class="yf-chart-fallback" hidden>
+              <p class="yf-fallback-msg"></p>
+              <a class="yf-chart-open yf-fallback-link" target="_blank" rel="noopener noreferrer" href="https://finance.yahoo.com/chart/AAPL">야후에서 열기</a>
+            </div>
           </div>
         </div>
         <div class="yf-chart-block" data-yf-slot="3">
@@ -1066,7 +1102,11 @@
             </div>
           </div>
           <div class="yf-chart-frame-wrap">
-            <iframe id="yfSlot3Frame" title="Yahoo Finance 3" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            <div id="yfSlot3Plot" class="yf-chart-plot" aria-label="Yahoo Finance 캔들차트 3"></div>
+            <div id="yfSlot3Fallback" class="yf-chart-fallback" hidden>
+              <p class="yf-fallback-msg"></p>
+              <a class="yf-chart-open yf-fallback-link" target="_blank" rel="noopener noreferrer" href="https://finance.yahoo.com/chart/%5EGSPC">야후에서 열기</a>
+            </div>
           </div>
         </div>
       </div>
@@ -1197,20 +1237,172 @@
     return "https://finance.yahoo.com/chart/" + symPart + "?interval=" + encodeURIComponent(iv);
   }
 
-  function refreshOverviewYahooSlot(slot) {
+  function yahooDefaultRangeForApi(interval) {
+    const iv = String(interval || "1d").trim();
+    if (iv === "1m" || iv === "2m" || iv === "5m") return "5d";
+    if (iv === "15m" || iv === "30m") return "1mo";
+    if (iv === "60m" || iv === "90m" || iv === "1h") return "3mo";
+    if (iv === "1d") return "2y";
+    if (iv === "5d") return "5y";
+    if (iv === "1wk") return "10y";
+    if (iv === "1mo" || iv === "3mo") return "max";
+    return "1y";
+  }
+
+  function yahooChartJsonToOhlc(j) {
+    const res = j && j.chart && j.chart.result && j.chart.result[0];
+    if (!res) return null;
+    const ts = res.timestamp;
+    const q = res.indicators && res.indicators.quote && res.indicators.quote[0];
+    if (!ts || !q || !q.close) return null;
+    const o = q.open || [];
+    const h = q.high || [];
+    const l = q.low || [];
+    const c = q.close || [];
+    const x = [];
+    const open = [];
+    const high = [];
+    const low = [];
+    const close = [];
+    for (let i = 0; i < ts.length; i++) {
+      const cl = c[i];
+      if (cl == null || !Number.isFinite(Number(cl))) continue;
+      const cln = Number(cl);
+      const on = o[i] != null && Number.isFinite(Number(o[i])) ? Number(o[i]) : cln;
+      const hn = h[i] != null && Number.isFinite(Number(h[i])) ? Number(h[i]) : cln;
+      const ln = l[i] != null && Number.isFinite(Number(l[i])) ? Number(l[i]) : cln;
+      x.push(new Date(ts[i] * 1000));
+      open.push(on);
+      high.push(hn);
+      low.push(ln);
+      close.push(cln);
+    }
+    if (x.length < 2) return null;
+    return { x: x, open: open, high: high, low: low, close: close };
+  }
+
+  function showYahooOverviewFallback(slot, chartUrl, detail) {
+    const n = String(slot);
+    const plotEl = document.getElementById("yfSlot" + n + "Plot");
+    const fb = document.getElementById("yfSlot" + n + "Fallback");
+    if (plotEl && typeof Plotly !== "undefined") {
+      try {
+        Plotly.purge(plotEl);
+      } catch (_) {}
+      plotEl.innerHTML = "";
+    }
+    if (!fb) return;
+    const msg = fb.querySelector(".yf-fallback-msg");
+    const link = fb.querySelector(".yf-fallback-link");
+    if (link) link.href = chartUrl;
+    const lines = [
+      "야후 웹 차트는 다른 사이트 iframe에 표시할 수 없습니다.",
+      "이 대시보드 안에 캔들차트를 보려면 이 폴더에서 python serve_market_dashboard.py 로 접속하세요.",
+      "또는 아래 버튼으로 야후 공식 차트를 새 탭에서 여세요.",
+    ];
+    if (detail) lines.splice(1, 0, String(detail));
+    if (msg) msg.innerHTML = lines.join("<br/>");
+    fb.hidden = false;
+  }
+
+  function hideYahooOverviewFallback(slot) {
+    const fb = document.getElementById("yfSlot" + String(slot) + "Fallback");
+    if (fb) fb.hidden = true;
+  }
+
+  function renderYahooOverviewPlot(slot, ohlc, title) {
+    const el = document.getElementById("yfSlot" + String(slot) + "Plot");
+    if (!el || typeof Plotly === "undefined") return;
+    const trace = {
+      type: "candlestick",
+      x: ohlc.x,
+      open: ohlc.open,
+      high: ohlc.high,
+      low: ohlc.low,
+      close: ohlc.close,
+      increasing: { line: { color: "#26a69a" } },
+      decreasing: { line: { color: "#ef5350" } },
+    };
+    const layout = {
+      title: { text: title || "", font: { color: "rgba(255,255,255,0.88)", size: 13 } },
+      margin: { l: 52, r: 16, t: 34, b: 40 },
+      paper_bgcolor: "#0e1117",
+      plot_bgcolor: "#0e1117",
+      xaxis: { gridcolor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)", zeroline: false },
+      yaxis: { gridcolor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)", side: "right", zeroline: false },
+      showlegend: false,
+      autosize: true,
+    };
+    const config = { responsive: true, displayModeBar: true, displaylogo: false, modeBarButtonsToRemove: ["lasso2d", "select2d"] };
+    try {
+      Plotly.purge(el);
+    } catch (_) {}
+    Plotly.newPlot(el, [trace], layout, config);
+  }
+
+  async function refreshOverviewYahooSlot(slot) {
     const n = String(slot);
     const symEl = document.getElementById("yfSlot" + n + "Symbol");
     const intEl = document.getElementById("yfSlot" + n + "Interval");
-    const frame = document.getElementById("yfSlot" + n + "Frame");
     const openA = document.getElementById("yfSlot" + n + "Open");
-    if (!symEl || !intEl || !frame) return;
+    if (!symEl || !intEl) return;
     const sym = String(symEl.value || "").trim().replace(/\s+/g, "") || "CL=F";
     const iv = String(intEl.value || "1d").trim() || "1d";
     symEl.value = sym;
     intEl.value = iv;
-    const url = buildYahooFinanceChartUrl(sym, iv);
-    frame.src = url;
-    if (openA) openA.href = url;
+    const chartUrl = buildYahooFinanceChartUrl(sym, iv);
+    if (openA) openA.href = chartUrl;
+
+    if (location.protocol !== "http:" && location.protocol !== "https:") {
+      showYahooOverviewFallback(slot, chartUrl, "file:// 로는 /api/yahoo-chart 를 호출할 수 없습니다.");
+      return;
+    }
+
+    const range = yahooDefaultRangeForApi(iv);
+    let j = null;
+    try {
+      const api = new URL("/api/yahoo-chart", location.origin);
+      api.searchParams.set("symbol", sym);
+      api.searchParams.set("interval", iv);
+      api.searchParams.set("range", range);
+      const res = await fetch(api.href, { cache: "no-store" });
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      if (!ct.includes("application/json")) throw new Error("no_proxy");
+      j = await res.json();
+    } catch (e) {
+      showYahooOverviewFallback(
+        slot,
+        chartUrl,
+        "로컬 프록시가 없습니다. python serve_market_dashboard.py 로 같은 포트에서 열었는지 확인하세요."
+      );
+      return;
+    }
+
+    if (j.chart && j.chart.error) {
+      const d = (j.chart.error && (j.chart.error.description || j.chart.error.code)) || "yahoo_error";
+      showYahooOverviewFallback(slot, chartUrl, "야후 API: " + String(d));
+      return;
+    }
+    const ohlc = yahooChartJsonToOhlc(j);
+    if (!ohlc) {
+      showYahooOverviewFallback(slot, chartUrl, "가격 데이터가 비었습니다.");
+      return;
+    }
+    try {
+      hideYahooOverviewFallback(slot);
+      renderYahooOverviewPlot(slot, ohlc, sym + " · " + iv + " (Yahoo)");
+    } catch (e2) {
+      showYahooOverviewFallback(
+        slot,
+        chartUrl,
+        "차트 그리기 오류: " + String(e2 && e2.message ? e2.message : e2)
+      );
+      return;
+    }
+    requestAnimationFrame(function () {
+      resizeOverviewYahooPlotsIfVisible();
+    });
   }
 
   let overviewYahooControlsBound = false;
@@ -1224,7 +1416,20 @@
   }
 
   function refreshAllOverviewYahooSlots() {
-    [1, 2, 3].forEach(function (s) { refreshOverviewYahooSlot(s); });
+    [1, 2, 3].forEach(function (s) {
+      refreshOverviewYahooSlot(s);
+    });
+  }
+
+  function resizeOverviewYahooPlotsIfVisible() {
+    if (!pageOverviewEl || !pageOverviewEl.classList.contains("is-active")) return;
+    if (typeof Plotly === "undefined") return;
+    try {
+      [1, 2, 3].forEach(function (n) {
+        const el = document.getElementById("yfSlot" + n + "Plot");
+        if (el && el.querySelector(".js-plotly-plot")) Plotly.Plots.resize(el);
+      });
+    } catch (_) {}
   }
 
   function resizeSpreadChartsIfVisible() {
@@ -1261,6 +1466,7 @@
     resizeSpreadChartsIfVisible();
     syncAllFundMetricStickySubheaderTops();
     resizeFundCompareChartsIfVisible();
+    resizeOverviewYahooPlotsIfVisible();
   });
 
   let ratesCustomDiffDate = "";
@@ -2596,6 +2802,7 @@
       bindOverviewYahooControlsOnce();
       requestAnimationFrame(function () {
         refreshAllOverviewYahooSlots();
+        setTimeout(resizeOverviewYahooPlotsIfVisible, 120);
       });
     }
   }
