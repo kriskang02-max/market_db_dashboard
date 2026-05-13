@@ -635,6 +635,14 @@
     #page-overview .overview-prevday-toolbar .sidebar.btn {
       padding: 0.35rem 0.65rem;
       font-size: 0.82rem;
+      color: #fff;
+    }
+    #page-overview .overview-prevday-toolbar .sidebar.btn-secondary {
+      color: #fff;
+    }
+    #page-overview .overview-prevday-table td.ovpd-vol-disp {
+      font-variant-numeric: tabular-nums;
+      color: rgba(255, 255, 255, 0.92);
     }
     #page-overview .overview-prevday-status {
       font-size: 0.78rem;
@@ -1225,7 +1233,7 @@
 
   let bondByAbbrev = new Map();
   let bondByCode = new Map();
-  /** @type {{ id: string, abbrev: string, appliedU: string, volU: string }[]} */
+  /** @type {{ id: string, abbrev: string, appliedU: string, diffU: string }[]} */
   let overviewPrevDayRows = [];
 
   function normalizeBondAbbrev(s) {
@@ -1297,12 +1305,12 @@
       const id = tr.getAttribute("data-ovpd-id") || "";
       const abbrevEl = tr.querySelector(".ovpd-abbrev");
       const appliedEl = tr.querySelector(".ovpd-applied");
-      const volEl = tr.querySelector(".ovpd-vol");
+      const diffEl = tr.querySelector(".ovpd-diff");
       out.push({
         id,
         abbrev: abbrevEl ? abbrevEl.value.trim() : "",
         appliedU: appliedEl ? appliedEl.value.trim() : "",
-        volU: volEl ? volEl.value.trim() : "",
+        diffU: diffEl ? diffEl.value.trim() : "",
       });
     });
     return out;
@@ -1311,7 +1319,7 @@
   function overviewPrevDaySaveToStorage() {
     overviewPrevDayRows = overviewPrevDayCollectRowsFromDom();
     try {
-      const payload = { rows: overviewPrevDayRows.map((r) => ({ id: r.id, abbrev: r.abbrev, appliedU: r.appliedU, volU: r.volU })) };
+      const payload = { rows: overviewPrevDayRows.map((r) => ({ id: r.id, abbrev: r.abbrev, appliedU: r.appliedU, diffU: r.diffU })) };
       localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(payload));
       if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = "저장됨 · 브라우저에 보관됩니다.";
     } catch (e) {
@@ -1322,30 +1330,38 @@
   function overviewPrevDayLoadSavedRows() {
     try {
       const raw = localStorage.getItem(OVERVIEW_PREVDAY_STORAGE_KEY);
-      if (!raw) return [{ id: overviewPrevDayNewId(), abbrev: "", appliedU: "", volU: "" }];
+      if (!raw) return [{ id: overviewPrevDayNewId(), abbrev: "", appliedU: "", diffU: "" }];
       const o = JSON.parse(raw);
       const arr = o && Array.isArray(o.rows) ? o.rows : [];
-      if (!arr.length) return [{ id: overviewPrevDayNewId(), abbrev: "", appliedU: "", volU: "" }];
+      if (!arr.length) return [{ id: overviewPrevDayNewId(), abbrev: "", appliedU: "", diffU: "" }];
       return arr.map((x) => ({
         id: String(x.id || overviewPrevDayNewId()),
         abbrev: String(x.abbrev || ""),
         appliedU: x.appliedU != null ? String(x.appliedU) : (x.applied != null ? String(x.applied) : ""),
-        volU: x.volU != null ? String(x.volU) : (x.volBp != null ? String(x.volBp) : ""),
+        diffU:
+          x.diffU != null
+            ? String(x.diffU)
+            : x.volU != null
+              ? String(x.volU)
+              : x.volBp != null
+                ? String(x.volBp)
+                : "",
       }));
     } catch (_) {
-      return [{ id: overviewPrevDayNewId(), abbrev: "", appliedU: "", volU: "" }];
+      return [{ id: overviewPrevDayNewId(), abbrev: "", appliedU: "", diffU: "" }];
     }
   }
 
-  function overviewPrevDayApplyBondToRow(tr, abbrevRaw, preserveAppliedVol) {
+  function overviewPrevDayApplyBondToRow(tr, abbrevRaw, preserveOverrides) {
     const ent = findBondEntryForUserKey(abbrevRaw);
     const matEl = tr.querySelector(".ovpd-maturity");
     const durEl = tr.querySelector(".ovpd-duration");
     const prevEl = tr.querySelector(".ovpd-prev");
     const abbrevEl = tr.querySelector(".ovpd-abbrev");
     const appliedEl = tr.querySelector(".ovpd-applied");
-    const volEl = tr.querySelector(".ovpd-vol");
-    if (!matEl || !durEl || !prevEl || !abbrevEl || !appliedEl || !volEl) return;
+    const diffEl = tr.querySelector(".ovpd-diff");
+    const volDispEl = tr.querySelector(".ovpd-vol-disp");
+    if (!matEl || !durEl || !prevEl || !abbrevEl || !appliedEl || !diffEl || !volDispEl) return;
 
     let prevFair = NaN;
     let csvVolBp = NaN;
@@ -1364,11 +1380,11 @@
     tr.dataset.ovpdPrevFair = Number.isFinite(prevFair) ? String(prevFair) : "";
     tr.dataset.ovpdCsvVol = Number.isFinite(csvVolBp) ? String(csvVolBp) : "";
 
-    if (!preserveAppliedVol) {
+    if (!preserveOverrides) {
       appliedEl.value = "";
-      volEl.value = "";
+      diffEl.value = "";
       appliedEl.readOnly = false;
-      volEl.readOnly = false;
+      diffEl.readOnly = false;
     }
 
     overviewPrevDayRefreshRowDerived(tr);
@@ -1378,41 +1394,39 @@
     const prevFair = parseBondCsvNum(tr.dataset.ovpdPrevFair || "");
     const csvVolBp = parseBondCsvNum(tr.dataset.ovpdCsvVol || "");
     const appliedEl = tr.querySelector(".ovpd-applied");
-    const volEl = tr.querySelector(".ovpd-vol");
     const diffEl = tr.querySelector(".ovpd-diff");
-    if (!appliedEl || !volEl || !diffEl) return;
+    const volDispEl = tr.querySelector(".ovpd-vol-disp");
+    if (!appliedEl || !diffEl || !volDispEl) return;
+
+    volDispEl.textContent = Number.isFinite(csvVolBp) ? formatNumFixed(csvVolBp, 1) : "—";
 
     const appliedTrim = appliedEl.value.trim();
-    const volTrim = volEl.value.trim();
+    const diffTrim = diffEl.value.trim();
     const appliedNum = appliedTrim === "" ? NaN : parseBondCsvNum(appliedTrim);
-    const volNum = volTrim === "" ? NaN : parseBondCsvNum(volTrim);
+    const diffNum = diffTrim === "" ? NaN : parseBondCsvNum(diffTrim);
 
     if (appliedTrim !== "" && Number.isFinite(appliedNum) && Number.isFinite(prevFair)) {
-      volEl.readOnly = true;
-      volEl.value = formatNumFixed((appliedNum - prevFair) * 100, 1);
+      diffEl.readOnly = true;
+      diffEl.value = formatNumFixed((appliedNum - prevFair) * 100, 1);
       appliedEl.readOnly = false;
-      diffEl.textContent = formatNumFixed(appliedNum - prevFair, 3);
       return;
     }
 
     appliedEl.readOnly = false;
 
-    if (appliedTrim === "" && volTrim !== "" && Number.isFinite(volNum) && Number.isFinite(prevFair)) {
-      const appl = prevFair + volNum / 100;
+    if (appliedTrim === "" && diffTrim !== "" && Number.isFinite(diffNum) && Number.isFinite(prevFair)) {
+      const appl = prevFair + diffNum / 100;
       appliedEl.readOnly = true;
       appliedEl.value = formatNumFixed(appl, 3);
-      volEl.readOnly = false;
-      diffEl.textContent = formatNumFixed(appl - prevFair, 3);
+      diffEl.readOnly = false;
       return;
     }
 
-    volEl.readOnly = false;
+    diffEl.readOnly = false;
     appliedEl.readOnly = false;
     if (appliedTrim === "") {
-      if (volTrim === "" || !Number.isFinite(volNum)) appliedEl.value = "";
-      if (volTrim === "" && Number.isFinite(csvVolBp)) volEl.value = formatNumFixed(csvVolBp, 1);
+      if (diffTrim === "" || !Number.isFinite(diffNum)) appliedEl.value = "";
     }
-    diffEl.textContent = "—";
   }
 
   function overviewPrevDayOnAbbrevCommit(tr) {
@@ -1437,16 +1451,17 @@
       '<td class="ovpd-maturity">—</td>' +
       '<td class="ovpd-duration">—</td>' +
       '<td class="ovpd-prev">—</td>' +
-      '<td><input type="text" class="ovpd-input ovpd-vol" inputmode="decimal" autocomplete="off" /></td>' +
+      '<td class="ovpd-vol-disp">—</td>' +
       '<td><input type="text" class="ovpd-input ovpd-applied" inputmode="decimal" autocomplete="off" /></td>' +
-      '<td class="ovpd-diff">—</td>' +
+      '<td><input type="text" class="ovpd-input ovpd-diff" inputmode="decimal" autocomplete="off" /></td>' +
       '<td><button type="button" class="ovpd-btn-del">삭제</button></td>';
     const ab = tr.querySelector(".ovpd-abbrev");
     if (ab) ab.value = r.abbrev || "";
     const ap = tr.querySelector(".ovpd-applied");
     if (ap) ap.value = r.appliedU || "";
-    const vo = tr.querySelector(".ovpd-vol");
-    if (vo) vo.value = r.volU || "";
+    const df = tr.querySelector(".ovpd-diff");
+    const du = r.diffU != null ? r.diffU : r.volU;
+    if (df) df.value = du != null ? String(du) : "";
     return tr;
   }
 
@@ -1454,7 +1469,7 @@
     const tbody = overviewPrevDayTbody;
     if (!tbody) return;
     tbody.innerHTML = "";
-    const list = rows && rows.length ? rows : [{ id: overviewPrevDayNewId(), abbrev: "", appliedU: "", volU: "" }];
+    const list = rows && rows.length ? rows : [{ id: overviewPrevDayNewId(), abbrev: "", appliedU: "", diffU: "" }];
     overviewPrevDayRows = list;
     list.forEach((r) => {
       const tr = overviewPrevDayCreateRowEl(r);
@@ -1489,7 +1504,25 @@
       const t = e.target;
       const tr = t.closest && t.closest("tr[data-ovpd-id]");
       if (!tr) return;
-      if (t.classList.contains("ovpd-applied") || t.classList.contains("ovpd-vol")) overviewPrevDayRefreshRowDerived(tr);
+      if (t.classList.contains("ovpd-applied")) {
+        if (!String(t.value || "").trim()) {
+          const diffEl = tr.querySelector(".ovpd-diff");
+          if (diffEl) {
+            diffEl.readOnly = false;
+            diffEl.value = "";
+          }
+        }
+      }
+      if (t.classList.contains("ovpd-diff")) {
+        if (!String(t.value || "").trim()) {
+          const appliedEl = tr.querySelector(".ovpd-applied");
+          if (appliedEl) {
+            appliedEl.readOnly = false;
+            appliedEl.value = "";
+          }
+        }
+      }
+      if (t.classList.contains("ovpd-applied") || t.classList.contains("ovpd-diff")) overviewPrevDayRefreshRowDerived(tr);
     });
     overviewPrevDayTbody.addEventListener(
       "blur",
@@ -1521,7 +1554,7 @@
   if (overviewPrevDayAddRow) {
     overviewPrevDayAddRow.addEventListener("click", () => {
       if (!overviewPrevDayTbody) return;
-      const r = { id: overviewPrevDayNewId(), abbrev: "", appliedU: "", volU: "" };
+      const r = { id: overviewPrevDayNewId(), abbrev: "", appliedU: "", diffU: "" };
       overviewPrevDayTbody.appendChild(overviewPrevDayCreateRowEl(r));
     });
   }
