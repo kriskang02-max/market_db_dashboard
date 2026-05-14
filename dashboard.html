@@ -721,8 +721,27 @@
       user-select: none;
       -webkit-user-select: none;
     }
-    #page-overview .overview-prevday-table .ovpd-drag-handle:active {
-      cursor: grabbing;
+    #page-overview .overview-prevday-table th.ovpd-check-col,
+    #page-overview .overview-prevday-table td.ovpd-check-cell {
+      width: 1.75rem;
+      min-width: 1.75rem;
+      max-width: 2rem;
+      padding: 0.2rem 0.15rem !important;
+      vertical-align: middle;
+    }
+    #page-overview .overview-prevday-table .ovpd-row-check {
+      width: 0.95rem;
+      height: 0.95rem;
+      margin: 0;
+      cursor: pointer;
+      accent-color: #3b82f6;
+    }
+    #page-overview .overview-prevday-table tr.ovpd-row-highlight td {
+      background: rgba(59, 130, 246, 0.16);
+    }
+    #page-overview .overview-prevday-table tr.ovpd-row-highlight td.ovpd-drag-cell,
+    #page-overview .overview-prevday-table tr.ovpd-row-highlight td.ovpd-check-cell {
+      background: rgba(59, 130, 246, 0.22);
     }
     #page-overview .overview-prevday-table tr.ovpd-row-dragging {
       opacity: 0.55;
@@ -770,6 +789,7 @@
       color: rgba(255, 255, 255, 0.9);
       font-weight: 600;
       white-space: nowrap;
+      text-align: center;
       position: sticky;
       top: 0;
       z-index: 2;
@@ -777,8 +797,10 @@
     }
     #page-overview .overview-prevday-table td.ovpd-col-abbrev,
     #page-overview .overview-prevday-table th.ovpd-col-abbrev {
-      text-align: left;
-      min-width: 6rem;
+      text-align: center;
+      width: 4.67rem;
+      max-width: 4.67rem;
+      box-sizing: border-box;
     }
     #page-overview .overview-prevday-table input.ovpd-input {
       width: 100%;
@@ -796,7 +818,7 @@
       cursor: default;
     }
     #page-overview .overview-prevday-table input.ovpd-input--abbrev {
-      max-width: 9rem;
+      max-width: 4.67rem;
     }
     #page-overview .overview-prevday-table input.ovpd-applied,
     #page-overview .overview-prevday-table input.ovpd-diff {
@@ -1141,6 +1163,7 @@
               <thead>
                 <tr>
                   <th class="ovpd-drag-col" aria-label="행 순서"></th>
+                  <th class="ovpd-check-col" aria-label="행 강조"></th>
                   <th>분류</th>
                   <th>만기</th>
                   <th>잔존만기</th>
@@ -1427,7 +1450,15 @@
 
   function formatPrevFairDisplay(prevFair) {
     if (!Number.isFinite(prevFair)) return "—";
-    return formatNumFixed(prevFair, 4).replace(/\.?0+$/, "") || String(prevFair);
+    return formatNumFixed(prevFair, 3);
+  }
+
+  function formatOvpdDurationDisplay(raw) {
+    const s = String(raw || "").trim();
+    if (!s || s === "—") return "—";
+    const n = Number(s.replace(/,/g, ""));
+    if (Number.isFinite(n)) return formatNumFixed(n, 3);
+    return s;
   }
 
   function ovpdMaturityYyMmDd(maturityYmd) {
@@ -1554,6 +1585,7 @@
       const abbrevEl = tr.querySelector(".ovpd-abbrev");
       const appliedEl = tr.querySelector(".ovpd-applied");
       const diffEl = tr.querySelector(".ovpd-diff");
+      const markEl = tr.querySelector(".ovpd-row-check");
       out.push({
         id,
         breed: breedEl ? breedEl.value.trim() : "국고",
@@ -1561,6 +1593,7 @@
         abbrev: abbrevEl ? abbrevEl.value.trim() : "",
         appliedU: appliedEl ? appliedEl.value.trim() : "",
         diffU: diffEl ? diffEl.value.trim() : "",
+        marked: !!(markEl && markEl.checked),
       });
     });
     return out;
@@ -1578,6 +1611,7 @@
           abbrev: r.abbrev,
           appliedU: r.appliedU,
           diffU: r.diffU,
+          marked: !!r.marked,
         })),
       };
       localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(payload));
@@ -1588,7 +1622,7 @@
   }
 
   function overviewPrevDayDefaultRow() {
-    return { id: overviewPrevDayNewId(), breed: "국고", tenor: "", abbrev: "", appliedU: "", diffU: "" };
+    return { id: overviewPrevDayNewId(), breed: "국고", tenor: "", abbrev: "", appliedU: "", diffU: "", marked: false };
   }
 
   function overviewPrevDayLoadSavedRows() {
@@ -1612,6 +1646,7 @@
               : x.volBp != null
                 ? String(x.volBp)
                 : "",
+        marked: !!(x.marked || x.highlight),
       }));
     } catch (_) {
       return [overviewPrevDayDefaultRow()];
@@ -1634,7 +1669,7 @@
     let csvVolBp = NaN;
     if (ent) {
       matEl.textContent = ovpdMaturityYyMmDd(ent.maturity);
-      durEl.textContent = ent.duration || "—";
+      durEl.textContent = formatOvpdDurationDisplay(ent.duration);
       prevFair = ent.prevFair;
       csvVolBp = ent.csvVolBp;
       prevEl.textContent = formatPrevFairDisplay(ent.prevFair);
@@ -1735,6 +1770,7 @@
     const tenor = OVPD_TENOR_OPTIONS.indexOf(String(r.tenor || "")) >= 0 ? String(r.tenor) : "";
     tr.innerHTML =
       '<td class="ovpd-drag-cell"><span class="ovpd-drag-handle" draggable="true" title="드래그하여 순서 변경">⋮⋮</span></td>' +
+      '<td class="ovpd-check-cell"><input type="checkbox" class="ovpd-row-check" aria-label="행 강조" /></td>' +
       '<td class="ovpd-breed-wrap">' +
       '<select class="ovpd-select ovpd-breed">' +
       '<option value="국고"' +
@@ -1764,6 +1800,11 @@
     const df = tr.querySelector(".ovpd-diff");
     const du = r.diffU != null ? r.diffU : r.volU;
     if (df) df.value = du != null ? String(du) : "";
+    const chk = tr.querySelector(".ovpd-row-check");
+    if (chk) {
+      chk.checked = !!r.marked;
+      tr.classList.toggle("ovpd-row-highlight", chk.checked);
+    }
     return tr;
   }
 
@@ -1851,6 +1892,9 @@
       const abbrevRaw = abEl ? abEl.value.trim() : "";
       if (t.classList.contains("ovpd-breed") || t.classList.contains("ovpd-tenor")) {
         overviewPrevDayApplyBondToRow(tr, abbrevRaw, true);
+      }
+      if (t.classList.contains("ovpd-row-check")) {
+        tr.classList.toggle("ovpd-row-highlight", t.checked);
       }
     });
     overviewPrevDayTbody.addEventListener(
