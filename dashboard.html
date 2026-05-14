@@ -618,24 +618,42 @@
       flex: 1 1 26rem;
       min-width: min(100%, 42rem);
       max-width: 58rem;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
     }
     #page-overview .overview-prevmtm-block {
       flex: 1 1 36rem;
       min-width: min(100%, 32rem);
       max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
     }
-    #page-overview .overview-prevmtm-meta {
-      font-size: 0.72rem;
+    #page-overview .overview-prevmtm-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.28rem;
+      margin-bottom: 0.5rem;
+      min-height: calc(0.74rem * 1.35 + 0.2rem);
+      box-sizing: border-box;
+    }
+    #page-overview .overview-prevmtm-toolbar .overview-prevmtm-meta {
+      margin: 0;
+      font-size: 0.74rem;
+      line-height: 1.35;
       color: rgba(255, 255, 255, 0.55);
-      margin-bottom: 0.45rem;
-      line-height: 1.45;
+      flex: 1 1 auto;
+      min-width: 0;
     }
-    #page-overview .overview-prevmtm-meta strong {
+    #page-overview .overview-prevmtm-toolbar .overview-prevmtm-meta strong {
       color: rgba(255, 255, 255, 0.88);
       font-weight: 600;
     }
     #page-overview .overview-prevmtm-empty {
-      font-size: 0.8rem;
+      font-size: 0.74rem;
+      line-height: 1.35;
       color: rgba(255, 255, 255, 0.5);
       margin: 0;
     }
@@ -649,22 +667,22 @@
     }
     #page-overview .overview-prevmtm-table {
       border-collapse: collapse;
-      font-size: 0.66rem;
+      font-size: 0.74rem;
       width: max-content;
       min-width: 100%;
     }
     #page-overview .overview-prevmtm-table caption {
       caption-side: top;
       text-align: left;
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 0.88rem;
       color: rgba(255, 255, 255, 0.92);
-      padding: 0 0 0.35rem;
-      font-size: 0.82rem;
+      padding: 0 0 0.45rem;
     }
     #page-overview .overview-prevmtm-table th,
     #page-overview .overview-prevmtm-table td {
       border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 0.22rem 0.3rem;
+      padding: 0.28rem 0.38rem;
       text-align: center;
       vertical-align: middle;
       white-space: nowrap;
@@ -706,6 +724,10 @@
       white-space: nowrap;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+    }
+    #page-overview .overview-prevday-toolbar.overview-prevday-toolbar--compact {
+      min-height: calc(0.74rem * 1.35 + 0.2rem);
+      box-sizing: border-box;
     }
     #page-overview .overview-prevday-toolbar--compact > .sidebar.btn {
       flex: 0 0 auto;
@@ -768,6 +790,7 @@
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(14, 17, 23, 0.45);
+      -webkit-overflow-scrolling: touch;
     }
     #page-overview .overview-prevday-table {
       border-collapse: collapse;
@@ -3839,9 +3862,8 @@
     const rateStr = formatNumFixed(cur, 3);
     let inner = rateStr + " (";
     if (prev !== null && Number.isFinite(prev)) {
-      const dBp = (cur - prev) * 100;
-      inner += (dBp > 0 ? "+" : "") + formatNumFixed(dBp, 1) + "bp";
-    } else inner += "—";
+      inner += termBpTriangleHtml(cur, prev);
+    } else inner += "<span class=\"term-muted\">—</span>";
     inner += ")";
     return "<td>" + inner + "</td>";
   }
@@ -3851,21 +3873,22 @@
     if (!root) return;
     const dLatest = latestDateWithRatesData();
     if (!dLatest) {
-      root.innerHTML = '<p class="overview-prevmtm-empty">market_db.csv에서 금리 일자를 찾을 수 없습니다.</p>';
+      root.innerHTML =
+        '<div class="overview-prevmtm-toolbar"></div><p class="overview-prevmtm-empty">market_db.csv에서 금리 일자를 찾을 수 없습니다.</p>';
       return;
     }
     const dPrev = dateRefPrev(dLatest);
     let meta =
-      '<div class="overview-prevmtm-meta">기준일 <strong>' +
+      '<div class="overview-prevmtm-toolbar"><div class="overview-prevmtm-meta">기준일 <strong>' +
       escapeHtml(dLatest) +
       "</strong>";
     if (dPrev) {
       meta +=
         ' · 괄호 안 변동: 직전 거래일 <strong>' +
         escapeHtml(dPrev) +
-        "</strong> 대비(bp)";
+        "</strong> 대비 (▲▼·bp, Term CP term과 동일)";
     } else meta += " · 직전 거래일이 없어 변동폭은 표시하지 않습니다.";
-    meta += "</div>";
+    meta += "</div></div>";
     let h =
       '<div class="overview-prevmtm-table-wrap"><table class="overview-prevmtm-table"><caption>전일시가평가표</caption><thead><tr><th>구분</th>';
     OVERVIEW_PREVMTM_TENORS.forEach((t) => {
