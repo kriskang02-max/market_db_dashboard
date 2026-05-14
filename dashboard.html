@@ -607,23 +607,95 @@
       max-width: 100%;
       background: #1a1a2e;
     }
-    #page-overview .overview-page-title {
-      margin: 0;
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.96);
-    }
     #page-overview .overview-layout {
       display: flex;
       flex-wrap: wrap;
       gap: 1.25rem;
       align-items: flex-start;
-      margin-top: 1rem;
+      margin-top: 0;
     }
     #page-overview .overview-prevday-block {
-      flex: 0 1 auto;
-      min-width: min(100%, 48rem);
+      flex: 1 1 26rem;
+      min-width: min(100%, 42rem);
       max-width: 58rem;
+    }
+    #page-overview .overview-prevmtm-block {
+      flex: 1 1 36rem;
+      min-width: min(100%, 32rem);
+      max-width: 100%;
+    }
+    #page-overview .overview-prevmtm-meta {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      margin-bottom: 0.45rem;
+      line-height: 1.45;
+    }
+    #page-overview .overview-prevmtm-meta strong {
+      color: rgba(255, 255, 255, 0.88);
+      font-weight: 600;
+    }
+    #page-overview .overview-prevmtm-empty {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin: 0;
+    }
+    #page-overview .overview-prevmtm-table-wrap {
+      max-height: min(72vh, 36rem);
+      overflow: auto;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.45);
+      -webkit-overflow-scrolling: touch;
+    }
+    #page-overview .overview-prevmtm-table {
+      border-collapse: collapse;
+      font-size: 0.66rem;
+      width: max-content;
+      min-width: 100%;
+    }
+    #page-overview .overview-prevmtm-table caption {
+      caption-side: top;
+      text-align: left;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.92);
+      padding: 0 0 0.35rem;
+      font-size: 0.82rem;
+    }
+    #page-overview .overview-prevmtm-table th,
+    #page-overview .overview-prevmtm-table td {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.22rem 0.3rem;
+      text-align: center;
+      vertical-align: middle;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.35;
+    }
+    #page-overview .overview-prevmtm-table thead th {
+      background: rgba(22, 33, 62, 0.98);
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+    }
+    #page-overview .overview-prevmtm-table thead th:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 4;
+      min-width: 4rem;
+    }
+    #page-overview .overview-prevmtm-table tbody th[scope="row"] {
+      text-align: center;
+      background: rgba(22, 33, 62, 0.72);
+      color: rgba(255, 255, 255, 0.88);
+      font-weight: 600;
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      min-width: 4rem;
+      box-shadow: 1px 0 0 rgba(255, 255, 255, 0.08);
     }
     #page-overview .overview-prevday-toolbar {
       display: flex;
@@ -1147,7 +1219,6 @@
 
   <div id="page-overview" class="page">
     <div class="overview-outer">
-      <h2 class="overview-page-title">Overview</h2>
       <div class="overview-layout">
         <div class="overview-prevday-block">
           <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
@@ -1181,6 +1252,9 @@
               <tbody id="overviewPrevDayTbody"></tbody>
             </table>
           </div>
+        </div>
+        <div class="overview-prevmtm-block">
+          <div id="overviewPrevMtmRoot" aria-live="polite"></div>
         </div>
       </div>
     </div>
@@ -3330,6 +3404,7 @@
       setTimeout(resizeSpreadChartsIfVisible, 280);
     }
     if (isOverview) {
+      renderOverviewPrevMtmTable();
       overviewPrevDaySyncToolbarLockUi();
       loadOverviewBondCsvFresh()
         .then(() => {
@@ -3719,6 +3794,93 @@
       if (dateHasRatesData(dates[j])) return dates[j];
     }
     return null;
+  }
+
+  const OVERVIEW_PREVMTM_SECTORS = ["국고채", "특은채", "특수채", "카드채", "여전채"];
+  const OVERVIEW_PREVMTM_TENORS = [1, 1.5, 2, 2.5, 3, 5, 10, 20, 30];
+
+  function overviewMtmTenorLabel(y) {
+    if (y === 2.5) return "2.5Y";
+    if (Number.isInteger(y)) return y + "Y";
+    return String(y) + "Y";
+  }
+
+  function overviewMtmYield(d, inst, y) {
+    const m = dateYieldMap.get(d);
+    if (!m) return null;
+    const lab = overviewMtmTenorLabel(y);
+    const keys = [];
+    if (inst === "국고채") {
+      keys.push("국고채|" + String(y));
+    } else if (inst === "특수채") {
+      keys.push("특수채|특수 " + lab);
+      keys.push("특수채|" + String(y));
+    } else {
+      const p = { 특은채: "특은", 카드채: "카드", 여전채: "여전" }[inst];
+      if (p) {
+        keys.push(inst + "|" + p + " " + lab);
+        keys.push(inst + "|" + String(y));
+      }
+    }
+    for (let ki = 0; ki < keys.length; ki++) {
+      const v = m.get(keys[ki]);
+      if (Number.isFinite(v)) {
+        if (v === 0 && inst !== "국고채") continue;
+        return v;
+      }
+    }
+    return null;
+  }
+
+  function overviewMtmCellHtml(dCur, dPrev, inst, y) {
+    const cur = overviewMtmYield(dCur, inst, y);
+    const prev = dPrev ? overviewMtmYield(dPrev, inst, y) : null;
+    if (cur === null || !Number.isFinite(cur)) return "<td>—</td>";
+    const rateStr = formatNumFixed(cur, 3);
+    let inner = rateStr + " (";
+    if (prev !== null && Number.isFinite(prev)) {
+      const dBp = (cur - prev) * 100;
+      inner += (dBp > 0 ? "+" : "") + formatNumFixed(dBp, 1) + "bp";
+    } else inner += "—";
+    inner += ")";
+    return "<td>" + inner + "</td>";
+  }
+
+  function renderOverviewPrevMtmTable() {
+    const root = document.getElementById("overviewPrevMtmRoot");
+    if (!root) return;
+    const dLatest = latestDateWithRatesData();
+    if (!dLatest) {
+      root.innerHTML = '<p class="overview-prevmtm-empty">market_db.csv에서 금리 일자를 찾을 수 없습니다.</p>';
+      return;
+    }
+    const dPrev = dateRefPrev(dLatest);
+    let meta =
+      '<div class="overview-prevmtm-meta">기준일 <strong>' +
+      escapeHtml(dLatest) +
+      "</strong>";
+    if (dPrev) {
+      meta +=
+        ' · 괄호 안 변동: 직전 거래일 <strong>' +
+        escapeHtml(dPrev) +
+        "</strong> 대비(bp)";
+    } else meta += " · 직전 거래일이 없어 변동폭은 표시하지 않습니다.";
+    meta += "</div>";
+    let h =
+      '<div class="overview-prevmtm-table-wrap"><table class="overview-prevmtm-table"><caption>전일시가평가표</caption><thead><tr><th>구분</th>';
+    OVERVIEW_PREVMTM_TENORS.forEach((t) => {
+      h += "<th>" + escapeHtml(overviewMtmTenorLabel(t)) + "</th>";
+    });
+    h += "</tr></thead><tbody>";
+    OVERVIEW_PREVMTM_SECTORS.forEach((inst) => {
+      h += '<tr><th scope="row">' + escapeHtml(inst) + "</th>";
+      OVERVIEW_PREVMTM_TENORS.forEach((ty) => {
+        h += overviewMtmCellHtml(dLatest, dPrev, inst, ty);
+      });
+      h += "</tr>";
+    });
+    h += "</tbody></table></div>";
+    root.innerHTML = meta + h;
   }
 
   /** cutoff(yyyy-mm-dd) 이하 중, 금리 데이터가 있는 가장 늦은 거래일 */
@@ -4216,6 +4378,7 @@
       render();
       render2();
       renderRatesAnalysis();
+      renderOverviewPrevMtmTable();
       return Promise.resolve();
     }
     const instSet = new Set();
@@ -4242,6 +4405,7 @@
         render();
         render2();
         renderRatesAnalysis();
+        renderOverviewPrevMtmTable();
       })
       .catch(() => {
         issuesByDate = new Map();
@@ -4249,6 +4413,7 @@
         render();
         render2();
         renderRatesAnalysis();
+        renderOverviewPrevMtmTable();
       });
   }
 
@@ -4299,6 +4464,10 @@
           dataStatus.textContent = "행 없음";
           if (asOfDate) asOfDate.textContent = "기준일: —";
           if (asOfFileDate) asOfFileDate.textContent = "파일 최신일: —";
+          dates = [];
+          instruments = [];
+          rebuildDateYieldMap();
+          renderOverviewPrevMtmTable();
           return;
         }
         const instSet = new Set();
@@ -4325,6 +4494,7 @@
             render();
             render2();
             renderRatesAnalysis();
+            renderOverviewPrevMtmTable();
           })
           .catch(() => {
             issuesByDate = new Map();
@@ -4332,6 +4502,7 @@
             render();
             render2();
             renderRatesAnalysis();
+            renderOverviewPrevMtmTable();
           });
 
         const dMin = dates[0], dMax = dates[dates.length - 1];
