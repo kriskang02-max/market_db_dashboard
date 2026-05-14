@@ -627,10 +627,13 @@
     }
     #page-overview .overview-prevday-toolbar {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: center;
       gap: 0.35rem;
       margin-bottom: 0.5rem;
+      white-space: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
     #page-overview .overview-prevday-toolbar--compact .sidebar.btn {
       padding: 0.14rem 0.2rem;
@@ -657,6 +660,18 @@
       color: rgba(255, 255, 255, 0.52);
       white-space: nowrap;
       margin-left: 0.15rem;
+      flex: 0 0 auto;
+    }
+    #page-overview .overview-prevday-toolbar .overview-prevday-status {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: right;
+      margin-left: 0.25rem;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     #page-overview .overview-prevday-table td.ovpd-vol-disp {
       font-variant-numeric: tabular-nums;
@@ -677,7 +692,34 @@
       border-collapse: collapse;
       font-size: 0.74rem;
       width: 100%;
-      min-width: 46rem;
+      min-width: 48rem;
+    }
+    #page-overview .overview-prevday-table th.ovpd-drag-col,
+    #page-overview .overview-prevday-table td.ovpd-drag-cell {
+      width: 1.35rem;
+      min-width: 1.35rem;
+      max-width: 1.6rem;
+      padding: 0.2rem 0.12rem !important;
+      vertical-align: middle;
+    }
+    #page-overview .overview-prevday-table .ovpd-drag-handle {
+      display: inline-block;
+      cursor: grab;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.72rem;
+      line-height: 1;
+      letter-spacing: -0.15em;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #page-overview .overview-prevday-table .ovpd-drag-handle:active {
+      cursor: grabbing;
+    }
+    #page-overview .overview-prevday-table tr.ovpd-row-dragging {
+      opacity: 0.55;
+    }
+    #page-overview .overview-prevday-table tr.ovpd-row-drag-over {
+      box-shadow: inset 0 -2px 0 rgba(59, 130, 246, 0.85);
     }
     #page-overview .overview-prevday-table select.ovpd-select {
       max-width: 4.5rem;
@@ -1089,6 +1131,7 @@
               <caption>전일종가표</caption>
               <thead>
                 <tr>
+                  <th class="ovpd-drag-col" aria-label="행 순서"></th>
                   <th>분류</th>
                   <th>만기</th>
                   <th>잔존만기</th>
@@ -1304,6 +1347,7 @@
   let overviewBondCsvAsOfMs = 0;
   /** @type {{ id: string, breed: string, tenor: string, abbrev: string, appliedU: string, diffU: string }[]} */
   let overviewPrevDayRows = [];
+  let ovpdDnDSourceTr = null;
 
   const OVPD_TENOR_OPTIONS = ["", "1Y", "2Y", "3Y", "5Y", "10Y", "20Y", "30Y"];
 
@@ -1452,6 +1496,16 @@
     });
   }
 
+  function overviewPrevDaySyncDragHandles() {
+    if (!overviewPrevDayTbody) return;
+    const locked = overviewPrevDayIsToolbarLocked();
+    overviewPrevDayTbody.querySelectorAll(".ovpd-drag-handle").forEach((h) => {
+      h.draggable = !locked;
+      h.style.opacity = locked ? "0.38" : "";
+      h.title = locked ? "잠금 중에는 순서를 바꿀 수 없습니다." : "드래그하여 순서 변경";
+    });
+  }
+
   function overviewPrevDaySyncToolbarLockUi() {
     const locked = overviewPrevDayIsToolbarLocked();
     if (overviewPrevDayLock) {
@@ -1464,6 +1518,7 @@
       btn.classList.toggle("ovpd-toolbar-textlike", locked);
     });
     overviewPrevDaySyncRowBreedTenorLockUi();
+    overviewPrevDaySyncDragHandles();
   }
 
   function overviewPrevDayFormatCsvAsOfLine() {
@@ -1670,6 +1725,7 @@
     const breed = r.breed === "통안" ? "통안" : "국고";
     const tenor = OVPD_TENOR_OPTIONS.indexOf(String(r.tenor || "")) >= 0 ? String(r.tenor) : "";
     tr.innerHTML =
+      '<td class="ovpd-drag-cell"><span class="ovpd-drag-handle" draggable="true" title="드래그하여 순서 변경">⋮⋮</span></td>' +
       '<td class="ovpd-breed-wrap">' +
       '<select class="ovpd-select ovpd-breed">' +
       '<option value="국고"' +
@@ -1717,6 +1773,7 @@
       overviewPrevDayApplyBondToRow(tr, r.abbrev, true);
     });
     overviewPrevDaySyncRowBreedTenorLockUi();
+    overviewPrevDaySyncDragHandles();
   }
 
   function loadOverviewBondCsvFresh() {
@@ -1830,6 +1887,59 @@
       const tr = delBtn.closest("tr[data-ovpd-id]");
       if (tr) tr.remove();
     });
+    overviewPrevDayTbody.addEventListener("dragstart", (e) => {
+      if (overviewPrevDayIsToolbarLocked()) {
+        e.preventDefault();
+        return;
+      }
+      const h = e.target && e.target.closest && e.target.closest(".ovpd-drag-handle");
+      if (!h || !h.draggable) {
+        e.preventDefault();
+        return;
+      }
+      const tr = h.closest("tr[data-ovpd-id]");
+      if (!tr) return;
+      ovpdDnDSourceTr = tr;
+      try {
+        e.dataTransfer.setData("text/plain", tr.getAttribute("data-ovpd-id") || "");
+        e.dataTransfer.effectAllowed = "move";
+      } catch (_) {}
+      tr.classList.add("ovpd-row-dragging");
+    });
+    overviewPrevDayTbody.addEventListener("dragend", () => {
+      if (ovpdDnDSourceTr) ovpdDnDSourceTr.classList.remove("ovpd-row-dragging");
+      overviewPrevDayTbody.querySelectorAll("tr.ovpd-row-drag-over").forEach((r) => r.classList.remove("ovpd-row-drag-over"));
+      ovpdDnDSourceTr = null;
+    });
+    overviewPrevDayTbody.addEventListener("dragover", (e) => {
+      if (!ovpdDnDSourceTr) return;
+      const tr = e.target && e.target.closest && e.target.closest("tr[data-ovpd-id]");
+      if (!tr || tr === ovpdDnDSourceTr) return;
+      e.preventDefault();
+      try {
+        e.dataTransfer.dropEffect = "move";
+      } catch (_) {}
+      overviewPrevDayTbody.querySelectorAll("tr.ovpd-row-drag-over").forEach((r) => r.classList.remove("ovpd-row-drag-over"));
+      tr.classList.add("ovpd-row-drag-over");
+    });
+    overviewPrevDayTbody.addEventListener("dragleave", (e) => {
+      const tr = e.target && e.target.closest && e.target.closest("tr[data-ovpd-id]");
+      if (tr && !tr.contains(e.relatedTarget)) tr.classList.remove("ovpd-row-drag-over");
+    });
+    overviewPrevDayTbody.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const tbody = overviewPrevDayTbody;
+      if (!tbody || !ovpdDnDSourceTr) return;
+      const targetTr = e.target && e.target.closest && e.target.closest("tr[data-ovpd-id]");
+      if (!targetTr || targetTr === ovpdDnDSourceTr) return;
+      const rect = targetTr.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      if (after) tbody.insertBefore(ovpdDnDSourceTr, targetTr.nextSibling);
+      else tbody.insertBefore(ovpdDnDSourceTr, targetTr);
+      targetTr.classList.remove("ovpd-row-drag-over");
+      ovpdDnDSourceTr.classList.remove("ovpd-row-dragging");
+      ovpdDnDSourceTr = null;
+    });
   }
   if (overviewPrevDaySave) overviewPrevDaySave.addEventListener("click", () => overviewPrevDaySaveToStorage());
   if (overviewPrevDayAddRow) {
@@ -1837,6 +1947,7 @@
       if (overviewPrevDayIsToolbarLocked() || !overviewPrevDayTbody) return;
       overviewPrevDayTbody.appendChild(overviewPrevDayCreateRowEl(overviewPrevDayDefaultRow()));
       overviewPrevDaySyncRowBreedTenorLockUi();
+      overviewPrevDaySyncDragHandles();
     });
   }
   if (overviewPrevDayLock) {
