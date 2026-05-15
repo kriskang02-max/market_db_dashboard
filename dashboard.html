@@ -765,40 +765,67 @@
     #page-overview .overview-policy-table .ovpol-day-plain--empty {
       color: rgba(255, 255, 255, 0.35);
     }
-    #page-overview .overview-prevmtm-block {
+    #page-overview .overview-keybond-block {
       display: flex;
       flex-direction: column;
       align-items: stretch;
       min-width: 0;
     }
-    #page-overview .overview-prevmtm-toolbar {
+    #page-overview .overview-keybond-header-row {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: center;
       gap: 0.28rem;
       margin-bottom: 0.5rem;
       min-height: calc(0.74rem * 1.35 + 0.2rem);
       box-sizing: border-box;
+      white-space: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
-    #page-overview .overview-prevmtm-toolbar .overview-prevmtm-meta {
-      margin: 0;
-      font-size: 0.74rem;
-      line-height: 1.35;
-      color: rgba(255, 255, 255, 0.55);
-      flex: 1 1 auto;
+    #page-overview .overview-keybond-header-row .overview-keybond-toolbar {
+      margin-bottom: 0;
+      flex: 0 1 auto;
       min-width: 0;
     }
-    #page-overview .overview-prevmtm-toolbar .overview-prevmtm-meta strong {
-      color: rgba(255, 255, 255, 0.88);
-      font-weight: 600;
-    }
-    #page-overview .overview-prevmtm-empty {
-      font-size: 0.74rem;
-      line-height: 1.35;
-      color: rgba(255, 255, 255, 0.5);
+    #page-overview .overview-keybond-table-heading {
       margin: 0;
+      flex: 0 0 auto;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+      line-height: 1.35;
     }
-    #page-overview .overview-prevmtm-table-wrap {
+    #page-overview .overview-keybond-header-spacer {
+      flex: 1 1 auto;
+      min-width: 0.25rem;
+    }
+    #page-overview .overview-keybond-toolbar {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 0.28rem;
+      white-space: nowrap;
+    }
+    #page-overview .overview-keybond-csv-asof {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.52);
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+    #page-overview .overview-keybond-status {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      text-align: right;
+      margin-left: 0.35rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 14rem;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    #page-overview .overview-keybond-table-wrap {
       max-height: min(72vh, 36rem);
       overflow: auto;
       border-radius: 8px;
@@ -806,22 +833,14 @@
       background: rgba(14, 17, 23, 0.45);
       -webkit-overflow-scrolling: touch;
     }
-    #page-overview .overview-prevmtm-table {
+    #page-overview .overview-keybond-table {
       border-collapse: collapse;
       font-size: 0.74rem;
       width: max-content;
       min-width: 100%;
     }
-    #page-overview .overview-prevmtm-table caption {
-      caption-side: top;
-      text-align: left;
-      font-weight: 700;
-      font-size: 0.88rem;
-      color: rgba(255, 255, 255, 0.92);
-      padding: 0 0 0.45rem;
-    }
-    #page-overview .overview-prevmtm-table th,
-    #page-overview .overview-prevmtm-table td {
+    #page-overview .overview-keybond-table th,
+    #page-overview .overview-keybond-table td {
       border: 1px solid rgba(255, 255, 255, 0.1);
       padding: 0.28rem 0.38rem;
       text-align: center;
@@ -830,7 +849,7 @@
       font-variant-numeric: tabular-nums;
       line-height: 1.35;
     }
-    #page-overview .overview-prevmtm-table thead th {
+    #page-overview .overview-keybond-table thead th {
       background: rgba(22, 33, 62, 0.98);
       color: rgba(255, 255, 255, 0.9);
       font-weight: 600;
@@ -839,22 +858,52 @@
       z-index: 2;
       box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
     }
-    #page-overview .overview-prevmtm-table thead th:first-child {
-      position: sticky;
-      left: 0;
-      z-index: 4;
-      min-width: 4rem;
+    #page-overview .overview-keybond-table th.ovkb-col-issuer,
+    #page-overview .overview-keybond-table td.ovkb-col-issuer {
+      text-align: left;
+      min-width: 7rem;
+      max-width: 11rem;
     }
-    #page-overview .overview-prevmtm-table tbody th[scope="row"] {
-      text-align: center;
-      background: rgba(22, 33, 62, 0.72);
-      color: rgba(255, 255, 255, 0.88);
-      font-weight: 600;
-      position: sticky;
-      left: 0;
-      z-index: 1;
-      min-width: 4rem;
-      box-shadow: 1px 0 0 rgba(255, 255, 255, 0.08);
+    #page-overview .overview-keybond-table th.ovkb-col-tenor,
+    #page-overview .overview-keybond-table td.ovkb-col-tenor {
+      min-width: 3.25rem;
+    }
+    #page-overview .overview-keybond-table input.ovkb-issuer-input {
+      width: 100%;
+      max-width: 10.5rem;
+      box-sizing: border-box;
+      padding: 0.2rem 0.35rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.96);
+      font-size: 0.74rem;
+    }
+    #page-overview .overview-keybond-table .ovkb-issuer-plain {
+      display: block;
+      text-align: left;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 0.74rem;
+      line-height: 1.35;
+      padding: 0.2rem 0.1rem;
+    }
+    #page-overview .overview-keybond-table .ovkb-rate {
+      color: rgba(255, 255, 255, 0.92);
+    }
+    #page-overview .overview-keybond-table .ovkb-rate--empty {
+      color: rgba(255, 255, 255, 0.35);
+    }
+    #page-overview .overview-keybond-table .ovkb-btn-del {
+      padding: 0.15rem 0.35rem;
+      font-size: 0.68rem;
+      border-radius: 4px;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.12);
+      color: #fecaca;
+      cursor: pointer;
+    }
+    #page-overview .overview-keybond-table .ovkb-btn-del:hover {
+      background: rgba(248, 113, 113, 0.22);
     }
     #page-overview .overview-prevday-header-row {
       display: flex;
@@ -896,12 +945,14 @@
       -webkit-overflow-scrolling: touch;
     }
     #page-overview .overview-prevday-toolbar.overview-prevday-toolbar--compact,
-    #page-overview .overview-policy-toolbar.overview-policy-toolbar--compact {
+    #page-overview .overview-policy-toolbar.overview-policy-toolbar--compact,
+    #page-overview .overview-keybond-toolbar.overview-keybond-toolbar--compact {
       min-height: calc(0.74rem * 1.35 + 0.2rem);
       box-sizing: border-box;
     }
     #page-overview .overview-prevday-toolbar--compact > .sidebar.btn,
-    #page-overview .overview-policy-toolbar--compact > .sidebar.btn {
+    #page-overview .overview-policy-toolbar--compact > .sidebar.btn,
+    #page-overview .overview-keybond-toolbar--compact > .sidebar.btn {
       flex: 0 0 auto;
       width: max-content;
       min-width: 0;
@@ -914,11 +965,13 @@
       color: #fff;
     }
     #page-overview .overview-prevday-toolbar--compact .sidebar.btn-secondary,
-    #page-overview .overview-policy-toolbar--compact > .sidebar.btn-secondary {
+    #page-overview .overview-policy-toolbar--compact > .sidebar.btn-secondary,
+    #page-overview .overview-keybond-toolbar--compact > .sidebar.btn-secondary {
       color: #fff;
     }
     #page-overview .overview-prevday-toolbar .ovpd-toolbar-textlike,
-    #page-overview .overview-policy-toolbar .ovpd-toolbar-textlike {
+    #page-overview .overview-policy-toolbar .ovpd-toolbar-textlike,
+    #page-overview .overview-keybond-toolbar .ovpd-toolbar-textlike {
       background: transparent !important;
       border: none !important;
       box-shadow: none !important;
@@ -1486,8 +1539,36 @@
             </div>
             <span id="overviewPolicyStatus" class="overview-policy-status" aria-live="polite"></span>
           </div>
-          <div class="overview-prevmtm-block">
-            <div id="overviewPrevMtmRoot" aria-live="polite"></div>
+          <div class="overview-keybond-block">
+            <div class="overview-keybond-header-row">
+              <h3 class="overview-keybond-table-heading">주요종목민평</h3>
+              <span class="overview-keybond-header-spacer" aria-hidden="true"></span>
+              <div class="overview-keybond-toolbar overview-keybond-toolbar--compact">
+                <button type="button" id="overviewKeyBondSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
+                <button type="button" id="overviewKeyBondAddRow" class="sidebar btn btn-secondary ovpd-toolbar-act">행 추가</button>
+                <button type="button" id="overviewKeyBondLock" class="sidebar btn btn-secondary" aria-pressed="false">잠금</button>
+                <span id="overviewKeyBondCsvAsOf" class="overview-keybond-csv-asof" title="term_table_long bond_term 기준"></span>
+                <span id="overviewKeyBondStatus" class="overview-keybond-status" aria-live="polite"></span>
+              </div>
+            </div>
+            <div class="overview-keybond-table-wrap">
+              <table class="overview-keybond-table" id="overviewKeyBondTable" aria-label="주요종목민평">
+                <thead>
+                  <tr>
+                    <th aria-label="행 삭제"></th>
+                    <th class="ovkb-col-issuer">종목명</th>
+                    <th class="ovkb-col-tenor">1Y</th>
+                    <th class="ovkb-col-tenor">1.5Y</th>
+                    <th class="ovkb-col-tenor">2Y</th>
+                    <th class="ovkb-col-tenor">2.5Y</th>
+                    <th class="ovkb-col-tenor">3Y</th>
+                    <th class="ovkb-col-tenor">4Y</th>
+                    <th class="ovkb-col-tenor">5Y</th>
+                  </tr>
+                </thead>
+                <tbody id="overviewKeyBondTbody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1546,6 +1627,17 @@
   const OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY = "market_db_dashboard_overview_prevday_toolbar_lock_v1";
   const OVERVIEW_POLICY_STORAGE_KEY = "market_db_dashboard_overview_policy_meetings_v1";
   const OVERVIEW_POLICY_LOCK_KEY = "market_db_dashboard_overview_policy_toolbar_lock_v1";
+  const OVERVIEW_KEYBOND_STORAGE_KEY = "market_db_dashboard_overview_keybond_v1";
+  const OVERVIEW_KEYBOND_LOCK_KEY = "market_db_dashboard_overview_keybond_lock_v1";
+  const OVERVIEW_KEYBOND_TENORS = [
+    { col: "1Y", csv: "1년" },
+    { col: "1.5Y", csv: "1.5년" },
+    { col: "2Y", csv: "2년" },
+    { col: "2.5Y", csv: "2.5년" },
+    { col: "3Y", csv: "3년" },
+    { col: "4Y", csv: "4년" },
+    { col: "5Y", csv: "5년" },
+  ];
   /** @type {{ key: string, label: string, days: string[] }[]} */
   const OVERVIEW_POLICY_ROW_DEFS = [
     { key: "bok", label: "금통위", days: ["15", "26", "", "10", "28", "", "16", "27", "", "22", "26", ""] },
@@ -1644,6 +1736,15 @@
   const overviewPolicySave = document.getElementById("overviewPolicySave");
   const overviewPolicyLock = document.getElementById("overviewPolicyLock");
   const overviewPolicyStatus = document.getElementById("overviewPolicyStatus");
+  const overviewKeyBondTbody = document.getElementById("overviewKeyBondTbody");
+  const overviewKeyBondSave = document.getElementById("overviewKeyBondSave");
+  const overviewKeyBondAddRow = document.getElementById("overviewKeyBondAddRow");
+  const overviewKeyBondLock = document.getElementById("overviewKeyBondLock");
+  const overviewKeyBondCsvAsOf = document.getElementById("overviewKeyBondCsvAsOf");
+  const overviewKeyBondStatus = document.getElementById("overviewKeyBondStatus");
+  let overviewKeyBondLookup = new Map();
+  let overviewKeyBondIssuerSet = new Set();
+  let overviewKeyBondAsOfDate = "";
 
   function resizeSpreadChartsIfVisible() {
     if (!pageSpreadEl || !pageSpreadEl.classList.contains("is-active")) return;
@@ -2349,8 +2450,39 @@
       }
     });
   }
+  if (overviewKeyBondSave) overviewKeyBondSave.addEventListener("click", () => overviewKeyBondSaveToStorage());
+  if (overviewKeyBondAddRow) {
+    overviewKeyBondAddRow.addEventListener("click", () => {
+      if (overviewKeyBondIsLocked() || !overviewKeyBondTbody) return;
+      overviewKeyBondTbody.appendChild(overviewKeyBondCreateRowEl(overviewKeyBondDefaultRow()));
+      if (overviewKeyBondStatus) overviewKeyBondStatus.textContent = "";
+    });
+  }
+  if (overviewKeyBondLock) {
+    overviewKeyBondLock.addEventListener("click", () => overviewKeyBondSetLocked(!overviewKeyBondIsLocked()));
+  }
+  if (overviewKeyBondTbody) {
+    overviewKeyBondTbody.addEventListener("click", (e) => {
+      const el = e.target;
+      if (!el || !el.classList.contains("ovkb-btn-del")) return;
+      if (overviewKeyBondIsLocked()) return;
+      const tr = el.closest("tr[data-ovkb-id]");
+      if (!tr || overviewKeyBondTbody.querySelectorAll("tr[data-ovkb-id]").length <= 1) return;
+      tr.remove();
+      if (overviewKeyBondStatus) overviewKeyBondStatus.textContent = "";
+    });
+    overviewKeyBondTbody.addEventListener("focusout", (e) => {
+      const el = e.target;
+      if (!el || !el.classList.contains("ovkb-issuer-input")) return;
+      const tr = el.closest("tr[data-ovkb-id]");
+      if (!tr || overviewKeyBondIsLocked()) return;
+      overviewKeyBondApplyIssuer(tr);
+      if (overviewKeyBondStatus) overviewKeyBondStatus.textContent = "";
+    });
+  }
   overviewPrevDaySyncToolbarLockUi();
   overviewPolicySyncToolbarLockUi();
+  overviewKeyBondSyncToolbarLockUi();
 
   function overviewPolicyIsLocked() {
     try {
@@ -2538,6 +2670,211 @@
         });
       });
     }
+  }
+
+
+  function overviewKeyBondNewId() {
+    return "ovkb_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+  }
+
+  function overviewKeyBondRebuildLookup() {
+    overviewKeyBondLookup = new Map();
+    overviewKeyBondIssuerSet = new Set();
+    let maxDate = "";
+    for (const r of termTableRows) {
+      if ((r.section || "").trim() !== "bond_term") continue;
+      const issuer = (r["발행사명"] || "").trim();
+      const tenor = normalizeBondTenorLabel((r["만기"] || "").trim());
+      const date = (r["날짜"] || "").trim();
+      const rate = parseTermRate(r["금리"]);
+      if (!issuer || !tenor || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(rate)) continue;
+      overviewKeyBondIssuerSet.add(issuer);
+      const k = issuer + "\0" + tenor;
+      const cur = overviewKeyBondLookup.get(k);
+      if (!cur || date > cur.date) overviewKeyBondLookup.set(k, { date, rate });
+      if (date > maxDate) maxDate = date;
+    }
+    overviewKeyBondAsOfDate = maxDate;
+  }
+
+  function overviewKeyBondResolveIssuer(q) {
+    const s = String(q || "").trim();
+    if (!s) return "";
+    if (overviewKeyBondIssuerSet.has(s)) return s;
+    const hits = [];
+    overviewKeyBondIssuerSet.forEach((iss) => {
+      if (String(iss).includes(s)) hits.push(iss);
+    });
+    if (hits.length === 1) return hits[0];
+    return "";
+  }
+
+  function overviewKeyBondRateAt(issuer, csvTenor) {
+    if (!issuer) return null;
+    const v = overviewKeyBondLookup.get(issuer + "\0" + csvTenor);
+    return v && Number.isFinite(v.rate) ? v.rate : null;
+  }
+
+  function overviewKeyBondFormatCsvAsOf() {
+    if (!overviewKeyBondCsvAsOf) return;
+    overviewKeyBondCsvAsOf.textContent = overviewKeyBondAsOfDate ? "bond_term " + overviewKeyBondAsOfDate : "";
+  }
+
+  function overviewKeyBondIsLocked() {
+    try {
+      return localStorage.getItem(OVERVIEW_KEYBOND_LOCK_KEY) === "1";
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function overviewKeyBondSyncRowLockUi(tr) {
+    const locked = overviewKeyBondIsLocked();
+    const resolved = tr.dataset.ovkbIssuerResolved || "";
+    const inp = tr.querySelector(".ovkb-issuer-input");
+    const plain = tr.querySelector(".ovkb-issuer-plain");
+    const del = tr.querySelector(".ovkb-btn-del");
+    if (inp && plain) {
+      if (locked) {
+        plain.textContent = resolved || (inp.value || "").trim() || "—";
+        inp.style.display = "none";
+        plain.style.display = "";
+      } else {
+        inp.style.display = "";
+        plain.style.display = "none";
+      }
+    }
+    if (del) del.disabled = locked;
+    OVERVIEW_KEYBOND_TENORS.forEach(({ col, csv }) => {
+      const td = tr.querySelector('td[data-ovkb-tenor="' + col + '"]');
+      if (!td) return;
+      const rate = overviewKeyBondRateAt(resolved, csv);
+      const empty = rate == null;
+      td.innerHTML =
+        '<span class="ovkb-rate' + (empty ? " ovkb-rate--empty" : "") + '">' + escapeHtml(empty ? "—" : formatTermPctRate(rate)) + "</span>";
+    });
+  }
+
+  function overviewKeyBondSyncToolbarLockUi() {
+    const locked = overviewKeyBondIsLocked();
+    if (overviewKeyBondLock) {
+      overviewKeyBondLock.setAttribute("aria-pressed", locked ? "true" : "false");
+      overviewKeyBondLock.textContent = locked ? "잠금 해제" : "잠금";
+    }
+    [overviewKeyBondSave, overviewKeyBondAddRow].forEach((btn) => {
+      if (!btn) return;
+      btn.disabled = locked;
+      btn.classList.toggle("ovpd-toolbar-textlike", locked);
+    });
+    if (overviewKeyBondTbody) {
+      overviewKeyBondTbody.querySelectorAll("tr[data-ovkb-id]").forEach((tr) => overviewKeyBondSyncRowLockUi(tr));
+    }
+  }
+
+  function overviewKeyBondSetLocked(on) {
+    const rows = overviewKeyBondCollectFromDom();
+    try {
+      localStorage.setItem(OVERVIEW_KEYBOND_LOCK_KEY, on ? "1" : "0");
+    } catch (_) {}
+    overviewKeyBondRenderFromState(rows.length ? rows : overviewKeyBondLoadSaved());
+    overviewKeyBondSyncToolbarLockUi();
+  }
+
+  function overviewKeyBondApplyIssuer(tr) {
+    const inp = tr.querySelector(".ovkb-issuer-input");
+    if (!inp) return;
+    const raw = inp.value.trim();
+    tr.dataset.ovkbIssuerRaw = raw;
+    tr.dataset.ovkbIssuerResolved = overviewKeyBondResolveIssuer(raw);
+    overviewKeyBondSyncRowLockUi(tr);
+  }
+
+  function overviewKeyBondDefaultRow() {
+    return { id: overviewKeyBondNewId(), issuer: "" };
+  }
+
+  function overviewKeyBondLoadSaved() {
+    try {
+      const raw = localStorage.getItem(OVERVIEW_KEYBOND_STORAGE_KEY);
+      if (!raw) return [overviewKeyBondDefaultRow()];
+      const o = JSON.parse(raw);
+      const arr = o && Array.isArray(o.rows) ? o.rows : [];
+      if (!arr.length) return [overviewKeyBondDefaultRow()];
+      return arr.map((x) => ({
+        id: String(x.id || overviewKeyBondNewId()),
+        issuer: String(x.issuer != null ? x.issuer : ""),
+      }));
+    } catch (_) {
+      return [overviewKeyBondDefaultRow()];
+    }
+  }
+
+  function overviewKeyBondCollectFromDom() {
+    if (!overviewKeyBondTbody) return [];
+    const out = [];
+    overviewKeyBondTbody.querySelectorAll("tr[data-ovkb-id]").forEach((tr) => {
+      const inp = tr.querySelector(".ovkb-issuer-input");
+      out.push({
+        id: tr.getAttribute("data-ovkb-id") || "",
+        issuer: inp ? inp.value.trim() : tr.dataset.ovkbIssuerRaw || "",
+      });
+    });
+    return out;
+  }
+
+  function overviewKeyBondSaveToStorage() {
+    if (overviewKeyBondIsLocked()) return;
+    const rows = overviewKeyBondCollectFromDom();
+    try {
+      localStorage.setItem(
+        OVERVIEW_KEYBOND_STORAGE_KEY,
+        JSON.stringify({ rows: rows.map((r) => ({ id: r.id, issuer: r.issuer })) })
+      );
+      if (overviewKeyBondStatus) overviewKeyBondStatus.textContent = "저장됨 · 브라우저에 보관됩니다.";
+    } catch (e) {
+      if (overviewKeyBondStatus)
+        overviewKeyBondStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
+    }
+  }
+
+  function overviewKeyBondCreateRowEl(r) {
+    const tr = document.createElement("tr");
+    tr.dataset.ovkbId = r.id;
+    let h = '<td><button type="button" class="ovkb-btn-del" aria-label="행 삭제">삭제</button></td>';
+    h +=
+      '<td class="ovkb-col-issuer"><input type="text" class="ovkb-issuer-input" autocomplete="off" spellcheck="false" />' +
+      '<span class="ovkb-issuer-plain" style="display:none" aria-hidden="true"></span></td>';
+    OVERVIEW_KEYBOND_TENORS.forEach(({ col }) => {
+      h += '<td class="ovkb-col-tenor" data-ovkb-tenor="' + col + '"><span class="ovkb-rate ovkb-rate--empty">—</span></td>';
+    });
+    tr.innerHTML = h;
+    const inp = tr.querySelector(".ovkb-issuer-input");
+    if (inp) inp.value = r.issuer || "";
+    tr.dataset.ovkbIssuerRaw = String(r.issuer || "").trim();
+    tr.dataset.ovkbIssuerResolved = overviewKeyBondResolveIssuer(r.issuer);
+    overviewKeyBondSyncRowLockUi(tr);
+    return tr;
+  }
+
+  function overviewKeyBondRenderFromState(rows) {
+    if (!overviewKeyBondTbody) return;
+    overviewKeyBondTbody.innerHTML = "";
+    const list = rows && rows.length ? rows : [overviewKeyBondDefaultRow()];
+    list.forEach((r) => overviewKeyBondTbody.appendChild(overviewKeyBondCreateRowEl(r)));
+    overviewKeyBondSyncToolbarLockUi();
+  }
+
+  function overviewKeyBondRefreshAllRows() {
+    overviewKeyBondRebuildLookup();
+    overviewKeyBondFormatCsvAsOf();
+    if (!overviewKeyBondTbody) return;
+    overviewKeyBondTbody.querySelectorAll("tr[data-ovkb-id]").forEach((tr) => {
+      const inp = tr.querySelector(".ovkb-issuer-input");
+      const raw = inp ? inp.value.trim() : tr.dataset.ovkbIssuerRaw || "";
+      tr.dataset.ovkbIssuerRaw = raw;
+      tr.dataset.ovkbIssuerResolved = overviewKeyBondResolveIssuer(raw);
+      overviewKeyBondSyncRowLockUi(tr);
+    });
   }
 
   function parseCsvLine(line) {
@@ -3492,7 +3829,10 @@
   function ensureTermData() {
     if (!termStructureStatus) return Promise.resolve();
     if (termDataLoadPromise) {
-      if (termTableRows.length) renderTermStructureTables();
+      if (termTableRows.length) {
+        renderTermStructureTables();
+        if (pageOverviewEl && pageOverviewEl.classList.contains("is-active")) overviewKeyBondRefreshAllRows();
+      }
       return termDataLoadPromise;
     }
     termStructureStatus.textContent = "";
@@ -3508,6 +3848,7 @@
         termStructureStatus.textContent = "";
         termStructureStatus.style.display = "none";
         renderTermStructureTables();
+        if (pageOverviewEl && pageOverviewEl.classList.contains("is-active")) overviewKeyBondRefreshAllRows();
       })
       .catch((err) => {
         console.warn("[term_table_long.csv]", err);
@@ -3862,7 +4203,6 @@
     if (isOverview) {
       overviewPolicyRenderFromState(overviewPolicyLoadSaved());
       overviewPolicySyncToolbarLockUi();
-      renderOverviewPrevMtmTable();
       overviewPrevDaySyncToolbarLockUi();
       loadOverviewBondCsvFresh()
         .then(() => {
@@ -4252,93 +4592,6 @@
       if (dateHasRatesData(dates[j])) return dates[j];
     }
     return null;
-  }
-
-  const OVERVIEW_PREVMTM_SECTORS = ["국고채", "특은채", "특수채", "카드채", "여전채"];
-  const OVERVIEW_PREVMTM_TENORS = [1, 1.5, 2, 2.5, 3, 5, 10, 20, 30];
-
-  function overviewMtmTenorLabel(y) {
-    if (y === 2.5) return "2.5Y";
-    if (Number.isInteger(y)) return y + "Y";
-    return String(y) + "Y";
-  }
-
-  function overviewMtmYield(d, inst, y) {
-    const m = dateYieldMap.get(d);
-    if (!m) return null;
-    const lab = overviewMtmTenorLabel(y);
-    const keys = [];
-    if (inst === "국고채") {
-      keys.push("국고채|" + String(y));
-    } else if (inst === "특수채") {
-      keys.push("특수채|특수 " + lab);
-      keys.push("특수채|" + String(y));
-    } else {
-      const p = { 특은채: "특은", 카드채: "카드", 여전채: "여전" }[inst];
-      if (p) {
-        keys.push(inst + "|" + p + " " + lab);
-        keys.push(inst + "|" + String(y));
-      }
-    }
-    for (let ki = 0; ki < keys.length; ki++) {
-      const v = m.get(keys[ki]);
-      if (Number.isFinite(v)) {
-        if (v === 0 && inst !== "국고채") continue;
-        return v;
-      }
-    }
-    return null;
-  }
-
-  function overviewMtmCellHtml(dCur, dPrev, inst, y) {
-    const cur = overviewMtmYield(dCur, inst, y);
-    const prev = dPrev ? overviewMtmYield(dPrev, inst, y) : null;
-    if (cur === null || !Number.isFinite(cur)) return "<td>—</td>";
-    const rateStr = formatNumFixed(cur, 3);
-    let inner = rateStr + " (";
-    if (prev !== null && Number.isFinite(prev)) {
-      inner += termBpTriangleHtml(cur, prev);
-    } else inner += "<span class=\"term-muted\">—</span>";
-    inner += ")";
-    return "<td>" + inner + "</td>";
-  }
-
-  function renderOverviewPrevMtmTable() {
-    const root = document.getElementById("overviewPrevMtmRoot");
-    if (!root) return;
-    const dLatest = latestDateWithRatesData();
-    if (!dLatest) {
-      root.innerHTML =
-        '<div class="overview-prevmtm-toolbar"></div><p class="overview-prevmtm-empty">market_db.csv에서 금리 일자를 찾을 수 없습니다.</p>';
-      return;
-    }
-    const dPrev = dateRefPrev(dLatest);
-    let meta =
-      '<div class="overview-prevmtm-toolbar"><div class="overview-prevmtm-meta">기준일 <strong>' +
-      escapeHtml(dLatest) +
-      "</strong>";
-    if (dPrev) {
-      meta +=
-        ' · 괄호 안 변동: 직전 거래일 <strong>' +
-        escapeHtml(dPrev) +
-        "</strong> 대비 (▲▼·bp, Term CP term과 동일)";
-    } else meta += " · 직전 거래일이 없어 변동폭은 표시하지 않습니다.";
-    meta += "</div></div>";
-    let h =
-      '<div class="overview-prevmtm-table-wrap"><table class="overview-prevmtm-table"><caption>전일시가평가표</caption><thead><tr><th>구분</th>';
-    OVERVIEW_PREVMTM_TENORS.forEach((t) => {
-      h += "<th>" + escapeHtml(overviewMtmTenorLabel(t)) + "</th>";
-    });
-    h += "</tr></thead><tbody>";
-    OVERVIEW_PREVMTM_SECTORS.forEach((inst) => {
-      h += '<tr><th scope="row">' + escapeHtml(inst) + "</th>";
-      OVERVIEW_PREVMTM_TENORS.forEach((ty) => {
-        h += overviewMtmCellHtml(dLatest, dPrev, inst, ty);
-      });
-      h += "</tr>";
-    });
-    h += "</tbody></table></div>";
-    root.innerHTML = meta + h;
   }
 
   /** cutoff(yyyy-mm-dd) 이하 중, 금리 데이터가 있는 가장 늦은 거래일 */
@@ -4836,7 +5089,6 @@
       render();
       render2();
       renderRatesAnalysis();
-      renderOverviewPrevMtmTable();
       return Promise.resolve();
     }
     const instSet = new Set();
@@ -4863,16 +5115,14 @@
         render();
         render2();
         renderRatesAnalysis();
-        renderOverviewPrevMtmTable();
-      })
+        })
       .catch(() => {
         issuesByDate = new Map();
         dataStatus.textContent = "일자 " + dates.length + "일, 종목 " + instruments.length + "개";
         render();
         render2();
         renderRatesAnalysis();
-        renderOverviewPrevMtmTable();
-      });
+        });
   }
 
   let marketCsvRefreshInFlight = false;
@@ -4925,8 +5175,7 @@
           dates = [];
           instruments = [];
           rebuildDateYieldMap();
-          renderOverviewPrevMtmTable();
-          return;
+              return;
         }
         const instSet = new Set();
         const dateSet = new Set();
@@ -4952,16 +5201,14 @@
             render();
             render2();
             renderRatesAnalysis();
-            renderOverviewPrevMtmTable();
-          })
+                })
           .catch(() => {
             issuesByDate = new Map();
             dataStatus.textContent = "일자 " + dates.length + "일, 종목 " + instruments.length + "개";
             render();
             render2();
             renderRatesAnalysis();
-            renderOverviewPrevMtmTable();
-          });
+                });
 
         const dMin = dates[0], dMax = dates[dates.length - 1];
         if (dMin) startDate.value = dMin;
