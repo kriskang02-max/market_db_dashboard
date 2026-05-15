@@ -717,7 +717,24 @@
       font-weight: 600;
       white-space: nowrap;
     }
+    #page-overview .overview-policy-table .ovpol-day-edit-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.15rem;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    #page-overview .overview-policy-table .ovpol-day-wd {
+      flex: 0 0 auto;
+      font-size: 0.68rem;
+      line-height: 1.35;
+      color: rgba(255, 255, 255, 0.62);
+      white-space: nowrap;
+    }
     #page-overview .overview-policy-table .ovpol-day-input {
+      flex: 1 1 0;
       width: 100%;
       max-width: 100%;
       min-width: 0;
@@ -2319,8 +2336,17 @@
     });
   }
   if (overviewPolicyTbody) {
-    overviewPolicyTbody.addEventListener("input", () => {
+    overviewPolicyTbody.addEventListener("input", (e) => {
       if (overviewPolicyStatus) overviewPolicyStatus.textContent = "";
+      const t = e.target;
+      if (t && t.classList && t.classList.contains("ovpol-day-input")) {
+        const wrap = t.closest(".ovpol-day-edit-wrap");
+        const wd = wrap && wrap.querySelector(".ovpol-day-wd");
+        if (wd) {
+          const mo = parseInt(t.getAttribute("data-month"), 10);
+          wd.textContent = overviewPolicyWeekdayParen(Number.isFinite(mo) ? mo : 0, t.value);
+        }
+      }
     });
   }
   overviewPrevDaySyncToolbarLockUi();
@@ -2358,6 +2384,21 @@
     overviewPolicySyncToolbarLockUi();
   }
 
+  function overviewPolicyDayDigits(s) {
+    const m = String(s || "").trim().match(/^\d{1,2}/);
+    return m ? m[0] : "";
+  }
+
+  function overviewPolicyWeekdayParen(monthIndex, dayStr) {
+    const n = parseInt(overviewPolicyDayDigits(dayStr), 10);
+    if (!Number.isFinite(n) || n < 1 || n > 31) return "";
+    const y = new Date().getFullYear();
+    const dt = new Date(y, monthIndex, n);
+    if (dt.getFullYear() !== y || dt.getMonth() !== monthIndex || dt.getDate() !== n) return "";
+    const wk = ["일", "월", "화", "수", "목", "금", "토"];
+    return "(" + wk[dt.getDay()] + ")";
+  }
+
   function overviewPolicyDefaultState() {
     return {
       rows: OVERVIEW_POLICY_ROW_DEFS.map((def) => ({
@@ -2372,7 +2413,9 @@
     return {
       rows: OVERVIEW_POLICY_ROW_DEFS.map((def) => {
         const found = obj && Array.isArray(obj.rows) ? obj.rows.find((x) => String(x.key || "").trim() === def.key) : null;
-        const raw = found && Array.isArray(found.days) ? found.days.map((d) => String(d == null ? "" : d).trim()) : def.days.slice();
+        const raw = found && Array.isArray(found.days)
+          ? found.days.map((d) => overviewPolicyDayDigits(String(d == null ? "" : d)))
+          : def.days.map((d) => overviewPolicyDayDigits(String(d)));
         const padded = raw.slice(0, 12);
         while (padded.length < 12) padded.push("");
         return { key: def.key, label: def.label, days: padded };
@@ -2399,10 +2442,12 @@
       for (let m = 0; m < 12; m++) {
         const inp = tr.querySelector('input.ovpol-day-input[data-month="' + m + '"]');
         const sp = tr.querySelector('span.ovpol-day-plain[data-month="' + m + '"]');
-        if (inp) days.push(String(inp.value || "").trim());
-        else if (sp) {
+        if (inp) {
+          const mch = String(inp.value || "").trim().match(/^\d{1,2}/);
+          days.push(mch ? mch[0] : "");
+        } else if (sp) {
           const t = String(sp.textContent || "").trim();
-          days.push(t === "—" ? "" : t);
+          days.push(t === "—" ? "" : overviewPolicyDayDigits(t));
         } else days.push("");
       }
       rows.push({ key, days });
@@ -2435,13 +2480,16 @@
         "</th>";
       for (let m = 0; m < 12; m++) {
         const v = row.days[m] != null ? String(row.days[m]) : "";
+        const d = overviewPolicyDayDigits(v);
+        const wd = overviewPolicyWeekdayParen(m, d);
         if (locked) {
-          if (v)
+          if (d)
             h +=
               '<td><span class="ovpol-day-plain" data-month="' +
               m +
               '">' +
-              escapeHtml(v) +
+              escapeHtml(d) +
+              (wd ? " " + escapeHtml(wd) : "") +
               "</span></td>";
           else
             h +=
@@ -2450,13 +2498,17 @@
               '">—</span></td>';
         } else {
           h +=
-            '<td><input type="text" class="ovpol-day-input" inputmode="numeric" maxlength="2" autocomplete="off" spellcheck="false" data-month="' +
+            '<td><div class="ovpol-day-edit-wrap">' +
+            '<input type="text" class="ovpol-day-input" inputmode="numeric" maxlength="2" autocomplete="off" spellcheck="false" data-month="' +
             m +
             '" value="' +
-            escapeHtml(v) +
+            escapeHtml(d) +
             '" title="' +
             escapeHtml(String(m + 1) + "월 일자") +
-            '" /></td>';
+            '" />' +
+            '<span class="ovpol-day-wd" aria-hidden="true">' +
+            escapeHtml(wd) +
+            "</span></div></td>";
         }
       }
       h += "</tr>";
