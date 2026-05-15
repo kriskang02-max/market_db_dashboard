@@ -679,8 +679,17 @@
     #page-overview .overview-policy-table {
       border-collapse: collapse;
       font-size: 0.74rem;
-      width: max-content;
-      min-width: 100%;
+      table-layout: fixed;
+      width: 100%;
+      min-width: 0;
+    }
+    #page-overview .overview-policy-table col.ovpol-col-label {
+      width: 4.5rem;
+    }
+    #page-overview .overview-policy-table th.ovpol-mo--current,
+    #page-overview .overview-policy-table td.ovpol-mo--current {
+      background: rgba(59, 130, 246, 0.2);
+      box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.5);
     }
     #page-overview .overview-policy-table th,
     #page-overview .overview-policy-table td {
@@ -710,12 +719,12 @@
     }
     #page-overview .overview-policy-table .ovpol-day-input {
       width: 100%;
+      max-width: 100%;
       min-width: 0;
-      max-width: none;
       box-sizing: border-box;
       margin: 0;
       display: block;
-      padding: 0.2rem 0.35rem;
+      padding: 0.2rem 0.25rem;
       border-radius: 4px;
       border: 1px solid rgba(255, 255, 255, 0.18);
       background: rgba(0, 0, 0, 0.35);
@@ -726,12 +735,15 @@
     }
     #page-overview .overview-policy-table .ovpol-day-plain {
       display: block;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
       font-variant-numeric: tabular-nums;
       color: rgba(255, 255, 255, 0.96);
       line-height: 1.35;
-      min-height: calc(0.74rem * 1.35 + 0.4rem);
-      box-sizing: border-box;
-      padding: 0.2rem 0.35rem;
+      padding: 0.2rem 0.25rem;
+      margin: 0;
     }
     #page-overview .overview-policy-table .ovpol-day-plain--empty {
       color: rgba(255, 255, 255, 0.35);
@@ -1431,6 +1443,10 @@
             </div>
             <div class="overview-policy-table-wrap">
               <table class="overview-policy-table" id="overviewPolicyTable" aria-label="통화정책회의 일정">
+                <colgroup>
+                  <col class="ovpol-col-label" />
+                  <col span="12" class="ovpol-col-mo" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th class="ovpol-corner">월</th>
@@ -2446,6 +2462,30 @@
       h += "</tr>";
     });
     overviewPolicyTbody.innerHTML = h;
+    overviewPolicySyncCurrentMonthHighlight();
+  }
+
+  function overviewPolicySyncCurrentMonthHighlight() {
+    const cur = new Date().getMonth();
+    const table = document.getElementById("overviewPolicyTable");
+    if (!table) return;
+    const hr = table.querySelector("thead tr");
+    if (hr) {
+      hr.querySelectorAll("th").forEach((th, i) => {
+        if (i === 0) {
+          th.classList.remove("ovpol-mo--current");
+          return;
+        }
+        th.classList.toggle("ovpol-mo--current", i - 1 === cur && i <= 12);
+      });
+    }
+    if (overviewPolicyTbody) {
+      overviewPolicyTbody.querySelectorAll("tr[data-ovpol-key]").forEach((tr) => {
+        tr.querySelectorAll("td").forEach((td, i) => {
+          td.classList.toggle("ovpol-mo--current", i === cur && i < 12);
+        });
+      });
+    }
   }
 
   function parseCsvLine(line) {
