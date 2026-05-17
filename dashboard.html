@@ -836,8 +836,11 @@
     #page-overview .overview-keybond-table {
       border-collapse: collapse;
       font-size: 0.74rem;
-      width: max-content;
-      min-width: 100%;
+      table-layout: fixed;
+      width: 100%;
+    }
+    #page-overview .overview-keybond-table col.ovkb-col {
+      width: calc(100% / 9);
     }
     #page-overview .overview-keybond-table th,
     #page-overview .overview-keybond-table td {
@@ -861,16 +864,12 @@
     #page-overview .overview-keybond-table th.ovkb-col-issuer,
     #page-overview .overview-keybond-table td.ovkb-col-issuer {
       text-align: left;
-      min-width: 7rem;
-      max-width: 11rem;
-    }
-    #page-overview .overview-keybond-table th.ovkb-col-tenor,
-    #page-overview .overview-keybond-table td.ovkb-col-tenor {
-      min-width: 3.25rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     #page-overview .overview-keybond-table input.ovkb-issuer-input {
       width: 100%;
-      max-width: 10.5rem;
+      max-width: none;
       box-sizing: border-box;
       padding: 0.2rem 0.35rem;
       border-radius: 4px;
@@ -1553,6 +1552,9 @@
             </div>
             <div class="overview-keybond-table-wrap">
               <table class="overview-keybond-table" id="overviewKeyBondTable" aria-label="주요종목민평">
+                <colgroup>
+                  <col class="ovkb-col" span="9" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th aria-label="행 삭제"></th>
@@ -1638,6 +1640,12 @@
     { col: "4Y", csv: "4년" },
     { col: "5Y", csv: "5년" },
   ];
+  const OVERVIEW_KEYBOND_ISSUER_ALIASES = {
+    중소기업은행: "기업은행",
+    중기은행: "기업은행",
+    ibk: "기업은행",
+    kdb: "산업은행",
+  };
   /** @type {{ key: string, label: string, days: string[] }[]} */
   const OVERVIEW_POLICY_ROW_DEFS = [
     { key: "bok", label: "금통위", days: ["15", "26", "", "10", "28", "", "16", "27", "", "22", "26", ""] },
@@ -2471,6 +2479,22 @@
       tr.remove();
       if (overviewKeyBondStatus) overviewKeyBondStatus.textContent = "";
     });
+    overviewKeyBondTbody.addEventListener("input", (e) => {
+      const el = e.target;
+      if (!el || !el.classList.contains("ovkb-issuer-input")) return;
+      const tr = el.closest("tr[data-ovkb-id]");
+      if (!tr || overviewKeyBondIsLocked()) return;
+      overviewKeyBondApplyIssuer(tr);
+    });
+    overviewKeyBondTbody.addEventListener("keydown", (e) => {
+      const el = e.target;
+      if (!el || !el.classList.contains("ovkb-issuer-input") || e.key !== "Enter") return;
+      e.preventDefault();
+      const tr = el.closest("tr[data-ovkb-id]");
+      if (!tr || overviewKeyBondIsLocked()) return;
+      overviewKeyBondApplyIssuer(tr);
+      el.blur();
+    });
     overviewKeyBondTbody.addEventListener("focusout", (e) => {
       const el = e.target;
       if (!el || !el.classList.contains("ovkb-issuer-input")) return;
@@ -2677,6 +2701,24 @@
     return "ovkb_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
   }
 
+  function overviewKeyBondEnsureLookup() {
+    if (termTableRows.length && overviewKeyBondIssuerSet.size === 0) overviewKeyBondRebuildLookup();
+  }
+
+  function overviewKeyBondNormalizeIssuerQuery(q) {
+    const s = String(q || "").trim();
+    if (!s) return "";
+    const compact = s.replace(/\s+/g, "");
+    const lower = compact.toLowerCase();
+    for (const alias of Object.keys(OVERVIEW_KEYBOND_ISSUER_ALIASES)) {
+      const aliasCompact = alias.replace(/\s+/g, "");
+      if (s === alias || compact === aliasCompact || lower === aliasCompact.toLowerCase()) {
+        return OVERVIEW_KEYBOND_ISSUER_ALIASES[alias];
+      }
+    }
+    return s;
+  }
+
   function overviewKeyBondRebuildLookup() {
     overviewKeyBondLookup = new Map();
     overviewKeyBondIssuerSet = new Set();
@@ -2698,14 +2740,25 @@
   }
 
   function overviewKeyBondResolveIssuer(q) {
-    const s = String(q || "").trim();
+    overviewKeyBondEnsureLookup();
+    const s = overviewKeyBondNormalizeIssuerQuery(q);
     if (!s) return "";
     if (overviewKeyBondIssuerSet.has(s)) return s;
+    const lower = s.toLowerCase();
+    for (const iss of overviewKeyBondIssuerSet) {
+      if (String(iss).toLowerCase() === lower) return iss;
+    }
     const hits = [];
     overviewKeyBondIssuerSet.forEach((iss) => {
       if (String(iss).includes(s)) hits.push(iss);
     });
     if (hits.length === 1) return hits[0];
+    if (hits.length > 1) {
+      const exact = hits.filter((iss) => iss === s);
+      if (exact.length === 1) return exact[0];
+      hits.sort((a, b) => a.length - b.length || String(a).localeCompare(String(b), "ko"));
+      return hits[0];
+    }
     return "";
   }
 
@@ -2781,12 +2834,17 @@
   }
 
   function overviewKeyBondApplyIssuer(tr) {
+    overviewKeyBondEnsureLookup();
     const inp = tr.querySelector(".ovkb-issuer-input");
     if (!inp) return;
     const raw = inp.value.trim();
     tr.dataset.ovkbIssuerRaw = raw;
-    tr.dataset.ovkbIssuerResolved = overviewKeyBondResolveIssuer(raw);
+    const resolved = overviewKeyBondResolveIssuer(raw);
+    tr.dataset.ovkbIssuerResolved = resolved;
     overviewKeyBondSyncRowLockUi(tr);
+    if (overviewKeyBondStatus && raw && !resolved) {
+      overviewKeyBondStatus.textContent = "발행사를 bond_term에서 찾지 못했습니다.";
+    }
   }
 
   function overviewKeyBondDefaultRow() {
@@ -2824,6 +2882,10 @@
 
   function overviewKeyBondSaveToStorage() {
     if (overviewKeyBondIsLocked()) return;
+    overviewKeyBondEnsureLookup();
+    if (overviewKeyBondTbody) {
+      overviewKeyBondTbody.querySelectorAll("tr[data-ovkb-id]").forEach((tr) => overviewKeyBondApplyIssuer(tr));
+    }
     const rows = overviewKeyBondCollectFromDom();
     try {
       localStorage.setItem(
@@ -4203,6 +4265,16 @@
     if (isOverview) {
       overviewPolicyRenderFromState(overviewPolicyLoadSaved());
       overviewPolicySyncToolbarLockUi();
+      overviewKeyBondSyncToolbarLockUi();
+      ensureTermData().then(() => {
+        overviewKeyBondRebuildLookup();
+        overviewKeyBondFormatCsvAsOf();
+        if (!overviewKeyBondTbody || !overviewKeyBondTbody.querySelector("tr[data-ovkb-id]")) {
+          overviewKeyBondRenderFromState(overviewKeyBondLoadSaved());
+        } else {
+          overviewKeyBondRefreshAllRows();
+        }
+      });
       overviewPrevDaySyncToolbarLockUi();
       loadOverviewBondCsvFresh()
         .then(() => {
