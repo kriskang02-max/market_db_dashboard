@@ -860,8 +860,8 @@
       top: 0;
       z-index: 2;
       box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+      text-align: center;
     }
-    #page-overview .overview-keybond-table th.ovkb-col-issuer,
     #page-overview .overview-keybond-table td.ovkb-col-issuer {
       text-align: left;
       overflow: hidden;
@@ -891,6 +891,9 @@
     }
     #page-overview .overview-keybond-table .ovkb-rate--empty {
       color: rgba(255, 255, 255, 0.35);
+    }
+    #page-overview .overview-keybond-table td.ovkb-col-del {
+      text-align: center;
     }
     #page-overview .overview-keybond-table .ovkb-btn-del {
       padding: 0.15rem 0.35rem;
@@ -1557,7 +1560,6 @@
                 </colgroup>
                 <thead>
                   <tr>
-                    <th aria-label="행 삭제"></th>
                     <th class="ovkb-col-issuer">종목명</th>
                     <th class="ovkb-col-tenor">1Y</th>
                     <th class="ovkb-col-tenor">1.5Y</th>
@@ -1566,6 +1568,7 @@
                     <th class="ovkb-col-tenor">3Y</th>
                     <th class="ovkb-col-tenor">4Y</th>
                     <th class="ovkb-col-tenor">5Y</th>
+                    <th class="ovkb-col-del" aria-label="행 삭제"></th>
                   </tr>
                 </thead>
                 <tbody id="overviewKeyBondTbody"></tbody>
@@ -2768,6 +2771,11 @@
     return v && Number.isFinite(v.rate) ? v.rate : null;
   }
 
+  function overviewKeyBondFormatRate(r) {
+    if (!Number.isFinite(r)) return "—";
+    return formatNumFixed(r, 3);
+  }
+
   function overviewKeyBondFormatCsvAsOf() {
     if (!overviewKeyBondCsvAsOf) return;
     overviewKeyBondCsvAsOf.textContent = overviewKeyBondAsOfDate ? "bond_term " + overviewKeyBondAsOfDate : "";
@@ -2804,7 +2812,7 @@
       const rate = overviewKeyBondRateAt(resolved, csv);
       const empty = rate == null;
       td.innerHTML =
-        '<span class="ovkb-rate' + (empty ? " ovkb-rate--empty" : "") + '">' + escapeHtml(empty ? "—" : formatTermPctRate(rate)) + "</span>";
+        '<span class="ovkb-rate' + (empty ? " ovkb-rate--empty" : "") + '">' + escapeHtml(empty ? "—" : overviewKeyBondFormatRate(rate)) + "</span>";
     });
   }
 
@@ -2902,13 +2910,13 @@
   function overviewKeyBondCreateRowEl(r) {
     const tr = document.createElement("tr");
     tr.dataset.ovkbId = r.id;
-    let h = '<td><button type="button" class="ovkb-btn-del" aria-label="행 삭제">삭제</button></td>';
-    h +=
+    let h =
       '<td class="ovkb-col-issuer"><input type="text" class="ovkb-issuer-input" autocomplete="off" spellcheck="false" />' +
       '<span class="ovkb-issuer-plain" style="display:none" aria-hidden="true"></span></td>';
     OVERVIEW_KEYBOND_TENORS.forEach(({ col }) => {
       h += '<td class="ovkb-col-tenor" data-ovkb-tenor="' + col + '"><span class="ovkb-rate ovkb-rate--empty">—</span></td>';
     });
+    h += '<td class="ovkb-col-del"><button type="button" class="ovkb-btn-del" aria-label="행 삭제">삭제</button></td>';
     tr.innerHTML = h;
     const inp = tr.querySelector(".ovkb-issuer-input");
     if (inp) inp.value = r.issuer || "";
