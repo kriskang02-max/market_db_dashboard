@@ -743,6 +743,11 @@
       flex: 1 1 auto;
       min-width: 0.25rem;
     }
+    #page-overview .overview-memo-header-row .overview-prevday-toolbar {
+      margin-bottom: 0;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
     #page-overview .overview-memo-body {
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1773,7 +1778,9 @@
             <div class="overview-memo-header-row">
               <h3 class="overview-memo-title">메모장</h3>
               <span class="overview-memo-header-spacer" aria-hidden="true"></span>
-              <button type="button" id="overviewMemoSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
+              <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
+                <button type="button" id="overviewMemoSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
+              </div>
             </div>
             <div class="overview-memo-body">
               <textarea id="overviewMemoTextarea" class="overview-memo-textarea" placeholder="메모를 입력하세요…" spellcheck="false" rows="4"></textarea>
