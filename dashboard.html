@@ -257,16 +257,47 @@
       white-space: normal; line-height: 1.45;
       color: rgba(255,255,255,0.92); word-break: keep-all;
     }
+    .fund-return-ranking-header-row {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 0.28rem;
+      margin: 1.25rem 0 0.45rem;
+      min-height: calc(1.05rem * 1.35);
+      white-space: nowrap;
+    }
+    .fund-return-ranking-heading {
+      margin: 0;
+      flex: 0 0 auto;
+      font-size: 1.05rem;
+      line-height: 1.35;
+    }
+    .fund-return-ranking-header-spacer {
+      flex: 1 1 auto;
+      min-width: 0.25rem;
+    }
     .fund-return-ranking-toolbar {
       display: flex;
+      flex-wrap: nowrap;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-      margin: 0 0 0.45rem;
+      gap: 0.28rem;
+      margin: 0;
+      flex: 0 1 auto;
+      min-width: 0;
     }
-    .fund-return-ranking-mode-btn.is-active {
-      background: rgba(59, 130, 246, 0.55);
-      border-color: rgba(96, 165, 250, 0.65);
+    #page-fund .fund-return-ranking-toolbar > .sidebar.btn {
+      flex: 0 0 auto;
+      width: max-content;
+      min-width: 0;
+      max-width: none;
+      box-sizing: border-box;
+      padding: 0.1rem 0.32rem;
+      font-size: 0.74rem;
+      line-height: 1.35;
+      font-weight: 500;
+      color: #fff;
+    }
+    #page-fund .fund-return-ranking-toolbar > .sidebar.btn-secondary {
       color: #fff;
     }
     #fundReturnRankingWrap .fund-return-ranking-table thead th {
@@ -1511,10 +1542,13 @@
       <div id="fundTableMoWrap"></div>
       <div id="fundJaTitleRow" class="fund-summary__title-row fund-summary__title--sub"></div>
       <div id="fundTableJaWrap"></div>
-      <h3 class="fund-summary__title fund-summary__title--sub" style="margin-top:1.25rem;">수익률 랭킹</h3>
-      <motion.div class="fund-return-ranking-toolbar" id="fundReturnRankingToolbar">
-        <button type="button" id="fundReturnRankingMo" class="sidebar btn btn-primary fund-return-ranking-mode-btn is-active">모펀드</button>
-        <button type="button" id="fundReturnRankingJa" class="sidebar btn btn-secondary fund-return-ranking-mode-btn">자펀드</button>
+      <div class="fund-return-ranking-header-row">
+        <h3 class="fund-summary__title fund-return-ranking-heading">수익률 랭킹</h3>
+        <span class="fund-return-ranking-header-spacer" aria-hidden="true"></span>
+        <div class="fund-return-ranking-toolbar" id="fundReturnRankingToolbar">
+          <button type="button" id="fundReturnRankingMo" class="sidebar btn btn-primary ovpd-toolbar-act fund-return-ranking-mode-btn is-active">모펀드</button>
+          <button type="button" id="fundReturnRankingJa" class="sidebar btn btn-secondary ovpd-toolbar-act fund-return-ranking-mode-btn">자펀드</button>
+        </div>
       </div>
       <p class="fund-summary__note" style="margin:0 0 0.45rem;">상단 기준일·구간 시작일과 동일한 연환산 수익률(%) 기준입니다. 신한은 <strong>신한초단기채</strong> 포함 펀드만, 그 외는 운용사명(신한·KB·우리·하나·키움·교보·마이다스·흥국·KCGI)이 들어간 펀드를 대상으로 구간별 내림차순 나열합니다.</p>
       <div class="rates-table-wrap" id="fundReturnRankingWrap"></div>
@@ -3448,16 +3482,13 @@
 
   function syncFundReturnRankingModeUi() {
     const isMo = fundReturnRankingKind === "mo";
-    if (fundReturnRankingMoBtn) {
-      fundReturnRankingMoBtn.classList.toggle("is-active", isMo);
-      fundReturnRankingMoBtn.classList.toggle("btn-primary", isMo);
-      fundReturnRankingMoBtn.classList.toggle("btn-secondary", !isMo);
-    }
-    if (fundReturnRankingJaBtn) {
-      fundReturnRankingJaBtn.classList.toggle("is-active", !isMo);
-      fundReturnRankingJaBtn.classList.toggle("btn-primary", !isMo);
-      fundReturnRankingJaBtn.classList.toggle("btn-secondary", isMo);
-    }
+    [fundReturnRankingMoBtn, fundReturnRankingJaBtn].forEach((btn, i) => {
+      if (!btn) return;
+      const active = i === 0 ? isMo : !isMo;
+      btn.classList.toggle("is-active", active);
+      btn.classList.toggle("btn-primary", active);
+      btn.classList.toggle("btn-secondary", !active);
+    });
   }
 
   function renderFundReturnRanking() {
