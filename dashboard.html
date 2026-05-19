@@ -257,6 +257,58 @@
       white-space: normal; line-height: 1.45;
       color: rgba(255,255,255,0.92); word-break: keep-all;
     }
+    .fund-return-ranking-toolbar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin: 0 0 0.45rem;
+    }
+    .fund-return-ranking-mode-btn.is-active {
+      background: rgba(59, 130, 246, 0.55);
+      border-color: rgba(96, 165, 250, 0.65);
+      color: #fff;
+    }
+    #fundReturnRankingWrap .fund-return-ranking-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgba(14, 17, 23, 0.98);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+      text-align: center;
+    }
+    #fundReturnRankingWrap .fund-return-ranking-table thead th:first-child,
+    #fundReturnRankingWrap .fund-return-ranking-table tbody td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      background: rgba(26, 26, 46, 0.98);
+      box-shadow: 1px 0 0 rgba(255, 255, 255, 0.08);
+      text-align: center;
+    }
+    #fundReturnRankingWrap .fund-return-ranking-table thead th:first-child {
+      z-index: 4;
+      background: rgba(14, 17, 23, 0.98);
+    }
+    #fundReturnRankingWrap .fund-return-ranking-table thead th:nth-child(2),
+    #fundReturnRankingWrap .fund-return-ranking-table tbody td:nth-child(2) {
+      text-align: left;
+    }
+    .fund-return-ranking-table {
+      width: 100%;
+      max-width: 100%;
+    }
+    .fund-return-ranking-table th:first-child,
+    .fund-return-ranking-table td:first-child {
+      width: 4.2rem;
+      vertical-align: top;
+    }
+    .fund-return-ranking__body {
+      white-space: normal;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.92);
+      word-break: keep-all;
+    }
     .rates-analysis-outer { padding: 1rem 1.25rem 2rem; max-width: 100%; overflow-x: auto; background: #1a1a2e; }
     .rates-analysis-outer h2.rates-page-title { margin: 0 0 1rem; font-size: 1.35rem; font-weight: 700; color: rgba(255,255,255,0.96); }
     .rates-analysis-outer .rates-block { margin-bottom: 1.75rem; }
@@ -1459,6 +1511,14 @@
       <div id="fundTableMoWrap"></div>
       <div id="fundJaTitleRow" class="fund-summary__title-row fund-summary__title--sub"></div>
       <div id="fundTableJaWrap"></div>
+      <h3 class="fund-summary__title fund-summary__title--sub" style="margin-top:1.25rem;">수익률 랭킹</h3>
+      <motion.div class="fund-return-ranking-toolbar" id="fundReturnRankingToolbar">
+        <button type="button" id="fundReturnRankingMo" class="sidebar btn btn-primary fund-return-ranking-mode-btn is-active">모펀드</button>
+        <button type="button" id="fundReturnRankingJa" class="sidebar btn btn-secondary fund-return-ranking-mode-btn">자펀드</button>
+      </div>
+      <p class="fund-summary__note" style="margin:0 0 0.45rem;">상단 기준일·구간 시작일과 동일한 연환산 수익률(%) 기준입니다. 신한은 <strong>신한초단기채</strong> 포함 펀드만, 그 외는 운용사명(신한·KB·우리·하나·키움·교보·마이다스·흥국·KCGI)이 들어간 펀드를 대상으로 구간별 내림차순 나열합니다.</p>
+      <div class="rates-table-wrap" id="fundReturnRankingWrap"></div>
+
       <h3 class="fund-summary__title fund-summary__title--sub" style="margin-top:1.25rem;">6사 수탁고 변동</h3>
       <p class="fund-summary__note" style="margin:0 0 0.45rem;">모펀드 표와 동일 기준일·구간 시작일을 씁니다. 신한·KB·우리·하나·키움·교보 초단기(유사) 펀드만 매칭합니다(설정액 차이÷10⁸억, 절사).</p>
       <div class="rates-table-wrap" id="fundMoSixCustodyWrap"></div>
@@ -1751,6 +1811,10 @@
   const fundMoTitleRow = document.getElementById("fundMoTitleRow");
   const fundJaTitleRow = document.getElementById("fundJaTitleRow");
   const fundMoSixCustodyWrap = document.getElementById("fundMoSixCustodyWrap");
+  const fundReturnRankingWrap = document.getElementById("fundReturnRankingWrap");
+  const fundReturnRankingMoBtn = document.getElementById("fundReturnRankingMo");
+  const fundReturnRankingJaBtn = document.getElementById("fundReturnRankingJa");
+  let fundReturnRankingKind = "mo";
   const ratesAnalysisStatus = document.getElementById("ratesAnalysisStatus");
   const ratesTableKtbWrap = document.getElementById("ratesTableKtbWrap");
   const ratesTableCreditYldWrap = document.getElementById("ratesTableCreditYldWrap");
@@ -3310,6 +3374,100 @@
     ["YTD", "aYtd"],
   ];
 
+  const FUND_RETURN_RANKING_PERIODS = [
+    ["1주", "r1w"],
+    ["1달", "r1m"],
+    ["3달", "r3m"],
+    ["6달", "r6m"],
+    ["1년", "r1y"],
+    ["MTD", "rMtd"],
+    ["YTD", "rYtd"],
+  ];
+
+  /** 수익률 랭킹 대상 운용사(먼저 매칭된 규칙 적용) */
+  const FUND_RETURN_RANKING_SPECS = [
+    { short: "신한", pick: (n) => n.indexOf("신한초단기채") >= 0 },
+    { short: "KCGI", pick: (n) => n.indexOf("KCGI") >= 0 },
+    { short: "KB", pick: (n) => n.indexOf("KB") >= 0 },
+    { short: "마이다스", pick: (n) => n.indexOf("마이다스") >= 0 },
+    { short: "흥국", pick: (n) => n.indexOf("흥국") >= 0 },
+    { short: "교보", pick: (n) => n.indexOf("교보") >= 0 },
+    { short: "키움", pick: (n) => n.indexOf("키움") >= 0 },
+    { short: "하나", pick: (n) => n.indexOf("하나") >= 0 },
+    { short: "우리", pick: (n) => n.indexOf("우리") >= 0 },
+  ];
+
+  function fundReturnRankingLabelForFund(fundName) {
+    const n = String(fundName || "");
+    for (let i = 0; i < FUND_RETURN_RANKING_SPECS.length; i++) {
+      if (FUND_RETURN_RANKING_SPECS[i].pick(n)) return FUND_RETURN_RANKING_SPECS[i].short;
+    }
+    return null;
+  }
+
+  function fmtFundReturnRankingPct(x) {
+    if (x === null || x === undefined || Number.isNaN(x)) return "—";
+    return (x >= 0 ? "+" : "") + x.toFixed(2) + "%";
+  }
+
+  function fundReturnRankingEntriesForKind(kind, rangeStartYmd, metricsAsOfYmd) {
+    const out = [];
+    (fundNameList || []).forEach((name) => {
+      const isJa = isJaFundName(name);
+      if (kind === "ja" ? !isJa : isJa) return;
+      const short = fundReturnRankingLabelForFund(name);
+      if (!short) return;
+      const m = metricsForFund(name, rangeStartYmd || "", metricsAsOfYmd);
+      if (!m) return;
+      out.push({ fund: name, short, metrics: m });
+    });
+    return out;
+  }
+
+  function buildFundReturnRankingTableHtml(kind, rangeStartYmd, metricsAsOfYmd) {
+    const entries = fundReturnRankingEntriesForKind(kind, rangeStartYmd, metricsAsOfYmd);
+    let h =
+      '<table class="fund-metric-table fund-metric-table--summary fund-return-ranking-table"><thead><tr><th class="name-cell">구분</th><th>내용</th></tr></thead><tbody>';
+    for (let pi = 0; pi < FUND_RETURN_RANKING_PERIODS.length; pi++) {
+      const plab = FUND_RETURN_RANKING_PERIODS[pi][0];
+      const rk = FUND_RETURN_RANKING_PERIODS[pi][1];
+      const ranked = [];
+      for (let ei = 0; ei < entries.length; ei++) {
+        const r = entries[ei].metrics[rk];
+        if (!Number.isFinite(r)) continue;
+        ranked.push({ short: entries[ei].short, fund: entries[ei].fund, r });
+      }
+      ranked.sort((a, b) => b.r - a.r || String(a.short).localeCompare(String(b.short), "ko"));
+      const parts = ranked.map((x) => x.short + " (" + fmtFundReturnRankingPct(x.r) + ")");
+      const body = parts.length ? parts.join(", ") : "—";
+      h += "<tr><td class=\"name-cell\">" + escapeHtml(plab) + "</td><td class=\"fund-return-ranking__body\">" + escapeHtml(body) + "</td></tr>";
+    }
+    h += "</tbody></table>";
+    return h;
+  }
+
+  function syncFundReturnRankingModeUi() {
+    const isMo = fundReturnRankingKind === "mo";
+    if (fundReturnRankingMoBtn) {
+      fundReturnRankingMoBtn.classList.toggle("is-active", isMo);
+      fundReturnRankingMoBtn.classList.toggle("btn-primary", isMo);
+      fundReturnRankingMoBtn.classList.toggle("btn-secondary", !isMo);
+    }
+    if (fundReturnRankingJaBtn) {
+      fundReturnRankingJaBtn.classList.toggle("is-active", !isMo);
+      fundReturnRankingJaBtn.classList.toggle("btn-primary", !isMo);
+      fundReturnRankingJaBtn.classList.toggle("btn-secondary", isMo);
+    }
+  }
+
+  function renderFundReturnRanking() {
+    if (!fundReturnRankingWrap) return;
+    syncFundReturnRankingModeUi();
+    const preserved = getFundRangeStartYmd();
+    const metricsAsOfYmd = getFundMetricsAsOfYmd();
+    fundReturnRankingWrap.innerHTML = buildFundReturnRankingTableHtml(fundReturnRankingKind, preserved, metricsAsOfYmd);
+  }
+
   function fmtCustodyEokPlain(x) {
     if (x === null || x === undefined || Number.isNaN(x)) return "—";
     const t = Math.trunc(x);
@@ -4312,6 +4470,7 @@
     if (fundMoSixCustodyWrap) {
       fundMoSixCustodyWrap.innerHTML = buildMoSixCustodyTableHtml(preserved, metricsAsOfYmd);
     }
+    renderFundReturnRanking();
     populateFundCompareFromTables(moSorted, jaSorted);
     renderFundComparePair("mo");
     renderFundComparePair("ja");
@@ -4444,6 +4603,7 @@
         if (fundTableMoWrap) fundTableMoWrap.innerHTML = "";
         if (fundTableJaWrap) fundTableJaWrap.innerHTML = "";
         if (fundMoSixCustodyWrap) fundMoSixCustodyWrap.innerHTML = "";
+        if (fundReturnRankingWrap) fundReturnRankingWrap.innerHTML = "";
         const gMo = document.getElementById("fundCompareMoChart");
         const gJa = document.getElementById("fundCompareJaChart");
         try {
@@ -5809,6 +5969,20 @@
     }
     fundSummaryOuter.addEventListener("change", onFundMetricsAsOfChange);
     fundSummaryOuter.addEventListener("input", onFundMetricsAsOfChange);
+  }
+  if (fundReturnRankingMoBtn) {
+    fundReturnRankingMoBtn.addEventListener("click", () => {
+      if (fundReturnRankingKind === "mo") return;
+      fundReturnRankingKind = "mo";
+      renderFundReturnRanking();
+    });
+  }
+  if (fundReturnRankingJaBtn) {
+    fundReturnRankingJaBtn.addEventListener("click", () => {
+      if (fundReturnRankingKind === "ja") return;
+      fundReturnRankingKind = "ja";
+      renderFundReturnRanking();
+    });
   }
 
   if (ratesHistoryDaysInput) {
