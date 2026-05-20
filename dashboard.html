@@ -765,6 +765,8 @@
       display: flex;
       flex-direction: column;
       align-items: stretch;
+      --ovpd-row-h: calc(0.74rem * 1.35 + 0.56rem);
+      --ovpd-visible-rows: 20;
     }
     #page-overview .overview-right-stack {
       flex: 1 1 36rem;
@@ -1337,8 +1339,9 @@
       color: rgba(255, 255, 255, 0.55);
     }
     #page-overview .overview-prevday-table-wrap {
-      max-height: min(72vh, 36rem);
-      overflow: auto;
+      max-height: calc(var(--ovpd-row-h) * (var(--ovpd-visible-rows) + 1));
+      overflow-x: auto;
+      overflow-y: auto;
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(14, 17, 23, 0.45);
@@ -2228,7 +2231,54 @@
   function normalizeBondAbbrev(s) {
     let t = String(s || "").trim();
     if (t.startsWith("'")) t = t.slice(1).trim();
+    const m = t.match(/^(\d{2})-(\d{1,2})$/);
+    if (m) return m[1] + "-" + String(parseInt(m[2], 10));
     return t;
+  }
+
+  function bondAbbrevLookupKeys(raw) {
+    const keys = [];
+    const norm = normalizeBondAbbrev(raw);
+    if (norm) keys.push(norm);
+    const trimmed = String(raw || "").trim();
+    if (trimmed && trimmed !== norm) keys.push(trimmed.replace(/^'/, ""));
+    return [...new Set(keys.filter(Boolean))];
+  }
+
+  function excelSerialToYmd(serial) {
+    const n = Math.floor(parseFloat(String(serial).replace(/,/g, ""), 10));
+    if (!Number.isFinite(n) || n < 1) return "";
+    const base = Date.UTC(1899, 11, 30);
+    const dt = new Date(base + n * 86400000);
+    if (!Number.isFinite(dt.getTime())) return "";
+    return (
+      dt.getUTCFullYear() +
+      "-" +
+      String(dt.getUTCMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(dt.getUTCDate()).padStart(2, "0")
+    );
+  }
+
+  /** bond_db CSV 만기일: YYYY-MM-DD 또는 Excel 일련번호(예: 56867) */
+  function parseBondMaturityYmd(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+      const p = s.split("-");
+      return (
+        p[0] +
+        "-" +
+        String(parseInt(p[1], 10)).padStart(2, "0") +
+        "-" +
+        String(parseInt(p[2], 10)).padStart(2, "0")
+      );
+    }
+    if (/^\d{5,6}(\.\d+)?$/.test(s)) {
+      const ymd = excelSerialToYmd(s);
+      if (ymd) return ymd;
+    }
+    return s;
   }
 
   function parseBondCsvNum(v) {
@@ -2238,7 +2288,7 @@
 
   function bondRowToEntry(r) {
     return {
-      maturity: String(r["만기일"] || "").trim(),
+      maturity: parseBondMaturityYmd(r["만기일"]),
       duration: String(r["듀레이션"] || "").trim(),
       prevFair: parseBondCsvNum(r["전일민평"]),
       csvVolBp: parseBondCsvNum(r["변동"]),
@@ -2247,12 +2297,18 @@
     };
   }
 
+  function registerBondAbbrevKeys(abbrevMap, abbrevRaw, ent) {
+    bondAbbrevLookupKeys(abbrevRaw).forEach((k) => abbrevMap.set(k, ent));
+    const fromName = String(ent.fullName || "").match(/\((\d{2}-\d{1,2})\)/);
+    if (fromName) bondAbbrevLookupKeys(fromName[1]).forEach((k) => abbrevMap.set(k, ent));
+  }
+
   function mergeBondLookupFromRowsInto(rows, abbrevMap, codeMap) {
     rows.forEach((r) => {
       const ent = bondRowToEntry(r);
-      const abbrev = normalizeBondAbbrev(r["축약"] || "");
+      const abbrev = String(r["축약"] || "").trim();
       if (ent.code) codeMap.set(ent.code, ent);
-      if (abbrev) abbrevMap.set(abbrev, ent);
+      if (abbrev) registerBondAbbrevKeys(abbrevMap, abbrev, ent);
     });
   }
 
@@ -2268,8 +2324,11 @@
   function findBondEntryForUserKey(raw) {
     const trimmed = String(raw || "").trim();
     if (!trimmed) return null;
-    const byAbbrev = bondByAbbrev.get(normalizeBondAbbrev(trimmed));
-    if (byAbbrev) return byAbbrev;
+    const keys = bondAbbrevLookupKeys(trimmed);
+    for (let i = 0; i < keys.length; i++) {
+      const ent = bondByAbbrev.get(keys[i]);
+      if (ent) return ent;
+    }
     return bondByCode.get(trimmed) || null;
   }
 
