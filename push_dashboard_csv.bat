@@ -26,11 +26,11 @@ if errorlevel 1 (
 
 git diff --cached --quiet
 if not errorlevel 1 (
-  echo 커밋할 변경이 없습니다. ^(추적 CSV가 이전 커밋과 동일합니다^)
+  echo 커밋할 변경이 없습니다. ^(CSV·overview_state.json 이 이전 커밋과 동일합니다^)
   exit /b 0
 )
 
-git commit -m "chore: update market_db, fund_db, term_table_long, bond_db CSV"
+git commit -m "chore: update dashboard CSV and overview_state"
 if errorlevel 1 (
   echo git commit 실패
   exit /b 1

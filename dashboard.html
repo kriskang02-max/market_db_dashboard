@@ -690,6 +690,67 @@
       max-width: 100%;
       background: #1a1a2e;
     }
+    #page-overview .overview-sync-banner {
+      margin: 0 0 0.75rem;
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.88);
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+    #page-overview .overview-sync-banner.is-warn {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.45);
+      color: rgba(255, 237, 213, 0.95);
+    }
+    #page-overview .overview-sync-banner button.overview-sync-import-btn {
+      margin-left: 0.35rem;
+      padding: 0.08rem 0.35rem;
+      font-size: 0.72rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.08);
+      color: inherit;
+      cursor: pointer;
+    }
+    #page-overview .overview-firebase-setup {
+      margin: 0 0 0.75rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    #page-overview .overview-firebase-setup p {
+      margin: 0 0 0.45rem;
+    }
+    #page-overview .overview-firebase-setup label {
+      display: block;
+      margin: 0.35rem 0 0.12rem;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.75);
+    }
+    #page-overview .overview-firebase-setup input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.22rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.35);
+      color: #fff;
+      font-size: 0.74rem;
+    }
+    #page-overview .overview-firebase-setup-actions {
+      margin-top: 0.45rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+    }
     #page-overview .overview-layout {
       display: flex;
       flex-wrap: wrap;
@@ -1736,6 +1797,28 @@
 
   <div id="page-overview" class="page">
     <div class="overview-outer">
+      <p id="overviewSyncBanner" class="overview-sync-banner is-warn" role="status">
+        Overview 공유 데이터 확인 중…
+      </p>
+      <input type="file" id="overviewSyncFileInput" accept=".json,application/json" hidden />
+      <div id="overviewFirebaseSetup" class="overview-firebase-setup" hidden>
+        <p>
+          <strong>휴대폰과 저장 내용을 맞추려면</strong> Firebase 연결이 필요합니다 (최초 1회).
+          자세한 방법: 저장소의 <code>FIREBASE_OVERVIEW_SETUP.md</code>
+        </p>
+        <label for="overviewFbApiKey">apiKey</label>
+        <input type="text" id="overviewFbApiKey" autocomplete="off" spellcheck="false" />
+        <label for="overviewFbDatabaseUrl">databaseURL</label>
+        <input type="text" id="overviewFbDatabaseUrl" autocomplete="off" spellcheck="false" placeholder="https://....firebasedatabase.app" />
+        <label for="overviewFbAuthDomain">authDomain</label>
+        <input type="text" id="overviewFbAuthDomain" autocomplete="off" spellcheck="false" />
+        <label for="overviewFbProjectId">projectId</label>
+        <input type="text" id="overviewFbProjectId" autocomplete="off" spellcheck="false" />
+        <div class="overview-firebase-setup-actions">
+          <button type="button" id="overviewFbSaveConfig" class="sidebar btn btn-primary ovpd-toolbar-act">연결 저장</button>
+          <span id="overviewFbSetupStatus" class="overview-memo-status" style="margin:0;text-align:left"></span>
+        </div>
+      </div>
       <div class="overview-layout">
         <div class="overview-prevday-block">
           <div class="overview-prevday-header-row">
@@ -1863,6 +1946,9 @@
     </div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="firebase_overview_config.js"></script>
   <script>
 (function () {
   const PREFERRED_ORDER = [
@@ -1925,6 +2011,8 @@
 
   const OVERVIEW_PREVDAY_STORAGE_KEY = "market_db_dashboard_overview_prevday_v1";
   const OVERVIEW_SYNC_META_KEY = "market_db_dashboard_overview_sync_meta_v1";
+  const OVERVIEW_FIREBASE_LS_KEY = "market_db_dashboard_firebase_config_v1";
+  const OVERVIEW_FIREBASE_DB_PATH = "overview_state_v1";
   const OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY = "market_db_dashboard_overview_prevday_toolbar_lock_v1";
   const OVERVIEW_POLICY_STORAGE_KEY = "market_db_dashboard_overview_policy_meetings_v1";
   const OVERVIEW_POLICY_LOCK_KEY = "market_db_dashboard_overview_policy_toolbar_lock_v1";
@@ -2055,6 +2143,18 @@
   let overviewMemoLastPersisted = null;
   let overviewMemoAutosaveTimer = null;
   let overviewSyncLoadPromise = null;
+  let overviewSyncPostSupported = null;
+  let overviewFirebaseDb = null;
+  let overviewFirebaseListenerOff = null;
+  const overviewSyncBanner = document.getElementById("overviewSyncBanner");
+  const overviewSyncFileInput = document.getElementById("overviewSyncFileInput");
+  const overviewFirebaseSetup = document.getElementById("overviewFirebaseSetup");
+  const overviewFbApiKey = document.getElementById("overviewFbApiKey");
+  const overviewFbDatabaseUrl = document.getElementById("overviewFbDatabaseUrl");
+  const overviewFbAuthDomain = document.getElementById("overviewFbAuthDomain");
+  const overviewFbProjectId = document.getElementById("overviewFbProjectId");
+  const overviewFbSaveConfig = document.getElementById("overviewFbSaveConfig");
+  const overviewFbSetupStatus = document.getElementById("overviewFbSetupStatus");
   const overviewKeyBondTbody = document.getElementById("overviewKeyBondTbody");
   const overviewKeyBondSave = document.getElementById("overviewKeyBondSave");
   const overviewKeyBondAddRow = document.getElementById("overviewKeyBondAddRow");
@@ -2357,8 +2457,8 @@
         })),
       };
       localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(payload));
-      overviewSyncPersistAll().then((fileOk) => {
-        if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = overviewSyncManualSaveStatus(fileOk);
+      overviewSyncPersistAll({ manual: true }).then((res) => {
+        if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = overviewSyncManualSaveStatus(res);
       });
     } catch (e) {
       if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
@@ -2759,10 +2859,52 @@
       if (overviewMemoStatus) overviewMemoStatus.textContent = "";
     });
   }
-  overviewSyncEnsureLoaded().then(() => {
+  overviewFirebaseSyncSetupUi();
+  if (overviewFbSaveConfig) {
+    overviewFbSaveConfig.addEventListener("click", () => overviewFirebaseSaveConfigFromForm());
+  }
+  overviewSyncEnsureLoaded(false).then(() => {
     overviewMemoLoadFromStorage();
+    overviewFirebaseSyncSetupUi();
+    if (overviewFirebaseIsConfigured()) overviewFirebaseStartListener();
   });
   overviewMemoEnsureAutosaveTimer();
+  if (overviewSyncFileInput) {
+    overviewSyncFileInput.addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const snap = JSON.parse(String(reader.result || ""));
+          if (!overviewSyncApplyFromSnapshotObject(snap)) throw new Error("invalid snapshot");
+          if (snap.updatedAt) {
+            localStorage.setItem(OVERVIEW_SYNC_META_KEY, JSON.stringify({ updatedAt: snap.updatedAt }));
+          }
+          overviewSyncUpdateBanner(snap, true);
+          if (pageOverviewEl && pageOverviewEl.classList.contains("is-active")) {
+            overviewSyncRefreshOverviewUi();
+          }
+        } catch (err) {
+          if (overviewSyncBanner) {
+            overviewSyncBanner.classList.add("is-warn");
+            overviewSyncBanner.textContent =
+              "파일 불러오기 실패: " + (err && err.message ? err.message : String(err));
+          }
+        }
+      };
+      reader.readAsText(f, "UTF-8");
+    });
+  }
+  if (overviewSyncBanner) {
+    overviewSyncBanner.addEventListener("click", (e) => {
+      if (e.target && e.target.closest && e.target.closest("button.overview-sync-import-btn")) return;
+      if (overviewSyncFileInput) overviewSyncFileInput.click();
+    });
+    overviewSyncBanner.title = "클릭하면 overview_state.json 파일을 불러올 수 있습니다";
+    overviewSyncBanner.style.cursor = "pointer";
+  }
   if (overviewPolicyLock) {
     overviewPolicyLock.addEventListener("click", () => {
       overviewPolicySetLocked(!overviewPolicyIsLocked());
@@ -2918,11 +3060,11 @@
     try {
       localStorage.setItem(OVERVIEW_MEMO_STORAGE_KEY, text);
       overviewMemoLastPersisted = text;
-      overviewSyncPersistAll().then((fileOk) => {
+      overviewSyncPersistAll({ manual: !isAuto }).then((res) => {
         if (overviewMemoStatus) {
           overviewMemoStatus.textContent = isAuto
-            ? overviewSyncAutosaveStatus(fileOk)
-            : overviewSyncManualSaveStatus(fileOk);
+            ? overviewSyncAutosaveStatus(res)
+            : overviewSyncManualSaveStatus(res);
         }
       });
     } catch (e) {
@@ -3050,8 +3192,8 @@
     const payload = overviewPolicyCollectFromDom();
     try {
       localStorage.setItem(OVERVIEW_POLICY_STORAGE_KEY, JSON.stringify(payload));
-      overviewSyncPersistAll().then((fileOk) => {
-        if (overviewPolicyStatus) overviewPolicyStatus.textContent = overviewSyncManualSaveStatus(fileOk);
+      overviewSyncPersistAll({ manual: true }).then((res) => {
+        if (overviewPolicyStatus) overviewPolicyStatus.textContent = overviewSyncManualSaveStatus(res);
       });
     } catch (e) {
       if (overviewPolicyStatus) overviewPolicyStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
@@ -3344,8 +3486,8 @@
         OVERVIEW_KEYBOND_STORAGE_KEY,
         JSON.stringify({ rows: rows.map((r) => ({ id: r.id, issuer: r.issuer })) })
       );
-      overviewSyncPersistAll().then((fileOk) => {
-        if (overviewKeyBondStatus) overviewKeyBondStatus.textContent = overviewSyncManualSaveStatus(fileOk);
+      overviewSyncPersistAll({ manual: true }).then((res) => {
+        if (overviewKeyBondStatus) overviewKeyBondStatus.textContent = overviewSyncManualSaveStatus(res);
       });
     } catch (e) {
       if (overviewKeyBondStatus)
@@ -3353,21 +3495,147 @@
     }
   }
 
-  function overviewSyncManualSaveStatus(fileOk) {
-    if (fileOk) return "저장됨 · overview_state.json (git 푸시 시 다른 기기 반영)";
+  function overviewFirebaseGetConfig() {
+    const fromFile = window.FIREBASE_OVERVIEW_CONFIG;
+    if (fromFile && fromFile.databaseURL && fromFile.apiKey) return fromFile;
+    try {
+      const raw = localStorage.getItem(OVERVIEW_FIREBASE_LS_KEY);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      if (o && o.databaseURL && o.apiKey) return o;
+    } catch (_) {}
+    return null;
+  }
+
+  function overviewFirebaseGetDb() {
+    const cfg = overviewFirebaseGetConfig();
+    if (!cfg || typeof firebase === "undefined") return null;
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(cfg);
+      if (!overviewFirebaseDb) overviewFirebaseDb = firebase.database();
+      return overviewFirebaseDb;
+    } catch (e) {
+      console.warn("Firebase init failed", e);
+      return null;
+    }
+  }
+
+  function overviewFirebaseRef() {
+    const db = overviewFirebaseGetDb();
+    return db ? db.ref(OVERVIEW_FIREBASE_DB_PATH) : null;
+  }
+
+  function overviewFirebaseIsConfigured() {
+    return !!overviewFirebaseRef();
+  }
+
+  function overviewFirebaseSyncSetupUi() {
+    if (overviewFirebaseSetup) overviewFirebaseSetup.hidden = overviewFirebaseIsConfigured();
+  }
+
+  function overviewFirebaseStartListener() {
+    const ref = overviewFirebaseRef();
+    if (!ref) return;
+    if (overviewFirebaseListenerOff) overviewFirebaseListenerOff();
+    overviewFirebaseListenerOff = ref.on("value", (snap) => {
+      const val = snap.val();
+      if (!val || val.version !== 1 || !overviewSyncShouldApplyFile(val)) return;
+      overviewSyncApplySnapshot(val);
+      if (pageOverviewEl && pageOverviewEl.classList.contains("is-active")) {
+        overviewSyncRefreshOverviewUi();
+      }
+      overviewSyncUpdateBanner(val, true);
+    });
+  }
+
+  function overviewFirebaseStopListener() {
+    if (overviewFirebaseListenerOff) {
+      overviewFirebaseListenerOff();
+      overviewFirebaseListenerOff = null;
+    }
+  }
+
+  function overviewFirebaseSaveConfigFromForm() {
+    const cfg = {
+      apiKey: overviewFbApiKey ? String(overviewFbApiKey.value || "").trim() : "",
+      databaseURL: overviewFbDatabaseUrl ? String(overviewFbDatabaseUrl.value || "").trim() : "",
+      authDomain: overviewFbAuthDomain ? String(overviewFbAuthDomain.value || "").trim() : "",
+      projectId: overviewFbProjectId ? String(overviewFbProjectId.value || "").trim() : "",
+    };
+    if (!cfg.apiKey || !cfg.databaseURL) {
+      if (overviewFbSetupStatus) overviewFbSetupStatus.textContent = "apiKey와 databaseURL을 입력하세요.";
+      return Promise.resolve(false);
+    }
+    try {
+      localStorage.setItem(OVERVIEW_FIREBASE_LS_KEY, JSON.stringify(cfg));
+    } catch (e) {
+      if (overviewFbSetupStatus) overviewFbSetupStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
+      return Promise.resolve(false);
+    }
+    overviewFirebaseDb = null;
+    const ref = overviewFirebaseRef();
+    if (!ref) {
+      if (overviewFbSetupStatus) overviewFbSetupStatus.textContent = "Firebase 연결 실패 — 값을 확인하세요.";
+      return Promise.resolve(false);
+    }
+    return ref
+      .set({ version: 1, updatedAt: new Date().toISOString(), ping: true })
+      .then(() => {
+        if (overviewFbSetupStatus)
+          overviewFbSetupStatus.textContent =
+            "연결됨 · 이 기기에서 사용 가능. 모든 기기에 쓰려면 firebase_overview_config.js 에 같은 값을 넣고 GitHub에 올리세요.";
+        overviewFirebaseSyncSetupUi();
+        overviewFirebaseStartListener();
+        overviewSyncLoadPromise = null;
+        return true;
+      })
+      .catch((e) => {
+        if (overviewFbSetupStatus)
+          overviewFbSetupStatus.textContent = "연결 실패: " + (e && e.message ? e.message : String(e));
+        return false;
+      });
+  }
+
+  function overviewSyncIsReadOnlyHost() {
+    const h = (location.hostname || "").toLowerCase();
+    return h.endsWith(".github.io") || h.includes("githubusercontent.com");
+  }
+
+  function overviewSyncManualSaveStatus(res) {
+    const fileOk = res && res.fileOk;
+    const cloud = res && res.cloud;
+    const downloaded = res && res.downloaded;
+    if (cloud) return "저장됨 · PC·휴대폰에 반영됩니다";
+    if (fileOk) return "저장됨 · overview_state.json (push 시 다른 기기 반영)";
+    if (downloaded)
+      return "저장됨 · overview_state.json 다운로드됨 → 폴더에 넣고 push";
+    if (!overviewFirebaseIsConfigured() && overviewSyncIsReadOnlyHost())
+      return "저장됨 · 이 기기만 (상단 Firebase 연결 후 다시 저장하면 휴대폰에도 보임)";
     if (location.protocol === "http:" || location.protocol === "https:")
-      return "저장됨 · 이 브라우저만 (공유: serve_dashboard.py 로 실행)";
+      return "저장됨 · 이 브라우저만 (클라우드 미연결)";
     return "저장됨 · 브라우저에만 보관";
   }
 
-  function overviewSyncAutosaveStatus(fileOk) {
+  function overviewSyncAutosaveStatus(res) {
     const t = overviewMemoFormatSavedAt(Date.now());
-    if (fileOk) return "자동 저장됨 · overview_state.json · " + t;
+    const fileOk = res && (res.fileOk || res.cloud);
+    if (fileOk) return "자동 저장됨 · " + t;
     return "자동 저장됨 · " + t;
   }
 
+  function overviewSyncSnapshotHasData(snap) {
+    if (!snap || snap.version !== 1) return false;
+    if (snap.updatedAt) return true;
+    if (snap.memo && String(snap.memo).trim()) return true;
+    if (snap.prevday && Array.isArray(snap.prevday.rows) && snap.prevday.rows.length) return true;
+    if (snap.policy && Array.isArray(snap.policy.rows)) return true;
+    if (snap.keybond && Array.isArray(snap.keybond.rows) && snap.keybond.rows.length) return true;
+    return false;
+  }
+
   function overviewSyncShouldApplyFile(snap) {
-    if (!snap || snap.version !== 1 || !snap.updatedAt) return false;
+    if (!overviewSyncSnapshotHasData(snap)) return false;
+    if (!snap.updatedAt) return false;
     try {
       const raw = localStorage.getItem(OVERVIEW_SYNC_META_KEY);
       if (!raw) return true;
@@ -3377,6 +3645,76 @@
     } catch (_) {
       return true;
     }
+  }
+
+  function overviewSyncFormatUpdatedAt(iso) {
+    if (!iso) return "";
+    try {
+      return new Date(iso).toLocaleString("ko-KR", {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (_) {
+      return String(iso);
+    }
+  }
+
+  function overviewSyncUpdateBanner(snap, applied) {
+    if (!overviewSyncBanner) return;
+    overviewFirebaseSyncSetupUi();
+    overviewSyncBanner.classList.remove("is-warn");
+    if (overviewFirebaseIsConfigured()) {
+      if (snap && snap.updatedAt) {
+        overviewSyncBanner.textContent =
+          "클라우드 동기화 · " +
+          overviewSyncFormatUpdatedAt(snap.updatedAt) +
+          (applied ? " · 적용됨" : "") +
+          " — 저장하면 PC·휴대폰에 같은 내용이 보입니다.";
+      } else {
+        overviewSyncBanner.textContent =
+          "클라우드 연결됨 — 저장 버튼을 누르면 PC·휴대폰에서 같은 Overview 내용을 볼 수 있습니다.";
+      }
+      return;
+    }
+    overviewSyncBanner.classList.add("is-warn");
+    if (overviewSyncIsReadOnlyHost()) {
+      overviewSyncBanner.textContent =
+        "클라우드 미연결 — 아래 Firebase 설정(최초 1회) 후 저장하면 휴대폰에서도 보입니다. (FIREBASE_OVERVIEW_SETUP.md)";
+      return;
+    }
+    if (snap && snap.updatedAt) {
+      overviewSyncBanner.textContent =
+        "공유 데이터: " + overviewSyncFormatUpdatedAt(snap.updatedAt) + (applied ? " · 적용됨" : "");
+    } else {
+      overviewSyncBanner.textContent = "클라우드 미연결 — Firebase 설정 또는 serve_dashboard.py 로 저장하세요.";
+    }
+  }
+
+  function overviewSyncDownloadSnapshot(snapshot) {
+    try {
+      const blob = new Blob([JSON.stringify(snapshot, null, 2) + "\n"], {
+        type: "application/json;charset=utf-8",
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "overview_state.json";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function overviewSyncApplyFromSnapshotObject(snap) {
+    if (!snap || snap.version !== 1) return false;
+    overviewSyncApplySnapshot(snap);
+    return true;
   }
 
   function overviewSyncApplySnapshot(snap) {
@@ -3455,8 +3793,26 @@
     };
   }
 
+  function overviewSyncSaveToCloud(snapshot) {
+    const ref = overviewFirebaseRef();
+    if (!ref) return Promise.resolve(false);
+    return ref
+      .set(snapshot)
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  function overviewSyncLoadFromCloud() {
+    const ref = overviewFirebaseRef();
+    if (!ref) return Promise.resolve(null);
+    return ref
+      .once("value")
+      .then((snap) => snap.val())
+      .catch(() => null);
+  }
+
   function overviewSyncSaveToFile(snapshot) {
-    if (!OVERVIEW_STATE_POST_PATH) return Promise.resolve(false);
+    if (!OVERVIEW_STATE_POST_PATH || overviewSyncIsReadOnlyHost()) return Promise.resolve(false);
     const body = JSON.stringify(snapshot, null, 2);
     return fetch(OVERVIEW_STATE_POST_PATH, {
       method: "POST",
@@ -3464,11 +3820,18 @@
       body,
       cache: "no-store",
     })
-      .then((r) => r.ok)
-      .catch(() => false);
+      .then((r) => {
+        overviewSyncPostSupported = r.ok;
+        return r.ok;
+      })
+      .catch(() => {
+        overviewSyncPostSupported = false;
+        return false;
+      });
   }
 
-  function overviewSyncPersistAll() {
+  function overviewSyncPersistAll(opts) {
+    const manual = !!(opts && opts.manual);
     const snap = overviewSyncCollectSnapshot();
     try {
       if (snap.memo != null) localStorage.setItem(OVERVIEW_MEMO_STORAGE_KEY, String(snap.memo));
@@ -3482,7 +3845,20 @@
       }
       localStorage.setItem(OVERVIEW_SYNC_META_KEY, JSON.stringify({ updatedAt: snap.updatedAt }));
     } catch (_) {}
-    return overviewSyncSaveToFile(snap);
+    return overviewSyncSaveToCloud(snap).then((cloudOk) => {
+      if (cloudOk) {
+        overviewSyncUpdateBanner(snap, true);
+        return { fileOk: true, cloud: true, downloaded: false };
+      }
+      return overviewSyncSaveToFile(snap).then((fileOk) => {
+        let downloaded = false;
+        if (!fileOk && manual && (location.protocol === "http:" || location.protocol === "https:")) {
+          downloaded = overviewSyncDownloadSnapshot(snap);
+        }
+        overviewSyncUpdateBanner(snap, true);
+        return { fileOk, cloud: false, downloaded };
+      });
+    });
   }
 
   function overviewSyncFetchState() {
@@ -3491,14 +3867,50 @@
       .catch(() => null);
   }
 
-  function overviewSyncEnsureLoaded() {
-    if (!overviewSyncLoadPromise) {
-      overviewSyncLoadPromise = overviewSyncFetchState().then((snap) => {
-        if (snap && overviewSyncShouldApplyFile(snap)) overviewSyncApplySnapshot(snap);
-        return snap;
+  function overviewSyncReloadAndApply() {
+    if (overviewFirebaseRef()) {
+      overviewSyncLoadPromise = overviewSyncLoadFromCloud().then((snap) => {
+        const applied = !!(snap && overviewSyncShouldApplyFile(snap) && (overviewSyncApplySnapshot(snap), true));
+        overviewSyncUpdateBanner(snap, applied);
+        return { snap, applied };
       });
+      return overviewSyncLoadPromise;
     }
+    overviewSyncLoadPromise = overviewSyncFetchState().then((snap) => {
+      const applied = !!(snap && overviewSyncShouldApplyFile(snap) && (overviewSyncApplySnapshot(snap), true));
+      overviewSyncUpdateBanner(snap, applied);
+      return { snap, applied };
+    });
     return overviewSyncLoadPromise;
+  }
+
+  function overviewSyncEnsureLoaded(forceReload) {
+    if (forceReload) return overviewSyncReloadAndApply();
+    if (!overviewSyncLoadPromise) return overviewSyncReloadAndApply();
+    return overviewSyncLoadPromise;
+  }
+
+  function overviewSyncRefreshOverviewUi() {
+    overviewMemoLoadFromStorage();
+    overviewPolicyRenderFromState(overviewPolicyLoadSaved());
+    overviewPolicySyncToolbarLockUi();
+    overviewKeyBondSyncToolbarLockUi();
+    overviewPrevDaySyncToolbarLockUi();
+    ensureTermData().then(() => {
+      overviewKeyBondRebuildLookup();
+      overviewKeyBondFormatCsvAsOf();
+      overviewKeyBondRenderFromState(overviewKeyBondLoadSaved());
+    });
+    loadOverviewBondCsvFresh()
+      .then(() => {
+        overviewPrevDayFormatCsvAsOfLine();
+        overviewPrevDayRenderFromState(overviewPrevDayLoadSavedRows());
+      })
+      .catch(() => {
+        overviewBondCsvAsOfMs = 0;
+        overviewPrevDayFormatCsvAsOfLine();
+        overviewPrevDayRenderFromState(overviewPrevDayLoadSavedRows());
+      });
   }
 
   function overviewKeyBondCreateRowEl(r) {
@@ -4958,7 +5370,9 @@
       setTimeout(resizeSpreadChartsIfVisible, 280);
     }
     if (isOverview) {
-      overviewSyncEnsureLoaded().then(() => {
+      overviewFirebaseSyncSetupUi();
+      overviewFirebaseStartListener();
+      overviewSyncEnsureLoaded(true).then(() => {
         overviewMemoLoadFromStorage();
         overviewPolicyRenderFromState(overviewPolicyLoadSaved());
         overviewPolicySyncToolbarLockUi();
