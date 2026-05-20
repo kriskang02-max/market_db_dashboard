@@ -1910,8 +1910,21 @@
     }
     return "file:///C:/Users/infomax/Documents/market_db_dashboard/bond_db_msb.csv";
   })();
+  const OVERVIEW_STATE_PATH = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("overview_state.json", location.href).href;
+    }
+    return "file:///C:/Users/infomax/Documents/market_db_dashboard/overview_state.json";
+  })();
+  const OVERVIEW_STATE_POST_PATH = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("overview_state.json", location.href).href;
+    }
+    return "";
+  })();
 
   const OVERVIEW_PREVDAY_STORAGE_KEY = "market_db_dashboard_overview_prevday_v1";
+  const OVERVIEW_SYNC_META_KEY = "market_db_dashboard_overview_sync_meta_v1";
   const OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY = "market_db_dashboard_overview_prevday_toolbar_lock_v1";
   const OVERVIEW_POLICY_STORAGE_KEY = "market_db_dashboard_overview_policy_meetings_v1";
   const OVERVIEW_POLICY_LOCK_KEY = "market_db_dashboard_overview_policy_toolbar_lock_v1";
@@ -2041,6 +2054,7 @@
   const overviewMemoStatus = document.getElementById("overviewMemoStatus");
   let overviewMemoLastPersisted = null;
   let overviewMemoAutosaveTimer = null;
+  let overviewSyncLoadPromise = null;
   const overviewKeyBondTbody = document.getElementById("overviewKeyBondTbody");
   const overviewKeyBondSave = document.getElementById("overviewKeyBondSave");
   const overviewKeyBondAddRow = document.getElementById("overviewKeyBondAddRow");
@@ -2343,7 +2357,9 @@
         })),
       };
       localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(payload));
-      if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = "저장됨 · 브라우저에 보관됩니다.";
+      overviewSyncPersistAll().then((fileOk) => {
+        if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = overviewSyncManualSaveStatus(fileOk);
+      });
     } catch (e) {
       if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
     }
@@ -2743,7 +2759,9 @@
       if (overviewMemoStatus) overviewMemoStatus.textContent = "";
     });
   }
-  overviewMemoLoadFromStorage();
+  overviewSyncEnsureLoaded().then(() => {
+    overviewMemoLoadFromStorage();
+  });
   overviewMemoEnsureAutosaveTimer();
   if (overviewPolicyLock) {
     overviewPolicyLock.addEventListener("click", () => {
@@ -2900,11 +2918,13 @@
     try {
       localStorage.setItem(OVERVIEW_MEMO_STORAGE_KEY, text);
       overviewMemoLastPersisted = text;
-      if (overviewMemoStatus) {
-        overviewMemoStatus.textContent = isAuto
-          ? "자동 저장됨 · " + overviewMemoFormatSavedAt(Date.now())
-          : "저장됨 · 브라우저에 보관됩니다.";
-      }
+      overviewSyncPersistAll().then((fileOk) => {
+        if (overviewMemoStatus) {
+          overviewMemoStatus.textContent = isAuto
+            ? overviewSyncAutosaveStatus(fileOk)
+            : overviewSyncManualSaveStatus(fileOk);
+        }
+      });
     } catch (e) {
       if (overviewMemoStatus) {
         overviewMemoStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
@@ -3030,7 +3050,9 @@
     const payload = overviewPolicyCollectFromDom();
     try {
       localStorage.setItem(OVERVIEW_POLICY_STORAGE_KEY, JSON.stringify(payload));
-      if (overviewPolicyStatus) overviewPolicyStatus.textContent = "저장됨 · 브라우저에 보관됩니다.";
+      overviewSyncPersistAll().then((fileOk) => {
+        if (overviewPolicyStatus) overviewPolicyStatus.textContent = overviewSyncManualSaveStatus(fileOk);
+      });
     } catch (e) {
       if (overviewPolicyStatus) overviewPolicyStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
     }
@@ -3322,11 +3344,161 @@
         OVERVIEW_KEYBOND_STORAGE_KEY,
         JSON.stringify({ rows: rows.map((r) => ({ id: r.id, issuer: r.issuer })) })
       );
-      if (overviewKeyBondStatus) overviewKeyBondStatus.textContent = "저장됨 · 브라우저에 보관됩니다.";
+      overviewSyncPersistAll().then((fileOk) => {
+        if (overviewKeyBondStatus) overviewKeyBondStatus.textContent = overviewSyncManualSaveStatus(fileOk);
+      });
     } catch (e) {
       if (overviewKeyBondStatus)
         overviewKeyBondStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
     }
+  }
+
+  function overviewSyncManualSaveStatus(fileOk) {
+    if (fileOk) return "저장됨 · overview_state.json (git 푸시 시 다른 기기 반영)";
+    if (location.protocol === "http:" || location.protocol === "https:")
+      return "저장됨 · 이 브라우저만 (공유: serve_dashboard.py 로 실행)";
+    return "저장됨 · 브라우저에만 보관";
+  }
+
+  function overviewSyncAutosaveStatus(fileOk) {
+    const t = overviewMemoFormatSavedAt(Date.now());
+    if (fileOk) return "자동 저장됨 · overview_state.json · " + t;
+    return "자동 저장됨 · " + t;
+  }
+
+  function overviewSyncShouldApplyFile(snap) {
+    if (!snap || snap.version !== 1 || !snap.updatedAt) return false;
+    try {
+      const raw = localStorage.getItem(OVERVIEW_SYNC_META_KEY);
+      if (!raw) return true;
+      const meta = JSON.parse(raw);
+      if (!meta || !meta.updatedAt) return true;
+      return String(snap.updatedAt) >= String(meta.updatedAt);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  function overviewSyncApplySnapshot(snap) {
+    if (!snap || snap.version !== 1) return;
+    try {
+      if (snap.memo != null) localStorage.setItem(OVERVIEW_MEMO_STORAGE_KEY, String(snap.memo));
+      if (snap.prevday && Array.isArray(snap.prevday.rows) && snap.prevday.rows.length) {
+        localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(snap.prevday));
+      }
+      if (snap.policy && Array.isArray(snap.policy.rows)) {
+        localStorage.setItem(OVERVIEW_POLICY_STORAGE_KEY, JSON.stringify(snap.policy));
+      }
+      if (snap.keybond && Array.isArray(snap.keybond.rows) && snap.keybond.rows.length) {
+        localStorage.setItem(OVERVIEW_KEYBOND_STORAGE_KEY, JSON.stringify(snap.keybond));
+      }
+      if (snap.locks) {
+        localStorage.setItem(OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY, snap.locks.prevday ? "1" : "0");
+        localStorage.setItem(OVERVIEW_POLICY_LOCK_KEY, snap.locks.policy ? "1" : "0");
+        localStorage.setItem(OVERVIEW_KEYBOND_LOCK_KEY, snap.locks.keybond ? "1" : "0");
+      }
+      if (snap.updatedAt) {
+        localStorage.setItem(OVERVIEW_SYNC_META_KEY, JSON.stringify({ updatedAt: snap.updatedAt }));
+      }
+    } catch (_) {}
+  }
+
+  function overviewSyncCollectSnapshot() {
+    let prevdayPayload = null;
+    try {
+      if (overviewPrevDayTbody) {
+        overviewPrevDayRows = overviewPrevDayCollectRowsFromDom();
+        prevdayPayload = {
+          rows: overviewPrevDayRows.map((r) => ({
+            id: r.id,
+            breed: r.breed,
+            tenor: r.tenor,
+            abbrev: r.abbrev,
+            appliedU: r.appliedU,
+            diffU: r.diffU,
+            marked: !!r.marked,
+          })),
+        };
+      } else {
+        const raw = localStorage.getItem(OVERVIEW_PREVDAY_STORAGE_KEY);
+        if (raw) prevdayPayload = JSON.parse(raw);
+      }
+    } catch (_) {}
+
+    let policyPayload = null;
+    try {
+      policyPayload = overviewPolicyTbody
+        ? overviewPolicyCollectFromDom()
+        : JSON.parse(localStorage.getItem(OVERVIEW_POLICY_STORAGE_KEY) || "null");
+    } catch (_) {}
+
+    let keybondPayload = null;
+    try {
+      const rows = overviewKeyBondTbody ? overviewKeyBondCollectFromDom() : null;
+      keybondPayload = rows
+        ? { rows: rows.map((r) => ({ id: r.id, issuer: r.issuer })) }
+        : JSON.parse(localStorage.getItem(OVERVIEW_KEYBOND_STORAGE_KEY) || "null");
+    } catch (_) {}
+
+    return {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      memo: overviewMemoTextarea ? overviewMemoTextarea.value : "",
+      prevday: prevdayPayload,
+      policy: policyPayload,
+      keybond: keybondPayload,
+      locks: {
+        prevday: overviewPrevDayIsToolbarLocked(),
+        policy: overviewPolicyIsLocked(),
+        keybond: overviewKeyBondIsLocked(),
+      },
+    };
+  }
+
+  function overviewSyncSaveToFile(snapshot) {
+    if (!OVERVIEW_STATE_POST_PATH) return Promise.resolve(false);
+    const body = JSON.stringify(snapshot, null, 2);
+    return fetch(OVERVIEW_STATE_POST_PATH, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body,
+      cache: "no-store",
+    })
+      .then((r) => r.ok)
+      .catch(() => false);
+  }
+
+  function overviewSyncPersistAll() {
+    const snap = overviewSyncCollectSnapshot();
+    try {
+      if (snap.memo != null) localStorage.setItem(OVERVIEW_MEMO_STORAGE_KEY, String(snap.memo));
+      if (snap.prevday) localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(snap.prevday));
+      if (snap.policy) localStorage.setItem(OVERVIEW_POLICY_STORAGE_KEY, JSON.stringify(snap.policy));
+      if (snap.keybond) localStorage.setItem(OVERVIEW_KEYBOND_STORAGE_KEY, JSON.stringify(snap.keybond));
+      if (snap.locks) {
+        localStorage.setItem(OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY, snap.locks.prevday ? "1" : "0");
+        localStorage.setItem(OVERVIEW_POLICY_LOCK_KEY, snap.locks.policy ? "1" : "0");
+        localStorage.setItem(OVERVIEW_KEYBOND_LOCK_KEY, snap.locks.keybond ? "1" : "0");
+      }
+      localStorage.setItem(OVERVIEW_SYNC_META_KEY, JSON.stringify({ updatedAt: snap.updatedAt }));
+    } catch (_) {}
+    return overviewSyncSaveToFile(snap);
+  }
+
+  function overviewSyncFetchState() {
+    return fetchCsvNoCache(OVERVIEW_STATE_PATH)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+  }
+
+  function overviewSyncEnsureLoaded() {
+    if (!overviewSyncLoadPromise) {
+      overviewSyncLoadPromise = overviewSyncFetchState().then((snap) => {
+        if (snap && overviewSyncShouldApplyFile(snap)) overviewSyncApplySnapshot(snap);
+        return snap;
+      });
+    }
+    return overviewSyncLoadPromise;
   }
 
   function overviewKeyBondCreateRowEl(r) {
@@ -4786,30 +4958,33 @@
       setTimeout(resizeSpreadChartsIfVisible, 280);
     }
     if (isOverview) {
-      overviewPolicyRenderFromState(overviewPolicyLoadSaved());
-      overviewPolicySyncToolbarLockUi();
-      overviewKeyBondSyncToolbarLockUi();
-      ensureTermData().then(() => {
-        overviewKeyBondRebuildLookup();
-        overviewKeyBondFormatCsvAsOf();
-        if (!overviewKeyBondTbody || !overviewKeyBondTbody.querySelector("tr[data-ovkb-id]")) {
-          overviewKeyBondRenderFromState(overviewKeyBondLoadSaved());
-        } else {
-          overviewKeyBondRefreshAllRows();
-        }
-      });
-      overviewPrevDaySyncToolbarLockUi();
-      loadOverviewBondCsvFresh()
-        .then(() => {
-          overviewPrevDayFormatCsvAsOfLine();
-          overviewPrevDayRenderFromState(overviewPrevDayLoadSavedRows());
-        })
-        .catch(() => {
-          overviewBondCsvAsOfMs = 0;
-          overviewPrevDayFormatCsvAsOfLine();
-          if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = "채권 CSV 로드 실패 — 저장된 종목·금리만 표시합니다.";
-          overviewPrevDayRenderFromState(overviewPrevDayLoadSavedRows());
+      overviewSyncEnsureLoaded().then(() => {
+        overviewMemoLoadFromStorage();
+        overviewPolicyRenderFromState(overviewPolicyLoadSaved());
+        overviewPolicySyncToolbarLockUi();
+        overviewKeyBondSyncToolbarLockUi();
+        ensureTermData().then(() => {
+          overviewKeyBondRebuildLookup();
+          overviewKeyBondFormatCsvAsOf();
+          if (!overviewKeyBondTbody || !overviewKeyBondTbody.querySelector("tr[data-ovkb-id]")) {
+            overviewKeyBondRenderFromState(overviewKeyBondLoadSaved());
+          } else {
+            overviewKeyBondRefreshAllRows();
+          }
         });
+        overviewPrevDaySyncToolbarLockUi();
+        loadOverviewBondCsvFresh()
+          .then(() => {
+            overviewPrevDayFormatCsvAsOfLine();
+            overviewPrevDayRenderFromState(overviewPrevDayLoadSavedRows());
+          })
+          .catch(() => {
+            overviewBondCsvAsOfMs = 0;
+            overviewPrevDayFormatCsvAsOfLine();
+            if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = "채권 CSV 로드 실패 — 저장된 종목·금리만 표시합니다.";
+            overviewPrevDayRenderFromState(overviewPrevDayLoadSavedRows());
+          });
+      });
     }
   }
 

@@ -18,7 +18,7 @@ if not exist ".git" (
   exit /b 1
 )
 
-git add market_db.csv fund_db.csv term_table_long.csv bond_db_ktb.csv bond_db_msb.csv
+git add market_db.csv fund_db.csv term_table_long.csv bond_db_ktb.csv bond_db_msb.csv overview_state.json
 if errorlevel 1 (
   echo git add 실패 ^(파일 경로를 확인하세요^)
   exit /b 1

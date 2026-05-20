@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "updatedAt": null,
+  "memo": "",
+  "prevday": null,
+  "policy": null,
+  "keybond": null,
+  "locks": {
+    "prevday": false,
+    "policy": false,
+    "keybond": false
+  }
+}
