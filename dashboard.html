@@ -765,7 +765,8 @@
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      --ovpd-row-h: calc(0.74rem * 1.35 + 0.56rem);
+      --ovpd-thead-row-h: calc(0.74rem * 1.35 + 0.56rem + 1px);
+      --ovpd-tbody-row-h: calc(0.72rem * 1.35 + 0.56rem + 0.55rem);
       --ovpd-visible-rows: 20;
     }
     #page-overview .overview-right-stack {
@@ -1339,7 +1340,7 @@
       color: rgba(255, 255, 255, 0.55);
     }
     #page-overview .overview-prevday-table-wrap {
-      max-height: calc(var(--ovpd-row-h) * (var(--ovpd-visible-rows) + 1));
+      max-height: calc(var(--ovpd-thead-row-h) + var(--ovpd-tbody-row-h) * var(--ovpd-visible-rows));
       overflow-x: auto;
       overflow-y: auto;
       border-radius: 8px;
