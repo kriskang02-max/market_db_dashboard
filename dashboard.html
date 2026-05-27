@@ -5425,6 +5425,10 @@
     }
     if (isTerm) ensureTermData();
     if (isSpread) {
+      try {
+        if (typeof render === "function") render();
+        if (typeof render2 === "function") render2();
+      } catch (_) {}
       resizeSpreadChartsIfVisible();
       setTimeout(resizeSpreadChartsIfVisible, 80);
       setTimeout(resizeSpreadChartsIfVisible, 280);
