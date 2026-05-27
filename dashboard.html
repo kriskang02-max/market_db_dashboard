@@ -2174,8 +2174,9 @@
     const run = () => {
       try {
         if (typeof Plotly === "undefined") return;
-        [chartDiv, chartDiv2].forEach((gd) => {
-          if (gd && gd.querySelector(".js-plotly-plot")) Plotly.Plots.resize(gd);
+        [chartDiv, chartDiv2].forEach((wrap) => {
+          const plotEl = wrap && wrap.querySelector && wrap.querySelector(".js-plotly-plot");
+          if (plotEl) Plotly.Plots.resize(plotEl);
         });
       } catch (_) {}
     };
