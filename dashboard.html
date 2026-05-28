@@ -5729,7 +5729,8 @@
   const RATES_KTB_CUSTOM_SPREAD_KEY = "market_db_dashboard_rates_ktb_custom_spreads_v1";
   const RATES_KTB_CUSTOM_SPREAD_COLS = 3;
   const RATES_CREDIT_LINES = [
-    { inst: "특은채", label: "특온" },
+    { inst: "특은채", label: "특은" },
+    { inst: "특수채", label: "특수" },
     { inst: "은행채", label: "은행" },
     { inst: "카드채", label: "카드" },
     { inst: "여전채", label: "여전" },
@@ -5812,7 +5813,7 @@
   }
 
   function creditTenorStr(inst, y) {
-    const p = { 특은채: "특은", 은행채: "은행", 카드채: "카드", 여전채: "여전" }[inst];
+    const p = { 특은채: "특은", 특수채: "특수", 은행채: "은행", 카드채: "카드", 여전채: "여전" }[inst];
     if (!p) return null;
     const ys = y === 2.5 ? "2.5Y" : `${y}Y`;
     return p + " " + ys;
@@ -6026,18 +6027,12 @@
     let customRefD = /^\d{4}-\d{2}-\d{2}$/.test(String(ratesCustomDiffDate || "").trim()) ? String(ratesCustomDiffDate).trim() : null;
     if (customRefD && d0 && customRefD > d0) customRefD = null;
     const showHalf = !!(ratesHideHalfYearInput && ratesHideHalfYearInput.checked);
-    function slopePairKey(p) {
-      return String(p[0]) + "/" + String(p[1]);
-    }
     const ktbTen = showHalf
       ? [1, 1.5, 2, 2.5, 3, 5, 7, 10, 20, 30]
       : RATES_KTB_BASE_TENORS.slice();
     const ktbSpr = RATES_KTB_SPREAD_PAIRS;
-    const credTen = showHalf ? RATES_CREDIT_TENORS : RATES_CREDIT_TENORS.filter((t) => t !== 1.5 && t !== 2.5);
-    const slopeOmitHalf = !showHalf ? new Set(["1/1.5", "1.5/2", "2/2.5", "2.5/3"]) : null;
-    const slopePairs = !showHalf
-      ? RATES_SPREAD_SLOPE_PAIRS.filter((p) => !slopeOmitHalf.has(slopePairKey(p)))
-      : RATES_SPREAD_SLOPE_PAIRS;
+    const credTen = RATES_CREDIT_TENORS;
+    const slopePairs = RATES_SPREAD_SLOPE_PAIRS;
     const customSpreadPairs = ratesKtbCustomSpreadInputs.map((s) => parseKtbCustomSpreadPair(s));
     const ktbPairs = ktbTen.length + ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS + 1;
     const creditCols = RATES_CREDIT_LINES.length * credTen.length;
