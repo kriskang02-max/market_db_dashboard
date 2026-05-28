@@ -442,6 +442,22 @@
       font-weight: 600; color: rgba(255,255,255,0.92); user-select: none;
     }
     .rates-halfyear-wrap input { accent-color: #2563eb; margin: 0; cursor: pointer; }
+    .rates-ktb-custom-spread-head {
+      min-width: 4.5rem;
+      padding: 0.2rem 0.16rem !important;
+    }
+    .rates-ktb-custom-spread-input {
+      width: 4.4rem;
+      max-width: 100%;
+      padding: 0.14rem 0.22rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.3);
+      color: rgba(255, 255, 255, 0.96);
+      text-align: center;
+      font-size: 0.72rem;
+      line-height: 1.2;
+    }
     .rates-history-toolbar input[type="number"] {
       width: 4.5rem; padding: 0.35rem 0.45rem; border-radius: 6px;
       border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff;
@@ -1635,7 +1651,7 @@
         <input type="number" id="ratesHistoryDays" min="1" max="250" value="7" step="1" title="국고·크레딧 데이터가 있는 일자만, 최신일부터 이 개수만큼 표시합니다." />
         <label for="ratesCustomDiffDateInput">기준일</label>
         <input type="date" id="ratesCustomDiffDateInput" class="rates-custom-date-global" title="비우면 첫 행 미표시 · 입력 시 최신일 대비 변동 행(모든 테이블 공통)을 표시합니다." />
-        <label class="rates-halfyear-wrap" for="ratesHideHalfYearCols" title="체크 시 1/1.5·1.5/2·1.5Y·2.5Y 및 해당 만기간 금리차 열을 숨깁니다.">
+        <label class="rates-halfyear-wrap" for="ratesHideHalfYearCols" title="체크 시 1.5Y·2.5Y 금리를 추가 표시합니다.">
           <input type="checkbox" id="ratesHideHalfYearCols" />
           <span>0.5Y 단위 표시</span>
         </label>
@@ -5700,21 +5716,18 @@
     else if (items.length) sel.value = items[0];
   }
 
-  const RATES_KTB_TENORS = [1, 1.5, 2, 2.5, 3, 5, 7, 10, 20, 30];
+  const RATES_KTB_BASE_TENORS = [1, 2, 3, 5, 7, 10, 20, 30];
+  const RATES_KTB_HALF_STEP_TENORS = [1.5, 2.5];
   const RATES_KTB_SPREAD_PAIRS = [
-    [1, 1.5],
-    [1.5, 2],
     [1, 2],
-    [2, 2.5],
-    [2.5, 3],
     [2, 3],
     [3, 5],
     [3, 10],
-    [7, 10],
     [10, 30],
-    [10, 20],
     [20, 30],
   ];
+  const RATES_KTB_CUSTOM_SPREAD_KEY = "market_db_dashboard_rates_ktb_custom_spreads_v1";
+  const RATES_KTB_CUSTOM_SPREAD_COLS = 3;
   const RATES_CREDIT_LINES = [
     { inst: "특은채", label: "특온" },
     { inst: "은행채", label: "은행" },
@@ -5740,6 +5753,37 @@
   ];
 
   let dateYieldMap = new Map();
+  let ratesKtbCustomSpreadInputs = loadRatesKtbCustomSpreadInputs();
+
+  function loadRatesKtbCustomSpreadInputs() {
+    const out = new Array(RATES_KTB_CUSTOM_SPREAD_COLS).fill("");
+    try {
+      const raw = localStorage.getItem(RATES_KTB_CUSTOM_SPREAD_KEY);
+      if (!raw) return out;
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return out;
+      for (let i = 0; i < Math.min(arr.length, out.length); i++) {
+        out[i] = String(arr[i] == null ? "" : arr[i]).trim();
+      }
+    } catch (_) {}
+    return out;
+  }
+
+  function saveRatesKtbCustomSpreadInputs() {
+    try {
+      localStorage.setItem(RATES_KTB_CUSTOM_SPREAD_KEY, JSON.stringify(ratesKtbCustomSpreadInputs));
+    } catch (_) {}
+  }
+
+  function parseKtbCustomSpreadPair(raw) {
+    const t = String(raw || "").trim();
+    const m = t.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+    if (!m) return null;
+    const a = parseFloat(m[1], 10);
+    const b = parseFloat(m[2], 10);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0 || a === b) return null;
+    return [a, b];
+  }
 
   function rebuildDateYieldMap() {
     dateYieldMap.clear();
@@ -5812,8 +5856,12 @@
   function dateHasRatesData(d) {
     const m = dateYieldMap.get(d);
     if (!m || !m.size) return false;
-    for (let ti = 0; ti < RATES_KTB_TENORS.length; ti++) {
-      const t = RATES_KTB_TENORS[ti];
+    for (let ti = 0; ti < RATES_KTB_BASE_TENORS.length; ti++) {
+      const t = RATES_KTB_BASE_TENORS[ti];
+      if (Number.isFinite(m.get("국고채|" + String(t)))) return true;
+    }
+    for (let hi = 0; hi < RATES_KTB_HALF_STEP_TENORS.length; hi++) {
+      const t = RATES_KTB_HALF_STEP_TENORS[hi];
       if (Number.isFinite(m.get("국고채|" + String(t)))) return true;
     }
     for (let li = 0; li < RATES_CREDIT_LINES.length; li++) {
@@ -5977,26 +6025,21 @@
     }
     let customRefD = /^\d{4}-\d{2}-\d{2}$/.test(String(ratesCustomDiffDate || "").trim()) ? String(ratesCustomDiffDate).trim() : null;
     if (customRefD && d0 && customRefD > d0) customRefD = null;
-    const hideHalf = ratesHideHalfYearInput && ratesHideHalfYearInput.checked;
+    const showHalf = !!(ratesHideHalfYearInput && ratesHideHalfYearInput.checked);
     function slopePairKey(p) {
       return String(p[0]) + "/" + String(p[1]);
     }
-    const ktbTen = RATES_KTB_TENORS;
-    function ktbSpreadPairOmittedHalfStep(p) {
-      return (
-        (p[0] === 1 && p[1] === 1.5) ||
-        (p[0] === 1.5 && p[1] === 2) ||
-        (p[0] === 2 && p[1] === 2.5) ||
-        (p[0] === 2.5 && p[1] === 3)
-      );
-    }
-    const ktbSpr = hideHalf ? RATES_KTB_SPREAD_PAIRS.filter((p) => !ktbSpreadPairOmittedHalfStep(p)) : RATES_KTB_SPREAD_PAIRS;
-    const credTen = hideHalf ? RATES_CREDIT_TENORS.filter((t) => t !== 1.5 && t !== 2.5) : RATES_CREDIT_TENORS;
-    const slopeOmitHalf = hideHalf ? new Set(["1/1.5", "1.5/2", "2/2.5", "2.5/3"]) : null;
-    const slopePairs = hideHalf
+    const ktbTen = showHalf
+      ? [1, 1.5, 2, 2.5, 3, 5, 7, 10, 20, 30]
+      : RATES_KTB_BASE_TENORS.slice();
+    const ktbSpr = RATES_KTB_SPREAD_PAIRS;
+    const credTen = showHalf ? RATES_CREDIT_TENORS : RATES_CREDIT_TENORS.filter((t) => t !== 1.5 && t !== 2.5);
+    const slopeOmitHalf = !showHalf ? new Set(["1/1.5", "1.5/2", "2/2.5", "2.5/3"]) : null;
+    const slopePairs = !showHalf
       ? RATES_SPREAD_SLOPE_PAIRS.filter((p) => !slopeOmitHalf.has(slopePairKey(p)))
       : RATES_SPREAD_SLOPE_PAIRS;
-    const ktbPairs = ktbTen.length + ktbSpr.length + 1;
+    const customSpreadPairs = ratesKtbCustomSpreadInputs.map((s) => parseKtbCustomSpreadPair(s));
+    const ktbPairs = ktbTen.length + ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS + 1;
     const creditCols = RATES_CREDIT_LINES.length * credTen.length;
     const slopeCols = RATES_CREDIT_LINES.length * slopePairs.length;
 
@@ -6017,6 +6060,17 @@
         const sA = ktbTermSpreadBp(dAnchor, a, b);
         if (isDelta && refD) {
           const sR = ktbTermSpreadBp(refD, a, b);
+          h += tdVal(sA !== null && sR !== null ? sA - sR : null, 1, true);
+        } else h += tdVal(sA, 1, false);
+      });
+      customSpreadPairs.forEach((pair) => {
+        if (!pair) {
+          h += "<td>—</td>";
+          return;
+        }
+        const sA = ktbTermSpreadBp(dAnchor, pair[0], pair[1]);
+        if (isDelta && refD) {
+          const sR = ktbTermSpreadBp(refD, pair[0], pair[1]);
           h += tdVal(sA !== null && sR !== null ? sA - sR : null, 1, true);
         } else h += tdVal(sA, 1, false);
       });
@@ -6048,6 +6102,15 @@
         const sR = dCustom ? ktbTermSpreadBp(dCustom, a, b) : null;
         const dBp = sA !== null && sR !== null ? sA - sR : null;
         h += tdVal(dBp, 1, true);
+      });
+      customSpreadPairs.forEach((pair) => {
+        if (!pair) {
+          h += "<td>—</td>";
+          return;
+        }
+        const sA = ktbTermSpreadBp(d0, pair[0], pair[1]);
+        const sR = dCustom ? ktbTermSpreadBp(dCustom, pair[0], pair[1]) : null;
+        h += tdVal(sA !== null && sR !== null ? sA - sR : null, 1, true);
       });
       {
         const vA = ktbFiveVPercent(d0);
@@ -6154,10 +6217,18 @@
     let hK = "<table class=\"rates-analysis-table rates-table-ktb\"><colgroup><col class=\"rates-col-ktb-label rates-col-label\" /><col span=\"" + ktbPairs + "\" class=\"rates-col-metric\" /></colgroup><thead>";
     hK += "<tr><th rowspan=\"2\">구분</th>";
     hK += "<th colspan=\"" + ktbTen.length + "\" class=\"group-head\">국고채 금리</th>";
-    hK += "<th colspan=\"" + ktbSpr.length + "\" class=\"group-head\">만기간 스프레드</th>";
+    hK += "<th colspan=\"" + (ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS) + "\" class=\"group-head\">만기간 스프레드</th>";
     hK += "<th rowspan=\"2\" title=\"100×(3/5년 스프레드)÷(3/10년 스프레드), 스프레드=국고채 금리차(bp)\">5V</th></tr><tr>";
     ktbTen.forEach((t) => { hK += "<th>" + t + "</th>"; });
     ktbSpr.forEach(([a, b]) => { hK += "<th>" + a + "/" + b + "</th>"; });
+    for (let ci = 0; ci < RATES_KTB_CUSTOM_SPREAD_COLS; ci++) {
+      hK +=
+        '<th class="rates-ktb-custom-spread-head"><input type="text" class="rates-ktb-custom-spread-input" data-idx="' +
+        ci +
+        '" placeholder="7/10" value="' +
+        escapeHtml(ratesKtbCustomSpreadInputs[ci] || "") +
+        '" /></th>';
+    }
     hK += "</tr></thead><tbody>";
     if (customRefD) hK += ktbCustomRowHtml(customRefD);
     ["DTD", "MTD", "YTD"].forEach((k) => {
@@ -6903,6 +6974,24 @@
   }
   if (ratesHideHalfYearInput) {
     ratesHideHalfYearInput.addEventListener("change", renderRatesAnalysis);
+  }
+  if (ratesTableKtbWrap) {
+    ratesTableKtbWrap.addEventListener("change", (e) => {
+      const t = e.target;
+      if (!t || !t.classList || !t.classList.contains("rates-ktb-custom-spread-input")) return;
+      const idx = parseInt(t.getAttribute("data-idx"), 10);
+      if (!Number.isFinite(idx) || idx < 0 || idx >= RATES_KTB_CUSTOM_SPREAD_COLS) return;
+      ratesKtbCustomSpreadInputs[idx] = String(t.value || "").trim();
+      saveRatesKtbCustomSpreadInputs();
+      renderRatesAnalysis();
+    });
+    ratesTableKtbWrap.addEventListener("keydown", (e) => {
+      const t = e.target;
+      if (!t || !t.classList || !t.classList.contains("rates-ktb-custom-spread-input")) return;
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      t.blur();
+    });
   }
   if (ratesAnalysisBaseDateInput) {
     ratesAnalysisBaseDateInput.addEventListener("change", renderRatesAnalysis);
