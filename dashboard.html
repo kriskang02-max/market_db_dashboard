@@ -2178,7 +2178,8 @@
   let overviewSyncLoadPromise = null;
   let overviewSyncPostSupported = null;
   let overviewFirebaseDb = null;
-  let overviewFirebaseListenerOff = null;
+  let overviewFirebaseListenerRef = null;
+  let overviewFirebaseListenerCb = null;
   const overviewSyncBanner = document.getElementById("overviewSyncBanner");
   const overviewSyncFileInput = document.getElementById("overviewSyncFileInput");
   const overviewFirebaseSetup = document.getElementById("overviewFirebaseSetup");
@@ -3626,8 +3627,11 @@
   function overviewFirebaseStartListener() {
     const ref = overviewFirebaseRef();
     if (!ref) return;
-    if (overviewFirebaseListenerOff) overviewFirebaseListenerOff();
-    overviewFirebaseListenerOff = ref.on("value", (snap) => {
+    if (overviewFirebaseListenerRef && overviewFirebaseListenerCb) {
+      overviewFirebaseListenerRef.off("value", overviewFirebaseListenerCb);
+    }
+    overviewFirebaseListenerRef = ref;
+    overviewFirebaseListenerCb = (snap) => {
       const val = snap.val();
       if (!val || val.version !== 1 || !overviewSyncShouldApplyFile(val)) return;
       overviewSyncApplySnapshot(val);
@@ -3635,13 +3639,15 @@
         overviewSyncRefreshOverviewUi();
       }
       overviewSyncUpdateBanner(val, true);
-    });
+    };
+    ref.on("value", overviewFirebaseListenerCb);
   }
 
   function overviewFirebaseStopListener() {
-    if (overviewFirebaseListenerOff) {
-      overviewFirebaseListenerOff();
-      overviewFirebaseListenerOff = null;
+    if (overviewFirebaseListenerRef && overviewFirebaseListenerCb) {
+      overviewFirebaseListenerRef.off("value", overviewFirebaseListenerCb);
+      overviewFirebaseListenerRef = null;
+      overviewFirebaseListenerCb = null;
     }
   }
 
