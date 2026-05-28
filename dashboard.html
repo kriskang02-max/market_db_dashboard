@@ -5465,33 +5465,15 @@
     if (isOverview) {
       overviewFirebaseSyncSetupUi();
       overviewFirebaseStartListener();
-      overviewSyncEnsureLoaded(true).then(() => {
-        overviewMemoLoadFromStorage();
-        overviewPolicyRenderFromState(overviewPolicyLoadSaved());
-        overviewPolicySyncToolbarLockUi();
-        overviewKeyBondSyncToolbarLockUi();
-        ensureTermData().then(() => {
-          overviewKeyBondRebuildLookup();
-          overviewKeyBondFormatCsvAsOf();
-          if (!overviewKeyBondTbody || !overviewKeyBondTbody.querySelector("tr[data-ovkb-id]")) {
-            overviewKeyBondRenderFromState(overviewKeyBondLoadSaved());
-          } else {
-            overviewKeyBondRefreshAllRows();
-          }
+      // 먼저 로컬 상태로 즉시 렌더링하고, 이후 동기화 결과로 한 번 더 보정합니다.
+      overviewSyncRefreshOverviewUi();
+      overviewSyncEnsureLoaded(true)
+        .then(() => {
+          if (pageOverviewEl && pageOverviewEl.classList.contains("is-active")) overviewSyncRefreshOverviewUi();
+        })
+        .catch(() => {
+          // 동기화 실패 시에도 초기 로컬 렌더는 유지
         });
-        overviewPrevDaySyncToolbarLockUi();
-        loadOverviewBondCsvFresh()
-          .then(() => {
-            overviewPrevDayFormatCsvAsOfLine();
-            overviewPrevDayRenderFromState(overviewPrevDayLoadSavedRows());
-          })
-          .catch(() => {
-            overviewBondCsvAsOfMs = 0;
-            overviewPrevDayFormatCsvAsOfLine();
-            if (overviewPrevDayStatus) overviewPrevDayStatus.textContent = "채권 CSV 로드 실패 — 저장된 종목·금리만 표시합니다.";
-            overviewPrevDayRenderFromState(overviewPrevDayLoadSavedRows());
-          });
-      });
     }
   }
 
@@ -6064,10 +6046,15 @@
     const slopeColsA = slopeGroupA.length * slopePairs.length;
     const slopeColsB = slopeGroupB.length * slopePairs.length;
 
+    function ratesRowClass(label, histCls, isLatestHist) {
+      if (histCls) return isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
+      if (label === "DTD") return "rates-table-row--dtd";
+      return "";
+    }
+
     function ktbRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist) {
       let trCls = "";
-      if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
-      else if (label === "DTD") trCls = "rates-table-row--dtd";
+      trCls = ratesRowClass(label, histCls, isLatestHist);
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       ktbTen.forEach((t) => {
         const vA = ktbYield(dAnchor, t);
@@ -6188,8 +6175,7 @@
 
     function creditYldRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist, lines) {
       let trCls = "";
-      if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
-      else if (label === "DTD") trCls = "rates-table-row--dtd";
+      trCls = ratesRowClass(label, histCls, isLatestHist);
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       lines.forEach((line) => {
         credTen.forEach((ty) => {
@@ -6207,8 +6193,7 @@
 
     function creditSprRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist, lines) {
       let trCls = "";
-      if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
-      else if (label === "DTD") trCls = "rates-table-row--dtd";
+      trCls = ratesRowClass(label, histCls, isLatestHist);
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       lines.forEach((line) => {
         credTen.forEach((ty) => {
@@ -6224,8 +6209,7 @@
 
     function creditSlopeRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist, lines) {
       let trCls = "";
-      if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
-      else if (label === "DTD") trCls = "rates-table-row--dtd";
+      trCls = ratesRowClass(label, histCls, isLatestHist);
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       lines.forEach((line) => {
         slopePairs.forEach(([a, b]) => {
@@ -6259,7 +6243,7 @@
     ["DTD", "MTD", "YTD"].forEach((k) => {
       const refD = refMap[k];
       if (!refD) {
-        hK += "<tr><td>" + k + "</td>";
+        hK += '<tr' + (k === "DTD" ? ' class="rates-table-row--dtd"' : "") + "><td>" + k + "</td>";
         for (let i = 0; i < ktbPairs; i++) hK += "<td>—</td>";
         hK += "</tr>";
       } else hK += ktbRowHtml(k, d0, true, refD, false);
@@ -6285,7 +6269,7 @@
       ["DTD", "MTD", "YTD"].forEach((k) => {
         const refD = refMap[k];
         if (!refD) {
-          hY += "<tr><td>" + k + "</td>";
+          hY += '<tr' + (k === "DTD" ? ' class="rates-table-row--dtd"' : "") + "><td>" + k + "</td>";
           for (let i = 0; i < creditCols; i++) hY += "<td>—</td>";
           hY += "</tr>";
         } else hY += creditYldRowHtml(k, d0, true, refD, false, false, lines);
@@ -6311,7 +6295,7 @@
       ["DTD", "MTD", "YTD"].forEach((k) => {
         const refD = refMap[k];
         if (!refD) {
-          hS += "<tr><td>" + k + "</td>";
+          hS += '<tr' + (k === "DTD" ? ' class="rates-table-row--dtd"' : "") + "><td>" + k + "</td>";
           for (let i = 0; i < creditCols; i++) hS += "<td>—</td>";
           hS += "</tr>";
         } else hS += creditSprRowHtml(k, d0, true, refD, false, false, lines);
@@ -6351,7 +6335,7 @@
       ["DTD", "MTD", "YTD"].forEach((k) => {
         const refD = refMap[k];
         if (!refD) {
-          hP += "<tr><td>" + k + "</td>";
+          hP += '<tr' + (k === "DTD" ? ' class="rates-table-row--dtd"' : "") + "><td>" + k + "</td>";
           for (let i = 0; i < slopeCols; i++) hP += "<td>—</td>";
           hP += "</tr>";
         } else hP += creditSlopeRowHtml(k, d0, true, refD, false, false, lines);
