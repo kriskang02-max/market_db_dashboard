@@ -1972,7 +1972,7 @@
   <script>
 (function () {
   const PREFERRED_ORDER = [
-    "기준금리", "국고채", "특은채", "특수채", "은행채", "카드채", "여전채",
+    "기준금리", "국고채", "특은채", "특수채", "은행채", "카드채", "여전채", "회사채",
     "CD 3사평균 AAA", "CP 3사평균 A1"
   ];
   /**
@@ -5740,9 +5740,11 @@
   const RATES_ANALYSIS_MATRIX_ROWS = [
     { inst: "국고채", label: "국고채" },
     { inst: "특은채", label: "특은채" },
+    { inst: "특수채", label: "특수채" },
     { inst: "은행채", label: "은행채" },
     { inst: "카드채", label: "카드채" },
     { inst: "여전채", label: "여전채" },
+    { inst: "회사채", label: "회사채" },
   ];
   const RATES_CREDIT_TENORS = [1, 1.5, 2, 2.5, 3, 4, 5];
   const RATES_SPREAD_SLOPE_PAIRS = [
@@ -6355,9 +6357,11 @@
       [1, 2, 3].forEach((tenor) => {
         monthEndRows.push({ label: "국고채" + tenor + "년", inst: "국고채", tenor, isKtb: true });
         monthEndRows.push({ label: "특은채" + tenor + "년", inst: "특은채", tenor });
+        monthEndRows.push({ label: "특수채" + tenor + "년", inst: "특수채", tenor });
         monthEndRows.push({ label: "은행채" + tenor + "년", inst: "은행채", tenor });
         monthEndRows.push({ label: "카드채" + tenor + "년", inst: "카드채", tenor });
         monthEndRows.push({ label: "여전채" + tenor + "년", inst: "여전채", tenor });
+        monthEndRows.push({ label: "회사채" + tenor + "년", inst: "회사채", tenor });
       });
       let hM = "<table class=\"rates-analysis-table rates-monthend-table\"><colgroup><col class=\"rates-col-label\" />";
       for (let i = 0; i < monthEnds.length; i++) hM += "<col class=\"rates-col-metric\" />";
