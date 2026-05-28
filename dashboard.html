@@ -5734,6 +5734,7 @@
     { inst: "은행채", label: "은행" },
     { inst: "카드채", label: "카드" },
     { inst: "여전채", label: "여전" },
+    { inst: "회사채", label: "회사" },
   ];
   const RATES_ANALYSIS_MATRIX_TENORS = [1, 1.5, 2, 2.5, 3, 4, 5, 7, 10];
   const RATES_ANALYSIS_MATRIX_ROWS = [
@@ -5754,8 +5755,8 @@
     [3, 4],
     [4, 5],
   ];
-  const RATES_CREDIT_SLOPE_GROUP_A = ["특은채", "특수채", "은행채"];
-  const RATES_CREDIT_SLOPE_GROUP_B = ["카드채", "여전채"];
+  const RATES_CREDIT_GROUP_A = ["특은채", "특수채", "은행채"];
+  const RATES_CREDIT_GROUP_B = ["카드채", "여전채", "회사채"];
 
   let dateYieldMap = new Map();
   let ratesKtbCustomSpreadInputs = loadRatesKtbCustomSpreadInputs();
@@ -5817,7 +5818,7 @@
   }
 
   function creditTenorStr(inst, y) {
-    const p = { 특은채: "특은", 특수채: "특수", 은행채: "은행", 카드채: "카드", 여전채: "여전" }[inst];
+    const p = { 특은채: "특은", 특수채: "특수", 은행채: "은행", 카드채: "카드", 여전채: "여전", 회사채: "회사" }[inst];
     if (!p) return null;
     const ys = y === 2.5 ? "2.5Y" : `${y}Y`;
     return p + " " + ys;
@@ -6039,9 +6040,12 @@
     const slopePairs = RATES_SPREAD_SLOPE_PAIRS;
     const customSpreadPairs = ratesKtbCustomSpreadInputs.map((s) => parseKtbCustomSpreadPair(s));
     const ktbPairs = ktbTen.length + ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS + 1;
-    const creditCols = RATES_CREDIT_LINES.length * credTen.length;
-    const slopeGroupA = RATES_CREDIT_LINES.filter((line) => RATES_CREDIT_SLOPE_GROUP_A.indexOf(line.inst) >= 0);
-    const slopeGroupB = RATES_CREDIT_LINES.filter((line) => RATES_CREDIT_SLOPE_GROUP_B.indexOf(line.inst) >= 0);
+    const creditGroupA = RATES_CREDIT_LINES.filter((line) => RATES_CREDIT_GROUP_A.indexOf(line.inst) >= 0);
+    const creditGroupB = RATES_CREDIT_LINES.filter((line) => RATES_CREDIT_GROUP_B.indexOf(line.inst) >= 0);
+    const creditColsA = creditGroupA.length * credTen.length;
+    const creditColsB = creditGroupB.length * credTen.length;
+    const slopeGroupA = creditGroupA;
+    const slopeGroupB = creditGroupB;
     const slopeColsA = slopeGroupA.length * slopePairs.length;
     const slopeColsB = slopeGroupB.length * slopePairs.length;
 
@@ -6123,10 +6127,10 @@
       return h + "</tr>";
     }
 
-    function creditYldCustomRowHtml(dCustom) {
+    function creditYldCustomRowHtml(dCustom, lines) {
       const val = dCustom ? dCustom : "";
       let h = "<tr><td><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></td>";
-      RATES_CREDIT_LINES.forEach((line) => {
+      lines.forEach((line) => {
         credTen.forEach((ty) => {
           const vA = creditYield(d0, line.inst, ty);
           const vR = dCustom ? creditYield(dCustom, line.inst, ty) : null;
@@ -6138,10 +6142,10 @@
       return h + "</tr>";
     }
 
-    function creditSprCustomRowHtml(dCustom) {
+    function creditSprCustomRowHtml(dCustom, lines) {
       const val = dCustom ? dCustom : "";
       let h = "<tr><td><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></td>";
-      RATES_CREDIT_LINES.forEach((line) => {
+      lines.forEach((line) => {
         credTen.forEach((ty) => {
           const vA = creditSpreadBp(d0, line.inst, ty);
           const vR = dCustom ? creditSpreadBp(dCustom, line.inst, ty) : null;
@@ -6166,11 +6170,11 @@
       return h + "</tr>";
     }
 
-    function creditYldRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist) {
+    function creditYldRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist, lines) {
       let trCls = "";
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
-      RATES_CREDIT_LINES.forEach((line) => {
+      lines.forEach((line) => {
         credTen.forEach((ty) => {
           const vA = creditYield(dAnchor, line.inst, ty);
           if (isDelta && refD) {
@@ -6184,11 +6188,11 @@
       return h + "</tr>";
     }
 
-    function creditSprRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist) {
+    function creditSprRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist, lines) {
       let trCls = "";
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
-      RATES_CREDIT_LINES.forEach((line) => {
+      lines.forEach((line) => {
         credTen.forEach((ty) => {
           const vA = creditSpreadBp(dAnchor, line.inst, ty);
           if (isDelta && refD) {
@@ -6248,53 +6252,67 @@
     hK += "</tbody></table>";
     ratesTableKtbWrap.innerHTML = hK;
 
-    let hY = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + creditCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
-    RATES_CREDIT_LINES.forEach((line) => {
-      hY += "<th colspan=\"" + credTen.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
-    });
-    hY += "</tr><tr>";
-    RATES_CREDIT_LINES.forEach(() => {
-      credTen.forEach((ty) => { hY += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
-    });
-    hY += "</tr></thead><tbody>";
-    if (customRefD) hY += creditYldCustomRowHtml(customRefD);
-    ["DTD", "MTD", "YTD"].forEach((k) => {
-      const refD = refMap[k];
-      if (!refD) {
-        hY += "<tr><td>" + k + "</td>";
-        for (let i = 0; i < creditCols; i++) hY += "<td>—</td>";
-        hY += "</tr>";
-      } else hY += creditYldRowHtml(k, d0, true, refD, false);
-    });
-    if (dMtd) hY += creditYldRowHtml(fmtShortYmd(dMtd), dMtd, false, null, false);
-    if (dYtd) hY += creditYldRowHtml(fmtShortYmd(dYtd), dYtd, false, null, false);
-    histDates.forEach((d) => { hY += creditYldRowHtml(fmtShortYmd(d), d, false, null, true, d === d0); });
-    hY += "</tbody></table>";
-    ratesTableCreditYldWrap.innerHTML = hY;
+    function buildCreditYldTableHtml(lines, creditCols) {
+      let hY = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + creditCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
+      lines.forEach((line) => {
+        hY += "<th colspan=\"" + credTen.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
+      });
+      hY += "</tr><tr>";
+      lines.forEach(() => {
+        credTen.forEach((ty) => { hY += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
+      });
+      hY += "</tr></thead><tbody>";
+      if (customRefD) hY += creditYldCustomRowHtml(customRefD, lines);
+      ["DTD", "MTD", "YTD"].forEach((k) => {
+        const refD = refMap[k];
+        if (!refD) {
+          hY += "<tr><td>" + k + "</td>";
+          for (let i = 0; i < creditCols; i++) hY += "<td>—</td>";
+          hY += "</tr>";
+        } else hY += creditYldRowHtml(k, d0, true, refD, false, false, lines);
+      });
+      if (dMtd) hY += creditYldRowHtml(fmtShortYmd(dMtd), dMtd, false, null, false, false, lines);
+      if (dYtd) hY += creditYldRowHtml(fmtShortYmd(dYtd), dYtd, false, null, false, false, lines);
+      histDates.forEach((d) => { hY += creditYldRowHtml(fmtShortYmd(d), d, false, null, true, d === d0, lines); });
+      hY += "</tbody></table>";
+      return hY;
+    }
 
-    let hS = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + creditCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
-    RATES_CREDIT_LINES.forEach((line) => {
-      hS += "<th colspan=\"" + credTen.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
-    });
-    hS += "</tr><tr>";
-    RATES_CREDIT_LINES.forEach(() => {
-      credTen.forEach((ty) => { hS += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
-    });
-    hS += "</tr></thead><tbody>";
-    if (customRefD) hS += creditSprCustomRowHtml(customRefD);
-    ["DTD", "MTD", "YTD"].forEach((k) => {
-      const refD = refMap[k];
-      if (!refD) {
-        hS += "<tr><td>" + k + "</td>";
-        for (let i = 0; i < creditCols; i++) hS += "<td>—</td>";
-        hS += "</tr>";
-      } else hS += creditSprRowHtml(k, d0, true, refD, false);
-    });
-    if (dMtd) hS += creditSprRowHtml(fmtShortYmd(dMtd), dMtd, false, null, false);
-    if (dYtd) hS += creditSprRowHtml(fmtShortYmd(dYtd), dYtd, false, null, false);
-    histDates.forEach((d) => { hS += creditSprRowHtml(fmtShortYmd(d), d, false, null, true, d === d0); });
-    hS += "</tbody></table>";
-    ratesTableCreditSprWrap.innerHTML = hS;
+    function buildCreditSprTableHtml(lines, creditCols) {
+      let hS = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + creditCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
+      lines.forEach((line) => {
+        hS += "<th colspan=\"" + credTen.length + "\" class=\"group-head\">" + escapeHtml(line.label) + "</th>";
+      });
+      hS += "</tr><tr>";
+      lines.forEach(() => {
+        credTen.forEach((ty) => { hS += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
+      });
+      hS += "</tr></thead><tbody>";
+      if (customRefD) hS += creditSprCustomRowHtml(customRefD, lines);
+      ["DTD", "MTD", "YTD"].forEach((k) => {
+        const refD = refMap[k];
+        if (!refD) {
+          hS += "<tr><td>" + k + "</td>";
+          for (let i = 0; i < creditCols; i++) hS += "<td>—</td>";
+          hS += "</tr>";
+        } else hS += creditSprRowHtml(k, d0, true, refD, false, false, lines);
+      });
+      if (dMtd) hS += creditSprRowHtml(fmtShortYmd(dMtd), dMtd, false, null, false, false, lines);
+      if (dYtd) hS += creditSprRowHtml(fmtShortYmd(dYtd), dYtd, false, null, false, false, lines);
+      histDates.forEach((d) => { hS += creditSprRowHtml(fmtShortYmd(d), d, false, null, true, d === d0, lines); });
+      hS += "</tbody></table>";
+      return hS;
+    }
+
+    ratesTableCreditYldWrap.innerHTML =
+      buildCreditYldTableHtml(creditGroupA, creditColsA) +
+      '<div style="height:0.6rem"></div>' +
+      buildCreditYldTableHtml(creditGroupB, creditColsB);
+
+    ratesTableCreditSprWrap.innerHTML =
+      buildCreditSprTableHtml(creditGroupA, creditColsA) +
+      '<div style="height:0.6rem"></div>' +
+      buildCreditSprTableHtml(creditGroupB, creditColsB);
 
     function buildCreditSlopeTableHtml(lines, slopeCols) {
       let hP = "<table class=\"rates-analysis-table\"><colgroup><col class=\"rates-col-label\" /><col span=\"" + slopeCols + "\" class=\"rates-col-metric\" /></colgroup><thead><tr><th rowspan=\"2\">구분</th>";
