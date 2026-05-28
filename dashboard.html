@@ -386,6 +386,15 @@
     .rates-analysis-table thead th.group-head { text-align: center; background: rgba(30, 41, 59, 0.95); line-height: 1.2; padding: 0.18rem 0.28rem; }
     .rates-table-row--history td { background: rgba(245, 230, 200, 0.12); color: rgba(255,255,255,0.92); }
     .rates-table-row--history td:first-child { color: rgba(255,255,255,0.95); }
+    .rates-table-row--dtd td {
+      background: rgba(245, 208, 81, 0.22);
+      color: rgba(255, 249, 222, 0.98);
+    }
+    .rates-table-row--dtd td:first-child {
+      color: rgba(255, 245, 204, 0.98);
+      font-weight: 700;
+      box-shadow: inset 3px 0 0 rgba(250, 204, 21, 0.95);
+    }
     /* 일자별 블록 안 최신 거래일 행 */
     .rates-table-row--history.rates-table-row--latest td {
       background: rgba(37, 99, 235, 0.28);
@@ -418,6 +427,10 @@
     .rates-table-wrap .rates-analysis-table > tbody > tr.rates-table-row--history.rates-table-row--latest > td:first-child {
       background: rgba(28, 48, 92, 0.99);
       box-shadow: inset 3px 0 0 rgba(147, 197, 253, 0.95), 6px 0 12px -5px rgba(0, 0, 0, 0.5);
+    }
+    .rates-table-wrap .rates-analysis-table > tbody > tr.rates-table-row--dtd > td:first-child {
+      background: rgba(74, 62, 21, 0.99);
+      box-shadow: inset 3px 0 0 rgba(250, 204, 21, 0.95), 6px 0 12px -5px rgba(0, 0, 0, 0.5);
     }
     .rates-cell--neg { color: #f87171 !important; }
     .rates-inline-note {
@@ -6054,6 +6067,7 @@
     function ktbRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist) {
       let trCls = "";
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
+      else if (label === "DTD") trCls = "rates-table-row--dtd";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       ktbTen.forEach((t) => {
         const vA = ktbYield(dAnchor, t);
@@ -6175,6 +6189,7 @@
     function creditYldRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist, lines) {
       let trCls = "";
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
+      else if (label === "DTD") trCls = "rates-table-row--dtd";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       lines.forEach((line) => {
         credTen.forEach((ty) => {
@@ -6193,6 +6208,7 @@
     function creditSprRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist, lines) {
       let trCls = "";
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
+      else if (label === "DTD") trCls = "rates-table-row--dtd";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       lines.forEach((line) => {
         credTen.forEach((ty) => {
@@ -6209,6 +6225,7 @@
     function creditSlopeRowHtml(label, dAnchor, isDelta, refD, histCls, isLatestHist, lines) {
       let trCls = "";
       if (histCls) trCls = isLatestHist ? "rates-table-row--history rates-table-row--latest" : "rates-table-row--history";
+      else if (label === "DTD") trCls = "rates-table-row--dtd";
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
       lines.forEach((line) => {
         slopePairs.forEach(([a, b]) => {
