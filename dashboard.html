@@ -5720,8 +5720,10 @@
     else if (items.length) sel.value = items[0];
   }
 
+  const RATES_TB_TENORS = [0.5, 1, 1.5, 2];
   const RATES_KTB_BASE_TENORS = [1, 2, 3, 5, 7, 10, 20, 30];
   const RATES_KTB_HALF_STEP_TENORS = [1.5, 2.5];
+  const RATES_CREDIT_TB_BENCHMARK_TENORS = new Set([0.5, 1, 1.5, 2]);
   const RATES_KTB_SPREAD_PAIRS = [
     [1, 2],
     [2, 3],
@@ -5750,8 +5752,9 @@
     { inst: "여전채", label: "여전채" },
     { inst: "회사채", label: "회사채" },
   ];
-  const RATES_CREDIT_TENORS = [1, 1.5, 2, 2.5, 3, 4, 5];
+  const RATES_CREDIT_TENORS = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5];
   const RATES_SPREAD_SLOPE_PAIRS = [
+    [0.5, 1],
     [1, 1.5],
     [1.5, 2],
     [1, 2],
@@ -5823,11 +5826,44 @@
     return yieldAt(d, "국고채", String(t));
   }
 
+  function tbTenorStr(t) {
+    if (t === 0.5) return "통안채 0.5Y";
+    if (t === 1) return "통안채 1Y";
+    if (t === 1.5) return "통안채 1.5Y";
+    if (t === 2) return "통안채 2Y";
+    if (t === 2.5) return "통안채 2.5Y";
+    if (t === 3) return "통안채 3Y";
+    return "통안채 " + t + "Y";
+  }
+
+  function tbYield(d, t) {
+    const ts = tbTenorStr(t);
+    const v = yieldAt(d, "통안채", ts);
+    if (v !== null) return v;
+    return yieldAt(d, "통안채", String(t));
+  }
+
+  function ratesFmtCredTenorHeader(ty) {
+    if (ty === 0.5) return "0.5Y";
+    if (ty === 2.5) return "2.5Y";
+    return ty + "Y";
+  }
+
+  function ratesFmtSlopeTenorLabel(t) {
+    if (t === 0.5) return "0.5";
+    if (t === 2.5) return "2.5";
+    return String(t);
+  }
+
+  function spreadBenchmarkYield(d, y) {
+    if (RATES_CREDIT_TB_BENCHMARK_TENORS.has(y)) return tbYield(d, y);
+    return ktbYield(d, y);
+  }
+
   function creditTenorStr(inst, y) {
     const p = { 특은채: "특은", 특수채: "특수", 은행채: "은행", 카드채: "카드", 여전채: "여전", 회사채: "회사" }[inst];
     if (!p) return null;
-    const ys = y === 2.5 ? "2.5Y" : `${y}Y`;
-    return p + " " + ys;
+    return p + " " + ratesFmtCredTenorHeader(y);
   }
 
   function creditYield(d, inst, y) {
@@ -5852,7 +5888,7 @@
 
   function creditSpreadBp(d, inst, y) {
     const c = creditYield(d, inst, y);
-    const k = ktbYield(d, y);
+    const k = spreadBenchmarkYield(d, y);
     if (c === null || k === null) return null;
     return (c - k) * 100;
   }
@@ -6045,7 +6081,7 @@
     const credTen = RATES_CREDIT_TENORS;
     const slopePairs = RATES_SPREAD_SLOPE_PAIRS;
     const customSpreadPairs = ratesKtbCustomSpreadInputs.map((s) => parseKtbCustomSpreadPair(s));
-    const ktbPairs = ktbTen.length + ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS + 1;
+    const ktbPairs = RATES_TB_TENORS.length + ktbTen.length + ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS + 1;
     const creditGroupA = RATES_CREDIT_LINES.filter((line) => RATES_CREDIT_GROUP_A.indexOf(line.inst) >= 0);
     const creditGroupB = RATES_CREDIT_LINES.filter((line) => RATES_CREDIT_GROUP_B.indexOf(line.inst) >= 0);
     const creditColsA = creditGroupA.length * credTen.length;
@@ -6065,6 +6101,15 @@
       let trCls = "";
       trCls = ratesRowClass(label, histCls, isLatestHist);
       let h = "<tr" + (trCls ? " class=\"" + trCls + "\"" : "") + "><td>" + escapeHtml(label) + "</td>";
+      RATES_TB_TENORS.forEach((t) => {
+        const vA = tbYield(dAnchor, t);
+        if (isDelta && refD) {
+          const vR = tbYield(refD, t);
+          const dPct = vA !== null && vR !== null ? vA - vR : null;
+          const dBp = dPct !== null ? dPct * 100 : null;
+          h += tdVal(dBp, 1, true);
+        } else h += tdVal(vA, 3, false);
+      });
       ktbTen.forEach((t) => {
         const vA = ktbYield(dAnchor, t);
         if (isDelta && refD) {
@@ -6108,6 +6153,13 @@
     function ktbCustomRowHtml(dCustom) {
       const val = dCustom ? dCustom : "";
       let h = "<tr><td><div class=\"rates-custom-date-wrap rates-custom-date-wrap--ktb\"><span class=\"rates-custom-date-text\" title=\"기준일(이 일자 대비 최신일 차이)\">" + escapeHtml(fmtShortYmd(val)) + "</span></div></td>";
+      RATES_TB_TENORS.forEach((t) => {
+        const vA = tbYield(d0, t);
+        const vR = dCustom ? tbYield(dCustom, t) : null;
+        const dPct = vA !== null && vR !== null ? vA - vR : null;
+        const dBp = dPct !== null ? dPct * 100 : null;
+        h += tdVal(dBp, 1, true);
+      });
       ktbTen.forEach((t) => {
         const vA = ktbYield(d0, t);
         const vR = dCustom ? ktbYield(dCustom, t) : null;
@@ -6234,9 +6286,11 @@
 
     let hK = "<table class=\"rates-analysis-table rates-table-ktb\"><colgroup><col class=\"rates-col-ktb-label rates-col-label\" /><col span=\"" + ktbPairs + "\" class=\"rates-col-metric\" /></colgroup><thead>";
     hK += "<tr><th rowspan=\"2\">구분</th>";
+    hK += "<th colspan=\"" + RATES_TB_TENORS.length + "\" class=\"group-head\">통안채 금리</th>";
     hK += "<th colspan=\"" + ktbTen.length + "\" class=\"group-head\">국고채 금리</th>";
     hK += "<th colspan=\"" + (ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS) + "\" class=\"group-head\">만기간 스프레드</th>";
     hK += "<th rowspan=\"2\" title=\"100×(3/5년 스프레드)÷(3/10년 스프레드), 스프레드=국고채 금리차(bp)\">5V</th></tr><tr>";
+    RATES_TB_TENORS.forEach((t) => { hK += "<th>" + t + "</th>"; });
     ktbTen.forEach((t) => { hK += "<th>" + t + "</th>"; });
     ktbSpr.forEach(([a, b]) => { hK += "<th>" + a + "/" + b + "</th>"; });
     for (let ci = 0; ci < RATES_KTB_CUSTOM_SPREAD_COLS; ci++) {
@@ -6271,7 +6325,7 @@
       });
       hY += "</tr><tr>";
       lines.forEach(() => {
-        credTen.forEach((ty) => { hY += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
+        credTen.forEach((ty) => { hY += "<th>" + ratesFmtCredTenorHeader(ty) + "</th>"; });
       });
       hY += "</tr></thead><tbody>";
       if (customRefD) hY += creditYldCustomRowHtml(customRefD, lines);
@@ -6297,7 +6351,7 @@
       });
       hS += "</tr><tr>";
       lines.forEach(() => {
-        credTen.forEach((ty) => { hS += "<th>" + (ty === 2.5 ? "2.5Y" : ty + "Y") + "</th>"; });
+        credTen.forEach((ty) => { hS += "<th>" + ratesFmtCredTenorHeader(ty) + "</th>"; });
       });
       hS += "</tr></thead><tbody>";
       if (customRefD) hS += creditSprCustomRowHtml(customRefD, lines);
@@ -6334,9 +6388,7 @@
       hP += "</tr><tr>";
       lines.forEach(() => {
         slopePairs.forEach(([a, b]) => {
-          const la = a === 2.5 ? "2.5" : String(a);
-          const lb = b === 2.5 ? "2.5" : String(b);
-          hP += "<th>" + la + "/" + lb + "</th>";
+          hP += "<th>" + ratesFmtSlopeTenorLabel(a) + "/" + ratesFmtSlopeTenorLabel(b) + "</th>";
         });
       });
       hP += "</tr></thead><tbody>";
