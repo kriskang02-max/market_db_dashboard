@@ -916,11 +916,18 @@
     }
     #page-overview .overview-trade-table {
       width: 100%;
-      min-width: 52rem;
+      min-width: 46rem;
       border-collapse: collapse;
       font-size: 0.74rem;
       line-height: 1.3;
+      table-layout: fixed;
     }
+    #page-overview .overview-trade-table col.ovtr-col-nav { width: 2.5rem; }
+    #page-overview .overview-trade-table col.ovtr-col-type { width: 2.45rem; }
+    #page-overview .overview-trade-table col.ovtr-col-price,
+    #page-overview .overview-trade-table col.ovtr-col-current { width: 2.65rem; }
+    #page-overview .overview-trade-table col.ovtr-col-qty { width: 2.35rem; }
+    #page-overview .overview-trade-table col.ovtr-col-pnl { width: 4.1rem; }
     #page-overview .overview-trade-table.overview-side-table-compact th,
     #page-overview .overview-trade-table.overview-side-table-compact td {
       padding: 0.2rem 0.28rem;
@@ -941,7 +948,7 @@
     #page-overview .overview-trade-table input.overview-trade-input,
     #page-overview .overview-trade-table select.overview-trade-select {
       width: 100%;
-      min-width: 3.2rem;
+      min-width: 0;
       box-sizing: border-box;
       margin: 0;
       padding: 0.12rem 0.2rem;
@@ -956,12 +963,21 @@
     }
     #page-overview .overview-trade-table select.overview-trade-select {
       text-align: center;
-      min-width: 3.4rem;
+      padding-left: 0.05rem;
+      padding-right: 0.05rem;
     }
     #page-overview .overview-trade-table .overview-trade-calc {
       display: block;
+      width: 100%;
+      padding: 0 0.1rem;
+      box-sizing: border-box;
       font-variant-numeric: tabular-nums;
       color: rgba(255, 255, 255, 0.92);
+    }
+    #page-overview .overview-trade-table td.ovtr-cell-pnl,
+    #page-overview .overview-trade-table th.ovtr-cell-pnl {
+      padding-left: 0.35rem;
+      padding-right: 0.35rem;
     }
     #page-overview .overview-trade-table .overview-trade-calc--neg {
       color: #fca5a5;
@@ -2009,25 +2025,40 @@
             </div>
             <div class="overview-trade-table-wrap">
               <table class="overview-trade-table overview-side-table-compact" id="overviewTradeTable" aria-label="매매내역">
+                <colgroup>
+                  <col class="ovtr-col-nav" />
+                  <col class="ovtr-col-type" />
+                  <col class="ovtr-col-price" />
+                  <col class="ovtr-col-current" />
+                  <col class="ovtr-col-qty" />
+                  <col class="ovtr-col-pnl" />
+                  <col class="ovtr-col-type" />
+                  <col class="ovtr-col-price" />
+                  <col class="ovtr-col-current" />
+                  <col class="ovtr-col-qty" />
+                  <col class="ovtr-col-pnl" />
+                  <col class="ovtr-col-pnl" />
+                  <col class="ovtr-col-pnl" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th rowspan="2">NAV</th>
                     <th colspan="5" class="overview-trade-group-head">A</th>
                     <th colspan="5" class="overview-trade-group-head">B</th>
-                    <th rowspan="2">총손익</th>
-                    <th rowspan="2">성과(bp)</th>
+                    <th rowspan="2" class="ovtr-cell-pnl">총손익</th>
+                    <th rowspan="2" class="ovtr-cell-pnl">성과(bp)</th>
                   </tr>
                   <tr>
                     <th>구분</th>
                     <th>매수단가</th>
                     <th>현재가</th>
                     <th>매수금액</th>
-                    <th>손익(A)</th>
+                    <th class="ovtr-cell-pnl">손익(A)</th>
                     <th>구분</th>
                     <th>매도단가</th>
                     <th>현재가</th>
                     <th>매도금액</th>
-                    <th>손익(B)</th>
+                    <th class="ovtr-cell-pnl">손익(B)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2042,7 +2073,7 @@
                     <td><input type="text" id="overviewTradePriceA" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
                     <td><input type="text" id="overviewTradeCurrentA" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
                     <td><input type="text" id="overviewTradeQtyA" class="overview-trade-input" inputmode="numeric" autocomplete="off" spellcheck="false" /></td>
-                    <td><span id="overviewTradePnlA" class="overview-trade-calc">—</span></td>
+                    <td class="ovtr-cell-pnl"><span id="overviewTradePnlA" class="overview-trade-calc">—</span></td>
                     <td>
                       <select id="overviewTradeTypeB" class="overview-trade-select">
                         <option value="채권">채권</option>
@@ -2052,9 +2083,9 @@
                     <td><input type="text" id="overviewTradePriceB" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
                     <td><input type="text" id="overviewTradeCurrentB" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
                     <td><input type="text" id="overviewTradeQtyB" class="overview-trade-input" inputmode="numeric" autocomplete="off" spellcheck="false" /></td>
-                    <td><span id="overviewTradePnlB" class="overview-trade-calc">—</span></td>
-                    <td><span id="overviewTradePnlTotal" class="overview-trade-calc">—</span></td>
-                    <td><span id="overviewTradePerf" class="overview-trade-calc">—</span></td>
+                    <td class="ovtr-cell-pnl"><span id="overviewTradePnlB" class="overview-trade-calc">—</span></td>
+                    <td class="ovtr-cell-pnl"><span id="overviewTradePnlTotal" class="overview-trade-calc">—</span></td>
+                    <td class="ovtr-cell-pnl"><span id="overviewTradePerf" class="overview-trade-calc">—</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -3447,7 +3478,17 @@
     };
   }
 
-  function overviewTradeCalcPnl(type, priceRaw, currentRaw, qtyRaw) {
+  function overviewTradeCalcPnlBuy(type, priceRaw, currentRaw, qtyRaw) {
+    const price = overviewTradeParseNum(priceRaw);
+    const current = overviewTradeParseNum(currentRaw);
+    const qty = overviewTradeParseNum(qtyRaw);
+    if (price === null || current === null || qty === null) return null;
+    let pnl = (current - price) * qty;
+    if (type === "선물") pnl *= 100;
+    return pnl;
+  }
+
+  function overviewTradeCalcPnlSell(type, priceRaw, currentRaw, qtyRaw) {
     const price = overviewTradeParseNum(priceRaw);
     const current = overviewTradeParseNum(currentRaw);
     const qty = overviewTradeParseNum(qtyRaw);
@@ -3485,8 +3526,8 @@
     const qtyB = overviewTradeQtyB ? overviewTradeQtyB.value : "";
     const navRaw = overviewTradeNav ? overviewTradeNav.value : "";
 
-    const pnlA = overviewTradeCalcPnl(typeA, priceA, currentA, qtyA);
-    const pnlB = overviewTradeCalcPnl(typeB, priceB, currentB, qtyB);
+    const pnlA = overviewTradeCalcPnlBuy(typeA, priceA, currentA, qtyA);
+    const pnlB = overviewTradeCalcPnlSell(typeB, priceB, currentB, qtyB);
     overviewTradeSetCalcCell(overviewTradePnlA, pnlA);
     overviewTradeSetCalcCell(overviewTradePnlB, pnlB);
 
