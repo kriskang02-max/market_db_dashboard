@@ -93,6 +93,74 @@
     .error { color: #f88; }
     .page { display: none; }
     .page.is-active { display: block; }
+    #page-report .report-outer {
+      padding: 1rem 1.25rem 1.25rem;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    #page-report .report-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.85rem;
+      margin-bottom: 0.65rem;
+    }
+    #page-report .report-toolbar h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.92);
+    }
+    #page-report .report-toolbar-meta {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    #page-report .report-toolbar-actions {
+      margin-left: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    #page-report .report-toolbar-actions a,
+    #page-report .report-toolbar-actions button {
+      font-size: 0.78rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #page-report .report-toolbar-actions a:hover,
+    #page-report .report-toolbar-actions button:hover {
+      background: rgba(59, 130, 246, 0.25);
+      border-color: rgba(59, 130, 246, 0.45);
+    }
+    #page-report .report-status {
+      margin: 0 0 0.55rem;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+      min-height: 1.2em;
+    }
+    #page-report .report-status.is-warn { color: #fbbf24; }
+    #page-report .report-status.is-err { color: #f87171; }
+    #page-report .report-pdf-wrap {
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #0e1117;
+      overflow: hidden;
+      min-height: calc(100vh - 8.5rem);
+    }
+    #page-report .report-pdf-frame {
+      display: block;
+      width: 100%;
+      height: calc(100vh - 8.5rem);
+      min-height: 32rem;
+      border: 0;
+      background: #1a1a2e;
+    }
     nav.page-nav {
       display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem;
       margin: 0.85rem 0 0; padding: 0.55rem 0.85rem;
@@ -1649,6 +1717,8 @@
       <a href="#fund" class="page-nav__link" id="navFund">펀드 분석</a>
       <span class="page-nav__sep" aria-hidden="true">|</span>
       <a href="#overview" class="page-nav__link" id="navOverview">Overview</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#report" class="page-nav__link" id="navReport">Report</a>
     </nav>
     <div id="spreadHeaderMeta" class="page-meta spread-header-asof">
       <p class="spread-header-asof__line">
@@ -1936,6 +2006,23 @@
           <select id="fundCompareJaFund2" class="fund-refdate-input fund-refdate-input--toolbar"></select>
         </div>
         <div class="chart-wrap fund-compare-chart-wrap" id="fundCompareJaChart"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-report" class="page">
+    <div class="report-outer">
+      <div class="report-toolbar">
+        <h2>채권 모닝브리핑</h2>
+        <span id="reportDateLabel" class="report-toolbar-meta">—</span>
+        <div class="report-toolbar-actions">
+          <a id="reportOpenLink" href="#" target="_blank" rel="noopener noreferrer" hidden>새 탭에서 열기</a>
+          <button type="button" id="reportRefreshBtn">새로고침</button>
+        </div>
+      </div>
+      <p id="reportStatus" class="report-status" role="status">리포트를 불러오는 중…</p>
+      <div class="report-pdf-wrap">
+        <iframe id="reportPdfFrame" class="report-pdf-frame" title="채권 모닝브리핑 PDF"></iframe>
       </div>
     </div>
   </div>
@@ -2321,11 +2408,19 @@
   const navFund = document.getElementById("navFund");
   const navTerm = document.getElementById("navTerm");
   const navOverview = document.getElementById("navOverview");
+  const navReport = document.getElementById("navReport");
   const pageSpreadEl = document.getElementById("page-spread");
   const pageRatesEl = document.getElementById("page-rates");
   const pageFundEl = document.getElementById("page-fund");
   const pageTermEl = document.getElementById("page-term");
   const pageOverviewEl = document.getElementById("page-overview");
+  const pageReportEl = document.getElementById("page-report");
+  const reportDateLabel = document.getElementById("reportDateLabel");
+  const reportStatus = document.getElementById("reportStatus");
+  const reportPdfFrame = document.getElementById("reportPdfFrame");
+  const reportOpenLink = document.getElementById("reportOpenLink");
+  const reportRefreshBtn = document.getElementById("reportRefreshBtn");
+  const REPORT_PDF_DIR = "reports/";
   const fundTableMoWrap = document.getElementById("fundTableMoWrap");
   const fundTableJaWrap = document.getElementById("fundTableJaWrap");
   const fundSummaryOuter = document.getElementById("fundSummaryOuter");
@@ -5838,22 +5933,26 @@
     const isRates = page === "rates";
     const isTerm = page === "term";
     const isOverview = page === "overview";
+    const isReport = page === "report";
     if (pageSpreadEl) pageSpreadEl.classList.toggle("is-active", isSpread);
     if (pageRatesEl) pageRatesEl.classList.toggle("is-active", isRates);
     if (pageFundEl) pageFundEl.classList.toggle("is-active", isFund);
     if (pageTermEl) pageTermEl.classList.toggle("is-active", isTerm);
     if (pageOverviewEl) pageOverviewEl.classList.toggle("is-active", isOverview);
+    if (pageReportEl) pageReportEl.classList.toggle("is-active", isReport);
     if (spreadHeaderMeta) spreadHeaderMeta.hidden = !isSpread;
     if (navSpread) navSpread.classList.toggle("is-current", isSpread);
     if (navRates) navRates.classList.toggle("is-current", isRates);
     if (navFund) navFund.classList.toggle("is-current", isFund);
     if (navTerm) navTerm.classList.toggle("is-current", isTerm);
     if (navOverview) navOverview.classList.toggle("is-current", isOverview);
+    if (navReport) navReport.classList.toggle("is-current", isReport);
     let title = "스프레드 분석";
     if (isFund) title = "펀드 분석";
     else if (isRates) title = "금리 분석";
     else if (isTerm) title = "Term Structure";
     else if (isOverview) title = "Overview";
+    else if (isReport) title = "Report";
     document.title = title;
     if (isFund) {
       ensureFundData();
@@ -5893,6 +5992,67 @@
           // 동기화 실패 시에도 초기 로컬 렌더는 유지
         });
     }
+    if (isReport) renderReportPage();
+  }
+
+  function reportTodayTagKst() {
+    const kst = new Date(Date.now() + (9 * 60 - new Date().getTimezoneOffset()) * 60000);
+    const y = kst.getUTCFullYear();
+    const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(kst.getUTCDate()).padStart(2, "0");
+    return String(y) + m + d;
+  }
+
+  function reportPdfFileName(tag) {
+    return "bond_morning_briefing_" + tag + ".pdf";
+  }
+
+  function reportPdfUrl(tag, bustCache) {
+    const name = reportPdfFileName(tag);
+    try {
+      const u = new URL(REPORT_PDF_DIR + name, location.href);
+      if (bustCache) u.searchParams.set("_", String(Date.now()));
+      return u.href;
+    } catch (_) {
+      return REPORT_PDF_DIR + name + (bustCache ? "?_=" + Date.now() : "");
+    }
+  }
+
+  function reportFmtTagLabel(tag) {
+    if (!tag || tag.length !== 8) return tag || "—";
+    return tag.slice(0, 4) + "-" + tag.slice(4, 6) + "-" + tag.slice(6, 8) + " (KST)";
+  }
+
+  function renderReportPage() {
+    if (!reportStatus) return;
+    const tag = reportTodayTagKst();
+    const fileName = reportPdfFileName(tag);
+    const url = reportPdfUrl(tag, true);
+    if (reportDateLabel) reportDateLabel.textContent = "당일: " + reportFmtTagLabel(tag);
+    reportStatus.textContent = "당일 PDF 확인 중… (" + fileName + ")";
+    reportStatus.classList.remove("is-warn", "is-err");
+    if (reportOpenLink) {
+      reportOpenLink.hidden = true;
+      reportOpenLink.removeAttribute("href");
+    }
+    fetch(url, { method: "HEAD", cache: "no-store" })
+      .then((r) => {
+        if (!r.ok) throw new Error("not found");
+        if (reportPdfFrame) reportPdfFrame.src = url;
+        if (reportOpenLink) {
+          reportOpenLink.href = url;
+          reportOpenLink.hidden = false;
+        }
+        reportStatus.textContent = "당일 리포트 표시 중 · " + fileName;
+      })
+      .catch(() => {
+        if (reportPdfFrame) reportPdfFrame.removeAttribute("src");
+        reportStatus.textContent =
+          "당일 PDF가 없습니다 (" +
+          fileName +
+          "). Report 폴더에서 run_all_and_upload.bat 실행 후 GitHub Pages 반영을 기다려 주세요.";
+        reportStatus.classList.add("is-warn");
+      });
   }
 
   function ensureFundData() {
@@ -7371,8 +7531,10 @@
     if (el && el.type !== "number") el.addEventListener("input", render2);
   });
 
-  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 분석 → 펀드 분석 → Overview (순환) */
-  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview"];
+  if (reportRefreshBtn) reportRefreshBtn.addEventListener("click", () => renderReportPage());
+
+  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 → 펀드 → Overview → Report (순환) */
+  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview", "report"];
 
   function applyHashPage() {
     const h = (location.hash || "#rates").slice(1);
@@ -7381,6 +7543,7 @@
     else if (h === "term") setPage("term");
     else if (h === "spread") setPage("spread");
     else if (h === "overview") setPage("overview");
+    else if (h === "report") setPage("report");
     else setPage("rates");
   }
   window.addEventListener("hashchange", applyHashPage);
@@ -7420,6 +7583,7 @@
     if (slug === "term") return "term";
     if (slug === "spread") return "spread";
     if (slug === "overview") return "overview";
+    if (slug === "report") return "report";
     return null;
   }
   document.addEventListener("click", (e) => {
