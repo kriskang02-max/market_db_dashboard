@@ -879,6 +879,100 @@
       margin-top: 0.25rem;
       min-height: 1.1em;
     }
+    #page-overview .overview-trade-block {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      min-width: 0;
+      width: 100%;
+    }
+    #page-overview .overview-trade-header-row {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 0.28rem;
+      margin-bottom: 0.45rem;
+      min-height: calc(0.74rem * 1.35 + 0.2rem);
+      white-space: nowrap;
+    }
+    #page-overview .overview-trade-title {
+      margin: 0;
+      flex: 0 0 auto;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+      line-height: 1.35;
+    }
+    #page-overview .overview-trade-header-spacer {
+      flex: 1 1 auto;
+      min-width: 0.25rem;
+    }
+    #page-overview .overview-trade-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.45);
+    }
+    #page-overview .overview-trade-table {
+      width: 100%;
+      min-width: 52rem;
+      border-collapse: collapse;
+      font-size: 0.74rem;
+      line-height: 1.3;
+    }
+    #page-overview .overview-trade-table.overview-side-table-compact th,
+    #page-overview .overview-trade-table.overview-side-table-compact td {
+      padding: 0.2rem 0.28rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: center;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    #page-overview .overview-trade-table thead th {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.82);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    #page-overview .overview-trade-table .overview-trade-group-head {
+      font-size: 0.68rem;
+      color: rgba(255, 255, 255, 0.62);
+    }
+    #page-overview .overview-trade-table input.overview-trade-input,
+    #page-overview .overview-trade-table select.overview-trade-select {
+      width: 100%;
+      min-width: 3.2rem;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0.12rem 0.2rem;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.96);
+      font-size: 0.74rem;
+      line-height: 1.3;
+      font-family: inherit;
+      text-align: right;
+    }
+    #page-overview .overview-trade-table select.overview-trade-select {
+      text-align: center;
+      min-width: 3.4rem;
+    }
+    #page-overview .overview-trade-table .overview-trade-calc {
+      display: block;
+      font-variant-numeric: tabular-nums;
+      color: rgba(255, 255, 255, 0.92);
+    }
+    #page-overview .overview-trade-table .overview-trade-calc--neg {
+      color: #fca5a5;
+    }
+    #page-overview .overview-trade-status {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      text-align: right;
+      margin-top: 0.25rem;
+      min-height: 1.1em;
+    }
     #page-overview .overview-policy-block {
       display: flex;
       flex-direction: column;
@@ -1905,6 +1999,68 @@
             </div>
             <span id="overviewMemoStatus" class="overview-memo-status" aria-live="polite"></span>
           </div>
+          <div class="overview-trade-block">
+            <div class="overview-trade-header-row">
+              <h3 class="overview-trade-title">매매내역</h3>
+              <span class="overview-trade-header-spacer" aria-hidden="true"></span>
+              <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
+                <button type="button" id="overviewTradeSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
+              </div>
+            </div>
+            <div class="overview-trade-table-wrap">
+              <table class="overview-trade-table overview-side-table-compact" id="overviewTradeTable" aria-label="매매내역">
+                <thead>
+                  <tr>
+                    <th rowspan="2">NAV</th>
+                    <th colspan="5" class="overview-trade-group-head">A</th>
+                    <th colspan="5" class="overview-trade-group-head">B</th>
+                    <th rowspan="2">총손익</th>
+                    <th rowspan="2">성과(bp)</th>
+                  </tr>
+                  <tr>
+                    <th>구분</th>
+                    <th>매수단가</th>
+                    <th>현재가</th>
+                    <th>매수금액</th>
+                    <th>손익(A)</th>
+                    <th>구분</th>
+                    <th>매도단가</th>
+                    <th>현재가</th>
+                    <th>매도금액</th>
+                    <th>손익(B)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><input type="text" id="overviewTradeNav" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
+                    <td>
+                      <select id="overviewTradeTypeA" class="overview-trade-select">
+                        <option value="채권">채권</option>
+                        <option value="선물">선물</option>
+                      </select>
+                    </td>
+                    <td><input type="text" id="overviewTradePriceA" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
+                    <td><input type="text" id="overviewTradeCurrentA" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
+                    <td><input type="text" id="overviewTradeQtyA" class="overview-trade-input" inputmode="numeric" autocomplete="off" spellcheck="false" /></td>
+                    <td><span id="overviewTradePnlA" class="overview-trade-calc">—</span></td>
+                    <td>
+                      <select id="overviewTradeTypeB" class="overview-trade-select">
+                        <option value="채권">채권</option>
+                        <option value="선물">선물</option>
+                      </select>
+                    </td>
+                    <td><input type="text" id="overviewTradePriceB" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
+                    <td><input type="text" id="overviewTradeCurrentB" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
+                    <td><input type="text" id="overviewTradeQtyB" class="overview-trade-input" inputmode="numeric" autocomplete="off" spellcheck="false" /></td>
+                    <td><span id="overviewTradePnlB" class="overview-trade-calc">—</span></td>
+                    <td><span id="overviewTradePnlTotal" class="overview-trade-calc">—</span></td>
+                    <td><span id="overviewTradePerf" class="overview-trade-calc">—</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <span id="overviewTradeStatus" class="overview-trade-status" aria-live="polite"></span>
+          </div>
           <div class="overview-policy-block">
             <div class="overview-policy-toolbar overview-policy-toolbar--compact">
               <h3 class="overview-policy-title">통화정책회의</h3>
@@ -2054,6 +2210,7 @@
   const OVERVIEW_KEYBOND_STORAGE_KEY = "market_db_dashboard_overview_keybond_v1";
   const OVERVIEW_KEYBOND_LOCK_KEY = "market_db_dashboard_overview_keybond_lock_v1";
   const OVERVIEW_MEMO_STORAGE_KEY = "market_db_dashboard_overview_memo_v1";
+  const OVERVIEW_TRADE_STORAGE_KEY = "market_db_dashboard_overview_trade_v1";
   const OVERVIEW_MEMO_AUTOSAVE_MS = 30 * 60 * 1000;
   const OVERVIEW_KEYBOND_TENORS = [
     { col: "1Y", csv: "1년" },
@@ -2176,6 +2333,21 @@
   const overviewMemoTextarea = document.getElementById("overviewMemoTextarea");
   const overviewMemoSave = document.getElementById("overviewMemoSave");
   const overviewMemoStatus = document.getElementById("overviewMemoStatus");
+  const overviewTradeNav = document.getElementById("overviewTradeNav");
+  const overviewTradeTypeA = document.getElementById("overviewTradeTypeA");
+  const overviewTradePriceA = document.getElementById("overviewTradePriceA");
+  const overviewTradeCurrentA = document.getElementById("overviewTradeCurrentA");
+  const overviewTradeQtyA = document.getElementById("overviewTradeQtyA");
+  const overviewTradePnlA = document.getElementById("overviewTradePnlA");
+  const overviewTradeTypeB = document.getElementById("overviewTradeTypeB");
+  const overviewTradePriceB = document.getElementById("overviewTradePriceB");
+  const overviewTradeCurrentB = document.getElementById("overviewTradeCurrentB");
+  const overviewTradeQtyB = document.getElementById("overviewTradeQtyB");
+  const overviewTradePnlB = document.getElementById("overviewTradePnlB");
+  const overviewTradePnlTotal = document.getElementById("overviewTradePnlTotal");
+  const overviewTradePerf = document.getElementById("overviewTradePerf");
+  const overviewTradeSave = document.getElementById("overviewTradeSave");
+  const overviewTradeStatus = document.getElementById("overviewTradeStatus");
   let overviewMemoLastPersisted = null;
   let overviewMemoAutosaveTimer = null;
   let overviewSyncLoadPromise = null;
@@ -2953,12 +3125,49 @@
       if (overviewMemoStatus) overviewMemoStatus.textContent = "";
     });
   }
+  if (overviewTradeSave) overviewTradeSave.addEventListener("click", () => overviewTradeSaveToStorage());
+  [
+    overviewTradeNav,
+    overviewTradeTypeA,
+    overviewTradePriceA,
+    overviewTradeCurrentA,
+    overviewTradeQtyA,
+    overviewTradeTypeB,
+    overviewTradePriceB,
+    overviewTradeCurrentB,
+    overviewTradeQtyB,
+  ].forEach((el) => {
+    if (!el) return;
+    const evt = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(evt, () => {
+      if (overviewTradeStatus) overviewTradeStatus.textContent = "";
+      overviewTradeRecalc();
+    });
+  });
+  [overviewTradeNav, overviewTradePriceA, overviewTradeCurrentA, overviewTradePriceB, overviewTradeCurrentB].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("blur", () => {
+      const n = overviewTradeParseNum(el.value);
+      if (n !== null) el.value = overviewTradeFmtPrice(n);
+      overviewTradeRecalc();
+    });
+  });
+  [overviewTradeQtyA, overviewTradeQtyB].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("blur", () => {
+      const n = overviewTradeParseNum(el.value);
+      if (n !== null) el.value = overviewTradeFmtQty(n);
+      overviewTradeRecalc();
+    });
+  });
   overviewFirebaseSyncSetupUi();
   if (overviewFbSaveConfig) {
     overviewFbSaveConfig.addEventListener("click", () => overviewFirebaseSaveConfigFromForm());
   }
+  overviewTradeRenderFromState(overviewTradeLoadSaved());
   overviewSyncEnsureLoaded(false).then(() => {
     overviewMemoLoadFromStorage();
+    overviewTradeRenderFromState(overviewTradeLoadSaved());
     overviewFirebaseSyncSetupUi();
     if (overviewFirebaseIsConfigured()) overviewFirebaseStartListener();
   });
@@ -3171,6 +3380,154 @@
   function overviewMemoMaybeAutosave() {
     if (!overviewMemoTextarea) return;
     if (overviewMemoTextarea.value !== overviewMemoLastPersisted) overviewMemoSaveToStorage(true);
+  }
+
+  function overviewTradeParseNum(raw) {
+    const s = String(raw == null ? "" : raw).trim().replace(/,/g, "");
+    if (!s) return null;
+    const n = parseFloat(s, 10);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function overviewTradeDefaultState() {
+    return {
+      nav: "",
+      legA: { type: "채권", price: "", current: "", qty: "" },
+      legB: { type: "선물", price: "", current: "", qty: "" },
+    };
+  }
+
+  function overviewTradeMergeSaved(obj) {
+    const def = overviewTradeDefaultState();
+    if (!obj || typeof obj !== "object") return def;
+    const legA = obj.legA && typeof obj.legA === "object" ? obj.legA : {};
+    const legB = obj.legB && typeof obj.legB === "object" ? obj.legB : {};
+    return {
+      nav: obj.nav != null ? String(obj.nav) : def.nav,
+      legA: {
+        type: legA.type === "선물" ? "선물" : "채권",
+        price: legA.price != null ? String(legA.price) : "",
+        current: legA.current != null ? String(legA.current) : "",
+        qty: legA.qty != null ? String(legA.qty) : "",
+      },
+      legB: {
+        type: legB.type === "채권" ? "채권" : "선물",
+        price: legB.price != null ? String(legB.price) : "",
+        current: legB.current != null ? String(legB.current) : "",
+        qty: legB.qty != null ? String(legB.qty) : "",
+      },
+    };
+  }
+
+  function overviewTradeLoadSaved() {
+    try {
+      const raw = localStorage.getItem(OVERVIEW_TRADE_STORAGE_KEY);
+      if (!raw) return overviewTradeDefaultState();
+      return overviewTradeMergeSaved(JSON.parse(raw));
+    } catch (_) {
+      return overviewTradeDefaultState();
+    }
+  }
+
+  function overviewTradeCollectFromDom() {
+    return {
+      nav: overviewTradeNav ? String(overviewTradeNav.value || "").trim() : "",
+      legA: {
+        type: overviewTradeTypeA ? String(overviewTradeTypeA.value || "채권") : "채권",
+        price: overviewTradePriceA ? String(overviewTradePriceA.value || "").trim() : "",
+        current: overviewTradeCurrentA ? String(overviewTradeCurrentA.value || "").trim() : "",
+        qty: overviewTradeQtyA ? String(overviewTradeQtyA.value || "").trim() : "",
+      },
+      legB: {
+        type: overviewTradeTypeB ? String(overviewTradeTypeB.value || "선물") : "선물",
+        price: overviewTradePriceB ? String(overviewTradePriceB.value || "").trim() : "",
+        current: overviewTradeCurrentB ? String(overviewTradeCurrentB.value || "").trim() : "",
+        qty: overviewTradeQtyB ? String(overviewTradeQtyB.value || "").trim() : "",
+      },
+    };
+  }
+
+  function overviewTradeCalcPnl(type, priceRaw, currentRaw, qtyRaw) {
+    const price = overviewTradeParseNum(priceRaw);
+    const current = overviewTradeParseNum(currentRaw);
+    const qty = overviewTradeParseNum(qtyRaw);
+    if (price === null || current === null || qty === null) return null;
+    let pnl = (price - current) * qty;
+    if (type === "선물") pnl *= 100;
+    return pnl;
+  }
+
+  function overviewTradeFmtPrice(n) {
+    if (n === null || !Number.isFinite(n)) return "—";
+    return n.toFixed(2);
+  }
+
+  function overviewTradeFmtQty(n) {
+    if (n === null || !Number.isFinite(n)) return "";
+    return String(Math.round(n));
+  }
+
+  function overviewTradeSetCalcCell(el, value) {
+    if (!el) return;
+    const neg = Number.isFinite(value) && value < 0;
+    el.textContent = overviewTradeFmtPrice(value);
+    el.classList.toggle("overview-trade-calc--neg", neg);
+  }
+
+  function overviewTradeRecalc() {
+    const typeA = overviewTradeTypeA ? overviewTradeTypeA.value : "채권";
+    const typeB = overviewTradeTypeB ? overviewTradeTypeB.value : "선물";
+    const priceA = overviewTradePriceA ? overviewTradePriceA.value : "";
+    const currentA = overviewTradeCurrentA ? overviewTradeCurrentA.value : "";
+    const qtyA = overviewTradeQtyA ? overviewTradeQtyA.value : "";
+    const priceB = overviewTradePriceB ? overviewTradePriceB.value : "";
+    const currentB = overviewTradeCurrentB ? overviewTradeCurrentB.value : "";
+    const qtyB = overviewTradeQtyB ? overviewTradeQtyB.value : "";
+    const navRaw = overviewTradeNav ? overviewTradeNav.value : "";
+
+    const pnlA = overviewTradeCalcPnl(typeA, priceA, currentA, qtyA);
+    const pnlB = overviewTradeCalcPnl(typeB, priceB, currentB, qtyB);
+    overviewTradeSetCalcCell(overviewTradePnlA, pnlA);
+    overviewTradeSetCalcCell(overviewTradePnlB, pnlB);
+
+    let pnlTotal = null;
+    if (pnlA !== null && pnlB !== null) pnlTotal = pnlA + pnlB;
+    else if (pnlA !== null) pnlTotal = pnlA;
+    else if (pnlB !== null) pnlTotal = pnlB;
+    overviewTradeSetCalcCell(overviewTradePnlTotal, pnlTotal);
+
+    const nav = overviewTradeParseNum(navRaw);
+    let perf = null;
+    if (pnlTotal !== null && nav !== null && Math.abs(nav) > 1e-12) perf = pnlTotal / nav;
+    overviewTradeSetCalcCell(overviewTradePerf, perf);
+  }
+
+  function overviewTradeRenderFromState(st) {
+    const merged = overviewTradeMergeSaved(st);
+    if (overviewTradeNav) overviewTradeNav.value = merged.nav;
+    if (overviewTradeTypeA) overviewTradeTypeA.value = merged.legA.type;
+    if (overviewTradePriceA) overviewTradePriceA.value = merged.legA.price;
+    if (overviewTradeCurrentA) overviewTradeCurrentA.value = merged.legA.current;
+    if (overviewTradeQtyA) overviewTradeQtyA.value = merged.legA.qty;
+    if (overviewTradeTypeB) overviewTradeTypeB.value = merged.legB.type;
+    if (overviewTradePriceB) overviewTradePriceB.value = merged.legB.price;
+    if (overviewTradeCurrentB) overviewTradeCurrentB.value = merged.legB.current;
+    if (overviewTradeQtyB) overviewTradeQtyB.value = merged.legB.qty;
+    overviewTradeRecalc();
+  }
+
+  function overviewTradeSaveToStorage() {
+    const payload = overviewTradeCollectFromDom();
+    try {
+      localStorage.setItem(OVERVIEW_TRADE_STORAGE_KEY, JSON.stringify(payload));
+      overviewSyncPersistAll({ manual: true }).then((res) => {
+        if (overviewTradeStatus) overviewTradeStatus.textContent = overviewSyncManualSaveStatus(res);
+      });
+    } catch (e) {
+      if (overviewTradeStatus) {
+        overviewTradeStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
+      }
+    }
   }
 
   function overviewMemoEnsureAutosaveTimer() {
@@ -3828,6 +4185,9 @@
       if (snap.keybond && Array.isArray(snap.keybond.rows) && snap.keybond.rows.length) {
         localStorage.setItem(OVERVIEW_KEYBOND_STORAGE_KEY, JSON.stringify(snap.keybond));
       }
+      if (snap.trade && typeof snap.trade === "object") {
+        localStorage.setItem(OVERVIEW_TRADE_STORAGE_KEY, JSON.stringify(snap.trade));
+      }
       if (snap.locks) {
         localStorage.setItem(OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY, snap.locks.prevday ? "1" : "0");
         localStorage.setItem(OVERVIEW_POLICY_LOCK_KEY, snap.locks.policy ? "1" : "0");
@@ -3876,6 +4236,11 @@
         : JSON.parse(localStorage.getItem(OVERVIEW_KEYBOND_STORAGE_KEY) || "null");
     } catch (_) {}
 
+    let tradePayload = null;
+    try {
+      tradePayload = overviewTradeNav ? overviewTradeCollectFromDom() : JSON.parse(localStorage.getItem(OVERVIEW_TRADE_STORAGE_KEY) || "null");
+    } catch (_) {}
+
     return {
       version: 1,
       updatedAt: new Date().toISOString(),
@@ -3883,6 +4248,7 @@
       prevday: prevdayPayload,
       policy: policyPayload,
       keybond: keybondPayload,
+      trade: tradePayload,
       locks: {
         prevday: overviewPrevDayIsToolbarLocked(),
         policy: overviewPolicyIsLocked(),
@@ -3936,6 +4302,7 @@
       if (snap.prevday) localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(snap.prevday));
       if (snap.policy) localStorage.setItem(OVERVIEW_POLICY_STORAGE_KEY, JSON.stringify(snap.policy));
       if (snap.keybond) localStorage.setItem(OVERVIEW_KEYBOND_STORAGE_KEY, JSON.stringify(snap.keybond));
+      if (snap.trade) localStorage.setItem(OVERVIEW_TRADE_STORAGE_KEY, JSON.stringify(snap.trade));
       if (snap.locks) {
         localStorage.setItem(OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY, snap.locks.prevday ? "1" : "0");
         localStorage.setItem(OVERVIEW_POLICY_LOCK_KEY, snap.locks.policy ? "1" : "0");
@@ -3990,6 +4357,7 @@
 
   function overviewSyncRefreshOverviewUi() {
     overviewMemoLoadFromStorage();
+    overviewTradeRenderFromState(overviewTradeLoadSaved());
     overviewPolicyRenderFromState(overviewPolicyLoadSaved());
     overviewPolicySyncToolbarLockUi();
     overviewKeyBondSyncToolbarLockUi();

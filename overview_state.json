@@ -5,6 +5,7 @@
   "prevday": null,
   "policy": null,
   "keybond": null,
+  "trade": null,
   "locks": {
     "prevday": false,
     "policy": false,
