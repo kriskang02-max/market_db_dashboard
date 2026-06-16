@@ -1034,6 +1034,12 @@
       padding-left: 0.05rem;
       padding-right: 0.05rem;
     }
+    #page-overview .overview-trade-table input.overview-trade-input:disabled,
+    #page-overview .overview-trade-table select.overview-trade-select:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      background: rgba(0, 0, 0, 0.2);
+    }
     #page-overview .overview-trade-table .overview-trade-calc {
       display: block;
       width: 100%;
@@ -2109,6 +2115,7 @@
               <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
                 <button type="button" id="overviewTradeAddRow" class="sidebar btn btn-secondary ovpd-toolbar-act">행 추가</button>
                 <button type="button" id="overviewTradeSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
+                <button type="button" id="overviewTradeLock" class="sidebar btn btn-secondary" aria-pressed="false">잠금</button>
               </div>
             </div>
             <div class="overview-trade-table-wrap">
@@ -2304,6 +2311,7 @@
   const OVERVIEW_KEYBOND_LOCK_KEY = "market_db_dashboard_overview_keybond_lock_v1";
   const OVERVIEW_MEMO_STORAGE_KEY = "market_db_dashboard_overview_memo_v1";
   const OVERVIEW_TRADE_STORAGE_KEY = "market_db_dashboard_overview_trade_v1";
+  const OVERVIEW_TRADE_LOCK_KEY = "market_db_dashboard_overview_trade_lock_v1";
   const OVERVIEW_MEMO_AUTOSAVE_MS = 30 * 60 * 1000;
   const OVERVIEW_KEYBOND_TENORS = [
     { col: "1Y", csv: "1년" },
@@ -2437,6 +2445,7 @@
   const overviewTradeTbody = document.getElementById("overviewTradeTbody");
   const overviewTradeSave = document.getElementById("overviewTradeSave");
   const overviewTradeAddRow = document.getElementById("overviewTradeAddRow");
+  const overviewTradeLock = document.getElementById("overviewTradeLock");
   const overviewTradeStatus = document.getElementById("overviewTradeStatus");
   let overviewMemoLastPersisted = null;
   let overviewMemoAutosaveTimer = null;
@@ -3216,9 +3225,12 @@
     });
   }
   if (overviewTradeSave) overviewTradeSave.addEventListener("click", () => overviewTradeSaveToStorage());
+  if (overviewTradeLock) {
+    overviewTradeLock.addEventListener("click", () => overviewTradeSetLocked(!overviewTradeIsLocked()));
+  }
   if (overviewTradeAddRow) {
     overviewTradeAddRow.addEventListener("click", () => {
-      if (!overviewTradeTbody) return;
+      if (overviewTradeIsLocked() || !overviewTradeTbody) return;
       overviewTradeTbody.appendChild(overviewTradeCreateRowEl(overviewTradeDefaultRow()));
       const navInp = overviewTradeTbody.lastElementChild && overviewTradeTbody.lastElementChild.querySelector(".ovtr-nav");
       if (navInp) navInp.focus();
@@ -3468,6 +3480,49 @@
     if (overviewMemoTextarea.value !== overviewMemoLastPersisted) overviewMemoSaveToStorage(true);
   }
 
+  function overviewTradeIsLocked() {
+    try {
+      return localStorage.getItem(OVERVIEW_TRADE_LOCK_KEY) === "1";
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function overviewTradeSyncRowLockUi(tr) {
+    const locked = overviewTradeIsLocked();
+    const lockSelectors = [".ovtr-nav", ".ovtr-type-a", ".ovtr-price-a", ".ovtr-qty-a", ".ovtr-type-b", ".ovtr-price-b", ".ovtr-qty-b"];
+    lockSelectors.forEach((sel) => {
+      const el = tr.querySelector(sel);
+      if (el) el.disabled = locked;
+    });
+    ["ovtr-current-a", "ovtr-current-b"].forEach((cls) => {
+      const el = tr.querySelector("." + cls);
+      if (el) el.disabled = false;
+    });
+  }
+
+  function overviewTradeSyncToolbarLockUi() {
+    const locked = overviewTradeIsLocked();
+    if (overviewTradeLock) {
+      overviewTradeLock.setAttribute("aria-pressed", locked ? "true" : "false");
+      overviewTradeLock.textContent = locked ? "잠금 해제" : "잠금";
+    }
+    if (overviewTradeAddRow) {
+      overviewTradeAddRow.disabled = locked;
+      overviewTradeAddRow.classList.toggle("ovpd-toolbar-textlike", locked);
+    }
+    if (overviewTradeTbody) {
+      overviewTradeTbody.querySelectorAll("tr[data-ovtr-id]").forEach((tr) => overviewTradeSyncRowLockUi(tr));
+    }
+  }
+
+  function overviewTradeSetLocked(on) {
+    try {
+      localStorage.setItem(OVERVIEW_TRADE_LOCK_KEY, on ? "1" : "0");
+    } catch (_) {}
+    overviewTradeSyncToolbarLockUi();
+  }
+
   function overviewTradeParseNum(raw) {
     const s = String(raw == null ? "" : raw).trim().replace(/,/g, "");
     if (!s) return null;
@@ -3694,6 +3749,7 @@
     if (currentB) currentB.value = row.legB.current;
     if (qtyB) qtyB.value = row.legB.qty;
     overviewTradeRecalcRow(tr);
+    overviewTradeSyncRowLockUi(tr);
     return tr;
   }
 
@@ -3702,6 +3758,7 @@
     const normalized = overviewTradeNormalizeState(st);
     overviewTradeTbody.innerHTML = "";
     normalized.rows.forEach((r) => overviewTradeTbody.appendChild(overviewTradeCreateRowEl(r)));
+    overviewTradeSyncToolbarLockUi();
   }
 
   function overviewTradeSaveToStorage() {
@@ -4380,6 +4437,9 @@
         localStorage.setItem(OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY, snap.locks.prevday ? "1" : "0");
         localStorage.setItem(OVERVIEW_POLICY_LOCK_KEY, snap.locks.policy ? "1" : "0");
         localStorage.setItem(OVERVIEW_KEYBOND_LOCK_KEY, snap.locks.keybond ? "1" : "0");
+        if (snap.locks.trade != null) {
+          localStorage.setItem(OVERVIEW_TRADE_LOCK_KEY, snap.locks.trade ? "1" : "0");
+        }
       }
       if (snap.updatedAt) {
         localStorage.setItem(OVERVIEW_SYNC_META_KEY, JSON.stringify({ updatedAt: snap.updatedAt }));
@@ -4441,6 +4501,7 @@
         prevday: overviewPrevDayIsToolbarLocked(),
         policy: overviewPolicyIsLocked(),
         keybond: overviewKeyBondIsLocked(),
+        trade: overviewTradeIsLocked(),
       },
     };
   }
@@ -4495,6 +4556,9 @@
         localStorage.setItem(OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY, snap.locks.prevday ? "1" : "0");
         localStorage.setItem(OVERVIEW_POLICY_LOCK_KEY, snap.locks.policy ? "1" : "0");
         localStorage.setItem(OVERVIEW_KEYBOND_LOCK_KEY, snap.locks.keybond ? "1" : "0");
+        if (snap.locks.trade != null) {
+          localStorage.setItem(OVERVIEW_TRADE_LOCK_KEY, snap.locks.trade ? "1" : "0");
+        }
       }
       localStorage.setItem(OVERVIEW_SYNC_META_KEY, JSON.stringify({ updatedAt: snap.updatedAt }));
     } catch (_) {}
@@ -4546,6 +4610,7 @@
   function overviewSyncRefreshOverviewUi() {
     overviewMemoLoadFromStorage();
     overviewTradeRenderFromState(overviewTradeLoadSaved());
+    overviewTradeSyncToolbarLockUi();
     overviewPolicyRenderFromState(overviewPolicyLoadSaved());
     overviewPolicySyncToolbarLockUi();
     overviewKeyBondSyncToolbarLockUi();
