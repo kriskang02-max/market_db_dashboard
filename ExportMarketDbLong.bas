@@ -8,7 +8,7 @@ Private Const LOAD_MIN_WAIT_SECONDS As Long = 3
 Private Const HEADER_SEARCH_MAX_ROWS As Long = 20
 Private Const TENOR_LABEL_SEARCH_BACK_ROWS As Long = 5
 Private Const DATA_START_SEARCH_MAX_ROWS As Long = 80
-Private Const EXPORT_FLUSH_BATCH As Long = 5000
+Private Const EXPORT_FLUSH_BATCH As Long = 25000
 Private Const SKIP_WAIT_IF_LOADED As Boolean = True
 Private Const FORCE_REFRESH_BEFORE_EXPORT As Boolean = False
 
@@ -26,13 +26,19 @@ Public Sub ExportMarketDbLong()
     Dim line As String
     Dim stream As Object
     Dim numRows As Long
-    Dim blockDat As Variant
+    Dim allDat As Variant
+    Dim hdrDat As Variant
     Dim batchLines() As String
     Dim batchCount As Long
     Dim savedScreenUpdating As Boolean
     Dim savedEnableEvents As Boolean
     Dim savedCalculation As XlCalculation
     Dim savedStatusBar As Boolean
+    Dim escapedInst As String
+    Dim escapedTenors() As String
+    Dim tenorStartCol As Long, tenorEndCol As Long
+    Dim tenorCount As Long
+    Dim hdrRows As Long
 
     On Error GoTo ErrHandle
 
@@ -48,7 +54,7 @@ Public Sub ExportMarketDbLong()
 
     Set ws = ThisWorkbook.Sheets(1)
 
-    SetStatus "CSV 내보내기: 헤더 확인 중..."
+    SetStatus "CSV보내기: 헤더 확인 중..."
     DoEvents
 
     Dim headerRowDate As Long
@@ -58,7 +64,8 @@ Public Sub ExportMarketDbLong()
     If headerRowTenor < 1 Then headerRowTenor = HEADER_ROW_TENOR
 
     lastCol = MaxLastColAcrossRows(ws, headerRowDate, HEADER_SEARCH_MAX_ROWS)
-    lastRow = MaxLastRowAcrossDateCols(ws, headerRowDate, lastCol, DATA_START_ROW)
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    If lastRow < DATA_START_ROW Then lastRow = DATA_START_ROW
 
     Dim dataStartRow As Long
     dataStartRow = headerRowDate + 1
@@ -82,23 +89,32 @@ Public Sub ExportMarketDbLong()
         GoTo CleanExit
     End If
 
+    lastRow = MaxLastRowAcrossDateCols(ws, dateCols, DATA_START_ROW)
     dataStartRow = FindDataStartRow(ws, dateCols, headerRowDate + 1, lastRow, DATA_START_SEARCH_MAX_ROWS)
 
     DisableBackgroundRefresh
     WaitForSheetToLoad ws, dateCols(0), dataStartRow, LOAD_TIMEOUT_SECONDS, LOAD_MIN_WAIT_SECONDS
 
-    lastRow = MaxLastRowAcrossDateCols(ws, headerRowDate, lastCol, DATA_START_ROW)
+    lastRow = MaxLastRowAcrossDateCols(ws, dateCols, DATA_START_ROW)
     If lastRow < dataStartRow Then
         MsgBox "로딩 후 데이터 행이 없습니다.", vbExclamation
         GoTo CleanExit
     End If
 
+    SetStatus "CSV보내기: 시트 데이터 읽는 중..."
+    DoEvents
+
+    hdrRows = headerRowTenor + TENOR_LABEL_SEARCH_BACK_ROWS
+    If hdrRows < headerRowDate Then hdrRows = headerRowDate
+    hdrDat = ws.Range(ws.Cells(1, 1), ws.Cells(hdrRows, lastCol)).Value2
+    allDat = ws.Range(ws.Cells(dataStartRow, 1), ws.Cells(lastRow, lastCol)).Value2
+
     outPath = MARKET_DB_CSV_PATH
     numRows = 0
     batchCount = 0
-    ReDim batchLines(1 To EXPORT_FLUSH_BATCH)
+    ReDim batchLines(0 To EXPORT_FLUSH_BATCH - 1)
 
-    SetStatus "CSV 내보내기: 파일 준비 중..."
+    SetStatus "CSV보내기: 파일 준비 중..."
     DoEvents
 
     Set stream = CreateObject("ADODB.Stream")
@@ -116,58 +132,52 @@ Public Sub ExportMarketDbLong()
             blockEndCol = lastCol
         End If
 
-        SetStatus "CSV 내보내기: 블록 " & (i + 1) & " / " & nBlocks & " 읽는 중..."
-        DoEvents
-
-        blockDat = ws.Range(ws.Cells(dataStartRow, dateCol), ws.Cells(lastRow, blockEndCol)).Value2
-        If Not IsExportData2DArray(blockDat) Then GoTo NextBlock
-
         Dim prevDateCol As Long
         prevDateCol = 0
         If i > 0 Then prevDateCol = dateCols(i - 1)
-        instrument = GetBlockInstrument(ws, headerRowTenor, dateCol, blockEndCol, prevDateCol, i + 1)
+        instrument = GetBlockInstrumentFromHdr(hdrDat, headerRowTenor, dateCol, blockEndCol, prevDateCol, i + 1)
+        escapedInst = EscapeCsv(instrument)
 
-        Dim tenorLabels() As String
-        Dim tenorCount As Long
-        tenorCount = blockEndCol - dateCol
+        tenorStartCol = dateCol + 1
+        tenorEndCol = blockEndCol
+        tenorCount = tenorEndCol - tenorStartCol + 1
+
         If tenorCount > 0 Then
-            ReDim tenorLabels(1 To tenorCount)
-            For c = 2 To tenorCount + 1
-                tenorLabels(c - 1) = GetTenorLabel(ws, dateCol + c - 1, headerRowTenor, TENOR_LABEL_SEARCH_BACK_ROWS)
+            ReDim escapedTenors(0 To tenorCount - 1)
+            For c = tenorStartCol To tenorEndCol
+                tenor = GetTenorLabelFromHdr(hdrDat, c, headerRowTenor, TENOR_LABEL_SEARCH_BACK_ROWS)
+                escapedTenors(c - tenorStartCol) = EscapeCsv(tenor)
             Next c
         End If
 
-        For r = 1 To UBound(blockDat, 1)
-            dateVal = ExportCellText(ExportDatCell(blockDat, r, 1))
+        For r = 1 To UBound(allDat, 1)
+            dateVal = ExportFormatDateForCsv(allDat(r, dateCol))
             If Len(dateVal) = 0 Then GoTo NextRowBlock
 
-            For c = 2 To UBound(blockDat, 2)
-                tenor = vbNullString
-                If tenorCount > 0 Then tenor = tenorLabels(c - 1)
-                If Len(tenor) > 0 Then
-                    cellVal = ExportDatCell(blockDat, r, c)
-                    If Not (IsEmpty(cellVal) Or IsNull(cellVal) Or IsError(cellVal)) Then
-                        line = EscapeCsv(dateVal) & "," & EscapeCsv(instrument) & "," & EscapeCsv(tenor) & "," & EscapeCsv(CStr(cellVal))
-                        batchCount = batchCount + 1
-                        batchLines(batchCount) = line
-                        numRows = numRows + 1
-                        If batchCount >= EXPORT_FLUSH_BATCH Then
-                            FlushBatchToStream stream, batchLines, batchCount
-                            batchCount = 0
-                            SetStatus "CSV 내보내기: " & Format(numRows, "#,##0") & "행 처리됨..."
-                            DoEvents
-                        End If
+            For c = tenorStartCol To tenorEndCol
+                If Len(escapedTenors(c - tenorStartCol)) = 0 Then GoTo NextColBlock
+                cellVal = allDat(r, c)
+                If Not (IsEmpty(cellVal) Or IsNull(cellVal) Or IsError(cellVal)) Then
+                    line = dateVal & "," & escapedInst & "," & escapedTenors(c - tenorStartCol) & "," & EscapeCsv(CStr(cellVal))
+                    batchLines(batchCount) = line
+                    batchCount = batchCount + 1
+                    numRows = numRows + 1
+                    If batchCount >= EXPORT_FLUSH_BATCH Then
+                        FlushBatchToStream stream, batchLines, batchCount
+                        batchCount = 0
+                        SetStatus "CSV보내기: " & Format(numRows, "#,##0") & "행 처리됨..."
+                        DoEvents
                     End If
                 End If
+NextColBlock:
             Next c
 NextRowBlock:
         Next r
-NextBlock:
     Next i
 
     If batchCount > 0 Then FlushBatchToStream stream, batchLines, batchCount
 
-    SetStatus "CSV 내보내기: 파일 저장 중..."
+    SetStatus "CSV보내기: 파일 저장 중..."
     DoEvents
 
     On Error Resume Next
@@ -203,36 +213,56 @@ Private Sub SetStatus(ByVal msg As String)
 End Sub
 
 Private Sub FlushBatchToStream(ByVal stream As Object, ByRef lines() As String, ByVal n As Long)
-    Dim chunkArr() As String
     Dim i As Long
     If n <= 0 Then Exit Sub
+    If n = UBound(lines) - LBound(lines) + 1 Then
+        stream.WriteText Join(lines, vbCrLf) & vbCrLf, 0
+        Exit Sub
+    End If
+    Dim chunkArr() As String
     ReDim chunkArr(0 To n - 1)
-    For i = 1 To n
-        chunkArr(i - 1) = lines(i)
+    For i = 0 To n - 1
+        chunkArr(i) = lines(i)
     Next i
     stream.WriteText Join(chunkArr, vbCrLf) & vbCrLf, 0
 End Sub
 
-Private Function IsExportData2DArray(ByVal v As Variant) As Boolean
-    On Error Resume Next
-    IsExportData2DArray = (UBound(v, 2) >= 1)
-    On Error GoTo 0
-End Function
-
-Private Function ExportDatCell(ByVal dat As Variant, ByVal r As Long, ByVal c As Long) As Variant
-    If IsExportData2DArray(dat) Then
-        ExportDatCell = dat(r, c)
-    Else
-        ExportDatCell = dat(c)
-    End If
-End Function
-
-Private Function ExportCellText(ByVal v As Variant) As String
+Private Function ExportFormatDateForCsv(ByVal v As Variant) As String
     If IsEmpty(v) Or IsNull(v) Or IsError(v) Then
-        ExportCellText = vbNullString
-    Else
-        ExportCellText = Trim$(CStr(v))
+        ExportFormatDateForCsv = vbNullString
+        Exit Function
     End If
+
+    Dim s As String
+    s = Trim$(CStr(v))
+    If Len(s) = 0 Then
+        ExportFormatDateForCsv = vbNullString
+        Exit Function
+    End If
+
+    If Len(s) = 10 And Mid$(s, 5, 1) = "-" And Mid$(s, 8, 1) = "-" Then
+        If IsNumeric(Left$(s, 4)) And IsNumeric(Mid$(s, 6, 2)) And IsNumeric(Right$(s, 2)) Then
+            ExportFormatDateForCsv = s
+            Exit Function
+        End If
+    End If
+
+    If IsNumeric(v) Then
+        Dim serial As Double
+        serial = CDbl(v)
+        If serial >= 1 And serial < 2958466 Then
+            ExportFormatDateForCsv = Format$(CDate(serial), "yyyy-mm-dd")
+            Exit Function
+        End If
+    End If
+
+    On Error Resume Next
+    ExportFormatDateForCsv = Format$(CDate(v), "yyyy-mm-dd")
+    If Err.Number <> 0 Then
+        Err.Clear
+        ExportFormatDateForCsv = s
+    End If
+    On Error GoTo 0
 End Function
 
 Private Function SheetLooksLoaded(ByVal ws As Worksheet, ByVal dateCol As Long, ByVal dataStartRow As Long) As Boolean
@@ -275,7 +305,7 @@ Private Function EscapeCsv(ByVal s As String) As String
     End If
 End Function
 
-Private Function GetBlockInstrument(ByVal ws As Worksheet, ByVal headerRowTenor As Long, ByVal dateCol As Long, ByVal blockEndCol As Long, ByVal prevDateCol As Long, ByVal blockNo As Long) As String
+Private Function GetBlockInstrumentFromHdr(ByVal hdr As Variant, ByVal headerRowTenor As Long, ByVal dateCol As Long, ByVal blockEndCol As Long, ByVal prevDateCol As Long, ByVal blockNo As Long) As String
     Dim v As Variant
     Dim s As String
     Dim c As Long
@@ -284,11 +314,11 @@ Private Function GetBlockInstrument(ByVal ws As Worksheet, ByVal headerRowTenor 
     For rr = headerRowTenor To headerRowTenor - TENOR_LABEL_SEARCH_BACK_ROWS Step -1
         If rr < 1 Then Exit For
         For c = dateCol To prevDateCol + 1 Step -1
-            v = ws.Cells(rr, c).Value
+            v = HdrCell(hdr, rr, c)
             If Not IsError(v) Then
                 s = Trim(CStr(v))
                 If Len(s) > 0 And Not IsNumeric(s) Then
-                    GetBlockInstrument = s
+                    GetBlockInstrumentFromHdr = s
                     Exit Function
                 End If
             End If
@@ -298,47 +328,53 @@ Private Function GetBlockInstrument(ByVal ws As Worksheet, ByVal headerRowTenor 
     For rr = headerRowTenor To headerRowTenor - TENOR_LABEL_SEARCH_BACK_ROWS Step -1
         If rr < 1 Then Exit For
         For c = dateCol To blockEndCol
-            v = ws.Cells(rr, c).Value
+            v = HdrCell(hdr, rr, c)
             If Not IsError(v) Then
                 s = Trim(CStr(v))
                 If Len(s) > 0 And Not IsNumeric(s) Then
-                    GetBlockInstrument = s
+                    GetBlockInstrumentFromHdr = s
                     Exit Function
                 End If
             End If
         Next c
     Next rr
 
-    GetBlockInstrument = "Block" & blockNo
+    GetBlockInstrumentFromHdr = "Block" & blockNo
 End Function
 
-Private Function GetTenorLabel(ByVal ws As Worksheet, ByVal tenorCol As Long, ByVal headerRowTenor As Long, ByVal backRows As Long) As String
+Private Function GetTenorLabelFromHdr(ByVal hdr As Variant, ByVal tenorCol As Long, ByVal headerRowTenor As Long, ByVal backRows As Long) As String
     Dim v As Variant
     Dim s As String
     Dim rr As Long
 
-    v = ws.Cells(headerRowTenor, tenorCol).Value
+    v = HdrCell(hdr, headerRowTenor, tenorCol)
     If Not IsError(v) Then
         s = Trim$(CStr(v))
         If Len(s) > 0 And InStr(1, s, "일자", vbTextCompare) = 0 And Not LooksLikeIsoDate(s) Then
-            GetTenorLabel = s
+            GetTenorLabelFromHdr = s
             Exit Function
         End If
     End If
 
     For rr = headerRowTenor - 1 To headerRowTenor - backRows Step -1
         If rr < 1 Then Exit For
-        v = ws.Cells(rr, tenorCol).Value
+        v = HdrCell(hdr, rr, tenorCol)
         If Not IsError(v) Then
             s = Trim$(CStr(v))
             If Len(s) > 0 And InStr(1, s, "일자", vbTextCompare) = 0 And Not LooksLikeIsoDate(s) Then
-                GetTenorLabel = s
+                GetTenorLabelFromHdr = s
                 Exit Function
             End If
         End If
     Next rr
 
-    GetTenorLabel = vbNullString
+    GetTenorLabelFromHdr = vbNullString
+End Function
+
+Private Function HdrCell(ByVal hdr As Variant, ByVal row As Long, ByVal col As Long) As Variant
+    On Error Resume Next
+    HdrCell = hdr(row, col)
+    On Error GoTo 0
 End Function
 
 Private Function LooksLikeIsoDate(ByVal s As String) As Boolean
@@ -384,10 +420,13 @@ Private Function FindHeaderRowDate(ByVal ws As Worksheet, ByVal defaultRow As Lo
     Dim lastCol As Long
     Dim bestRow As Long, bestCount As Long, cnt As Long
     Dim v As Variant, s As String
+    Dim hdrScan As Variant
 
     lastCol = ws.Cells(defaultRow, ws.Columns.Count).End(xlToLeft).Column
     If lastCol < 1 Then lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
     If lastCol < 1 Then lastCol = 200
+
+    hdrScan = ws.Range(ws.Cells(1, 1), ws.Cells(maxRows, lastCol)).Value2
 
     bestRow = defaultRow
     bestCount = -1
@@ -395,7 +434,7 @@ Private Function FindHeaderRowDate(ByVal ws As Worksheet, ByVal defaultRow As Lo
     For rr = 1 To maxRows
         cnt = 0
         For cc = 1 To lastCol
-            v = ws.Cells(rr, cc).Value
+            v = hdrScan(rr, cc)
             If Not IsError(v) Then
                 s = Trim$(CStr(v))
                 If Len(s) > 0 And InStr(1, s, "일자", vbTextCompare) > 0 Then cnt = cnt + 1
@@ -409,32 +448,27 @@ End Function
 
 Private Function MaxLastColAcrossRows(ByVal ws As Worksheet, ByVal startRow As Long, ByVal maxRows As Long) As Long
     Dim rr As Long, tmp As Long, best As Long
-    best = 0
-    For rr = startRow - 10 To startRow + maxRows
+    best = ws.Cells(startRow, ws.Columns.Count).End(xlToLeft).Column
+    For rr = startRow - 3 To startRow + 3
         If rr >= 1 Then
             tmp = ws.Cells(rr, ws.Columns.Count).End(xlToLeft).Column
             If tmp > best Then best = tmp
         End If
     Next rr
-    If best < 1 Then best = ws.Cells(startRow, ws.Columns.Count).End(xlToLeft).Column
+    If best < 1 Then best = ws.UsedRange.Column + ws.UsedRange.Columns.Count - 1
     MaxLastColAcrossRows = best
 End Function
 
-Private Function MaxLastRowAcrossDateCols(ByVal ws As Worksheet, ByVal headerRowDate As Long, ByVal lastCol As Long, ByVal fallbackStartRow As Long) As Long
-    Dim cc As Long, v As Variant
-    Dim best As Long, tmpRow As Long
-    best = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+Private Function MaxLastRowAcrossDateCols(ByVal ws As Worksheet, ByRef dateCols() As Long, ByVal fallbackStartRow As Long) As Long
+    Dim i As Long, tmpRow As Long
+    Dim best As Long
+    best = ws.Cells(ws.Rows.Count, dateCols(0)).End(xlUp).Row
     If best < fallbackStartRow Then best = fallbackStartRow
 
-    For cc = 1 To lastCol
-        v = ws.Cells(headerRowDate, cc).Value
-        If Not IsError(v) Then
-            If InStr(1, Trim$(CStr(v)), "일자", vbTextCompare) > 0 Then
-                tmpRow = ws.Cells(ws.Rows.Count, cc).End(xlUp).Row
-                If tmpRow > best Then best = tmpRow
-            End If
-        End If
-    Next cc
+    For i = LBound(dateCols) To UBound(dateCols)
+        tmpRow = ws.Cells(ws.Rows.Count, dateCols(i)).End(xlUp).Row
+        If tmpRow > best Then best = tmpRow
+    Next i
 
     MaxLastRowAcrossDateCols = best
 End Function

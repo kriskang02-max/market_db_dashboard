@@ -2107,6 +2107,7 @@
               <h3 class="overview-trade-title">매매내역</h3>
               <span class="overview-trade-header-spacer" aria-hidden="true"></span>
               <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
+                <button type="button" id="overviewTradeAddRow" class="sidebar btn btn-secondary ovpd-toolbar-act">행 추가</button>
                 <button type="button" id="overviewTradeSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
               </div>
             </div>
@@ -2148,33 +2149,7 @@
                     <th class="ovtr-cell-pnl">손익(B)</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td><input type="text" id="overviewTradeNav" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
-                    <td>
-                      <select id="overviewTradeTypeA" class="overview-trade-select">
-                        <option value="채권">채권</option>
-                        <option value="선물">선물</option>
-                      </select>
-                    </td>
-                    <td><input type="text" id="overviewTradePriceA" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
-                    <td><input type="text" id="overviewTradeCurrentA" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
-                    <td><input type="text" id="overviewTradeQtyA" class="overview-trade-input" inputmode="numeric" autocomplete="off" spellcheck="false" /></td>
-                    <td class="ovtr-cell-pnl"><span id="overviewTradePnlA" class="overview-trade-calc">—</span></td>
-                    <td>
-                      <select id="overviewTradeTypeB" class="overview-trade-select">
-                        <option value="채권">채권</option>
-                        <option value="선물">선물</option>
-                      </select>
-                    </td>
-                    <td><input type="text" id="overviewTradePriceB" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
-                    <td><input type="text" id="overviewTradeCurrentB" class="overview-trade-input" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>
-                    <td><input type="text" id="overviewTradeQtyB" class="overview-trade-input" inputmode="numeric" autocomplete="off" spellcheck="false" /></td>
-                    <td class="ovtr-cell-pnl"><span id="overviewTradePnlB" class="overview-trade-calc">—</span></td>
-                    <td class="ovtr-cell-pnl"><span id="overviewTradePnlTotal" class="overview-trade-calc">—</span></td>
-                    <td class="ovtr-cell-pnl"><span id="overviewTradePerf" class="overview-trade-calc">—</span></td>
-                  </tr>
-                </tbody>
+                <tbody id="overviewTradeTbody"></tbody>
               </table>
             </div>
             <span id="overviewTradeStatus" class="overview-trade-status" aria-live="polite"></span>
@@ -2459,20 +2434,9 @@
   const overviewMemoTextarea = document.getElementById("overviewMemoTextarea");
   const overviewMemoSave = document.getElementById("overviewMemoSave");
   const overviewMemoStatus = document.getElementById("overviewMemoStatus");
-  const overviewTradeNav = document.getElementById("overviewTradeNav");
-  const overviewTradeTypeA = document.getElementById("overviewTradeTypeA");
-  const overviewTradePriceA = document.getElementById("overviewTradePriceA");
-  const overviewTradeCurrentA = document.getElementById("overviewTradeCurrentA");
-  const overviewTradeQtyA = document.getElementById("overviewTradeQtyA");
-  const overviewTradePnlA = document.getElementById("overviewTradePnlA");
-  const overviewTradeTypeB = document.getElementById("overviewTradeTypeB");
-  const overviewTradePriceB = document.getElementById("overviewTradePriceB");
-  const overviewTradeCurrentB = document.getElementById("overviewTradeCurrentB");
-  const overviewTradeQtyB = document.getElementById("overviewTradeQtyB");
-  const overviewTradePnlB = document.getElementById("overviewTradePnlB");
-  const overviewTradePnlTotal = document.getElementById("overviewTradePnlTotal");
-  const overviewTradePerf = document.getElementById("overviewTradePerf");
+  const overviewTradeTbody = document.getElementById("overviewTradeTbody");
   const overviewTradeSave = document.getElementById("overviewTradeSave");
+  const overviewTradeAddRow = document.getElementById("overviewTradeAddRow");
   const overviewTradeStatus = document.getElementById("overviewTradeStatus");
   let overviewMemoLastPersisted = null;
   let overviewMemoAutosaveTimer = null;
@@ -3252,40 +3216,36 @@
     });
   }
   if (overviewTradeSave) overviewTradeSave.addEventListener("click", () => overviewTradeSaveToStorage());
-  [
-    overviewTradeNav,
-    overviewTradeTypeA,
-    overviewTradePriceA,
-    overviewTradeCurrentA,
-    overviewTradeQtyA,
-    overviewTradeTypeB,
-    overviewTradePriceB,
-    overviewTradeCurrentB,
-    overviewTradeQtyB,
-  ].forEach((el) => {
-    if (!el) return;
-    const evt = el.tagName === "SELECT" ? "change" : "input";
-    el.addEventListener(evt, () => {
+  if (overviewTradeAddRow) {
+    overviewTradeAddRow.addEventListener("click", () => {
+      if (!overviewTradeTbody) return;
+      overviewTradeTbody.appendChild(overviewTradeCreateRowEl(overviewTradeDefaultRow()));
+      const navInp = overviewTradeTbody.lastElementChild && overviewTradeTbody.lastElementChild.querySelector(".ovtr-nav");
+      if (navInp) navInp.focus();
+    });
+  }
+  if (overviewTradeTbody) {
+    overviewTradeTbody.addEventListener("input", () => {
       if (overviewTradeStatus) overviewTradeStatus.textContent = "";
       overviewTradeRecalc();
     });
-  });
-  [overviewTradeNav, overviewTradePriceA, overviewTradeCurrentA, overviewTradePriceB, overviewTradeCurrentB].forEach((el) => {
-    if (!el) return;
-    el.addEventListener("blur", () => {
-      const n = overviewTradeParseNum(el.value);
-      if (n !== null) el.value = overviewTradeFmtPrice(n);
+    overviewTradeTbody.addEventListener("change", () => {
+      if (overviewTradeStatus) overviewTradeStatus.textContent = "";
       overviewTradeRecalc();
     });
-  });
-  [overviewTradeQtyA, overviewTradeQtyB].forEach((el) => {
-    if (!el) return;
-    el.addEventListener("blur", () => {
-      const n = overviewTradeParseNum(el.value);
-      if (n !== null) el.value = overviewTradeFmtQty(n);
+    overviewTradeTbody.addEventListener("focusout", (e) => {
+      const t = e.target;
+      if (!t || !t.classList) return;
+      if (t.classList.contains("ovtr-nav") || t.classList.contains("ovtr-price") || t.classList.contains("ovtr-current")) {
+        const n = overviewTradeParseNum(t.value);
+        if (n !== null) t.value = overviewTradeFmtPrice(n);
+      } else if (t.classList.contains("ovtr-qty")) {
+        const n = overviewTradeParseNum(t.value);
+        if (n !== null) t.value = overviewTradeFmtQty(n);
+      }
       overviewTradeRecalc();
     });
-  });
+  }
   overviewFirebaseSyncSetupUi();
   if (overviewFbSaveConfig) {
     overviewFbSaveConfig.addEventListener("click", () => overviewFirebaseSaveConfigFromForm());
@@ -3515,21 +3475,31 @@
     return Number.isFinite(n) ? n : null;
   }
 
-  function overviewTradeDefaultState() {
+  function overviewTradeNewId() {
+    return "ovtr_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+  }
+
+  function overviewTradeDefaultRow() {
     return {
+      id: overviewTradeNewId(),
       nav: "",
       legA: { type: "채권", price: "", current: "", qty: "" },
       legB: { type: "선물", price: "", current: "", qty: "" },
     };
   }
 
-  function overviewTradeMergeSaved(obj) {
-    const def = overviewTradeDefaultState();
+  function overviewTradeDefaultState() {
+    return { rows: [overviewTradeDefaultRow()] };
+  }
+
+  function overviewTradeMergeRow(obj) {
+    const def = overviewTradeDefaultRow();
     if (!obj || typeof obj !== "object") return def;
     const legA = obj.legA && typeof obj.legA === "object" ? obj.legA : {};
     const legB = obj.legB && typeof obj.legB === "object" ? obj.legB : {};
     return {
-      nav: obj.nav != null ? String(obj.nav) : def.nav,
+      id: obj.id != null ? String(obj.id) : def.id,
+      nav: obj.nav != null ? String(obj.nav) : "",
       legA: {
         type: legA.type === "선물" ? "선물" : "채권",
         price: legA.price != null ? String(legA.price) : "",
@@ -3545,32 +3515,60 @@
     };
   }
 
+  function overviewTradeNormalizeState(obj) {
+    if (!obj || typeof obj !== "object") return overviewTradeDefaultState();
+    if (Array.isArray(obj.rows)) {
+      const rows = obj.rows.map((r) => overviewTradeMergeRow(r));
+      return { rows: rows.length ? rows : [overviewTradeDefaultRow()] };
+    }
+    return { rows: [overviewTradeMergeRow(obj)] };
+  }
+
   function overviewTradeLoadSaved() {
     try {
       const raw = localStorage.getItem(OVERVIEW_TRADE_STORAGE_KEY);
       if (!raw) return overviewTradeDefaultState();
-      return overviewTradeMergeSaved(JSON.parse(raw));
+      return overviewTradeNormalizeState(JSON.parse(raw));
     } catch (_) {
       return overviewTradeDefaultState();
     }
   }
 
-  function overviewTradeCollectFromDom() {
+  function overviewTradeCollectRowFromTr(tr) {
+    const navInp = tr.querySelector(".ovtr-nav");
+    const typeA = tr.querySelector(".ovtr-type-a");
+    const priceA = tr.querySelector(".ovtr-price-a");
+    const currentA = tr.querySelector(".ovtr-current-a");
+    const qtyA = tr.querySelector(".ovtr-qty-a");
+    const typeB = tr.querySelector(".ovtr-type-b");
+    const priceB = tr.querySelector(".ovtr-price-b");
+    const currentB = tr.querySelector(".ovtr-current-b");
+    const qtyB = tr.querySelector(".ovtr-qty-b");
     return {
-      nav: overviewTradeNav ? String(overviewTradeNav.value || "").trim() : "",
+      id: tr.getAttribute("data-ovtr-id") || overviewTradeNewId(),
+      nav: navInp ? String(navInp.value || "").trim() : "",
       legA: {
-        type: overviewTradeTypeA ? String(overviewTradeTypeA.value || "채권") : "채권",
-        price: overviewTradePriceA ? String(overviewTradePriceA.value || "").trim() : "",
-        current: overviewTradeCurrentA ? String(overviewTradeCurrentA.value || "").trim() : "",
-        qty: overviewTradeQtyA ? String(overviewTradeQtyA.value || "").trim() : "",
+        type: typeA ? String(typeA.value || "채권") : "채권",
+        price: priceA ? String(priceA.value || "").trim() : "",
+        current: currentA ? String(currentA.value || "").trim() : "",
+        qty: qtyA ? String(qtyA.value || "").trim() : "",
       },
       legB: {
-        type: overviewTradeTypeB ? String(overviewTradeTypeB.value || "선물") : "선물",
-        price: overviewTradePriceB ? String(overviewTradePriceB.value || "").trim() : "",
-        current: overviewTradeCurrentB ? String(overviewTradeCurrentB.value || "").trim() : "",
-        qty: overviewTradeQtyB ? String(overviewTradeQtyB.value || "").trim() : "",
+        type: typeB ? String(typeB.value || "선물") : "선물",
+        price: priceB ? String(priceB.value || "").trim() : "",
+        current: currentB ? String(currentB.value || "").trim() : "",
+        qty: qtyB ? String(qtyB.value || "").trim() : "",
       },
     };
+  }
+
+  function overviewTradeCollectFromDom() {
+    if (!overviewTradeTbody) return overviewTradeDefaultState();
+    const rows = [];
+    overviewTradeTbody.querySelectorAll("tr[data-ovtr-id]").forEach((tr) => {
+      rows.push(overviewTradeCollectRowFromTr(tr));
+    });
+    return { rows: rows.length ? rows : [overviewTradeDefaultRow()] };
   }
 
   function overviewTradeCalcPnlBuy(type, priceRaw, currentRaw, qtyRaw) {
@@ -3610,46 +3608,100 @@
     el.classList.toggle("overview-trade-calc--neg", neg);
   }
 
-  function overviewTradeRecalc() {
-    const typeA = overviewTradeTypeA ? overviewTradeTypeA.value : "채권";
-    const typeB = overviewTradeTypeB ? overviewTradeTypeB.value : "선물";
-    const priceA = overviewTradePriceA ? overviewTradePriceA.value : "";
-    const currentA = overviewTradeCurrentA ? overviewTradeCurrentA.value : "";
-    const qtyA = overviewTradeQtyA ? overviewTradeQtyA.value : "";
-    const priceB = overviewTradePriceB ? overviewTradePriceB.value : "";
-    const currentB = overviewTradeCurrentB ? overviewTradeCurrentB.value : "";
-    const qtyB = overviewTradeQtyB ? overviewTradeQtyB.value : "";
-    const navRaw = overviewTradeNav ? overviewTradeNav.value : "";
+  function overviewTradeRecalcRow(tr) {
+    const typeA = tr.querySelector(".ovtr-type-a");
+    const priceA = tr.querySelector(".ovtr-price-a");
+    const currentA = tr.querySelector(".ovtr-current-a");
+    const qtyA = tr.querySelector(".ovtr-qty-a");
+    const typeB = tr.querySelector(".ovtr-type-b");
+    const priceB = tr.querySelector(".ovtr-price-b");
+    const currentB = tr.querySelector(".ovtr-current-b");
+    const qtyB = tr.querySelector(".ovtr-qty-b");
+    const navInp = tr.querySelector(".ovtr-nav");
+    const pnlAEl = tr.querySelector(".ovtr-pnl-a");
+    const pnlBEl = tr.querySelector(".ovtr-pnl-b");
+    const pnlTotalEl = tr.querySelector(".ovtr-pnl-total");
+    const perfEl = tr.querySelector(".ovtr-perf");
 
-    const pnlA = overviewTradeCalcPnlBuy(typeA, priceA, currentA, qtyA);
-    const pnlB = overviewTradeCalcPnlSell(typeB, priceB, currentB, qtyB);
-    overviewTradeSetCalcCell(overviewTradePnlA, pnlA);
-    overviewTradeSetCalcCell(overviewTradePnlB, pnlB);
+    const pnlA = overviewTradeCalcPnlBuy(
+      typeA ? typeA.value : "채권",
+      priceA ? priceA.value : "",
+      currentA ? currentA.value : "",
+      qtyA ? qtyA.value : ""
+    );
+    const pnlB = overviewTradeCalcPnlSell(
+      typeB ? typeB.value : "선물",
+      priceB ? priceB.value : "",
+      currentB ? currentB.value : "",
+      qtyB ? qtyB.value : ""
+    );
+    overviewTradeSetCalcCell(pnlAEl, pnlA);
+    overviewTradeSetCalcCell(pnlBEl, pnlB);
 
     let pnlTotal = null;
     if (pnlA !== null && pnlB !== null) pnlTotal = pnlA + pnlB;
     else if (pnlA !== null) pnlTotal = pnlA;
     else if (pnlB !== null) pnlTotal = pnlB;
-    overviewTradeSetCalcCell(overviewTradePnlTotal, pnlTotal);
+    overviewTradeSetCalcCell(pnlTotalEl, pnlTotal);
 
-    const nav = overviewTradeParseNum(navRaw);
+    const nav = overviewTradeParseNum(navInp ? navInp.value : "");
     let perf = null;
     if (pnlTotal !== null && nav !== null && Math.abs(nav) > 1e-12) perf = pnlTotal / nav;
-    overviewTradeSetCalcCell(overviewTradePerf, perf);
+    overviewTradeSetCalcCell(perfEl, perf);
+  }
+
+  function overviewTradeRecalc() {
+    if (!overviewTradeTbody) return;
+    overviewTradeTbody.querySelectorAll("tr[data-ovtr-id]").forEach((tr) => overviewTradeRecalcRow(tr));
+  }
+
+  function overviewTradeCreateRowEl(r) {
+    const row = overviewTradeMergeRow(r);
+    const tr = document.createElement("tr");
+    tr.setAttribute("data-ovtr-id", row.id);
+    tr.innerHTML =
+      '<td><input type="text" class="overview-trade-input ovtr-nav" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>' +
+      '<td><select class="overview-trade-select ovtr-type-a">' +
+      '<option value="채권">채권</option><option value="선물">선물</option></select></td>' +
+      '<td><input type="text" class="overview-trade-input ovtr-price-a" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>' +
+      '<td><input type="text" class="overview-trade-input ovtr-current-a" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>' +
+      '<td><input type="text" class="overview-trade-input ovtr-qty-a" inputmode="numeric" autocomplete="off" spellcheck="false" /></td>' +
+      '<td class="ovtr-cell-pnl"><span class="overview-trade-calc ovtr-pnl-a">—</span></td>' +
+      '<td><select class="overview-trade-select ovtr-type-b">' +
+      '<option value="채권">채권</option><option value="선물">선물</option></select></td>' +
+      '<td><input type="text" class="overview-trade-input ovtr-price-b" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>' +
+      '<td><input type="text" class="overview-trade-input ovtr-current-b" inputmode="decimal" autocomplete="off" spellcheck="false" /></td>' +
+      '<td><input type="text" class="overview-trade-input ovtr-qty-b" inputmode="numeric" autocomplete="off" spellcheck="false" /></td>' +
+      '<td class="ovtr-cell-pnl"><span class="overview-trade-calc ovtr-pnl-b">—</span></td>' +
+      '<td class="ovtr-cell-pnl"><span class="overview-trade-calc ovtr-pnl-total">—</span></td>' +
+      '<td class="ovtr-cell-pnl"><span class="overview-trade-calc ovtr-perf">—</span></td>';
+    const navInp = tr.querySelector(".ovtr-nav");
+    const typeA = tr.querySelector(".ovtr-type-a");
+    const priceA = tr.querySelector(".ovtr-price-a");
+    const currentA = tr.querySelector(".ovtr-current-a");
+    const qtyA = tr.querySelector(".ovtr-qty-a");
+    const typeB = tr.querySelector(".ovtr-type-b");
+    const priceB = tr.querySelector(".ovtr-price-b");
+    const currentB = tr.querySelector(".ovtr-current-b");
+    const qtyB = tr.querySelector(".ovtr-qty-b");
+    if (navInp) navInp.value = row.nav;
+    if (typeA) typeA.value = row.legA.type;
+    if (priceA) priceA.value = row.legA.price;
+    if (currentA) currentA.value = row.legA.current;
+    if (qtyA) qtyA.value = row.legA.qty;
+    if (typeB) typeB.value = row.legB.type;
+    if (priceB) priceB.value = row.legB.price;
+    if (currentB) currentB.value = row.legB.current;
+    if (qtyB) qtyB.value = row.legB.qty;
+    overviewTradeRecalcRow(tr);
+    return tr;
   }
 
   function overviewTradeRenderFromState(st) {
-    const merged = overviewTradeMergeSaved(st);
-    if (overviewTradeNav) overviewTradeNav.value = merged.nav;
-    if (overviewTradeTypeA) overviewTradeTypeA.value = merged.legA.type;
-    if (overviewTradePriceA) overviewTradePriceA.value = merged.legA.price;
-    if (overviewTradeCurrentA) overviewTradeCurrentA.value = merged.legA.current;
-    if (overviewTradeQtyA) overviewTradeQtyA.value = merged.legA.qty;
-    if (overviewTradeTypeB) overviewTradeTypeB.value = merged.legB.type;
-    if (overviewTradePriceB) overviewTradePriceB.value = merged.legB.price;
-    if (overviewTradeCurrentB) overviewTradeCurrentB.value = merged.legB.current;
-    if (overviewTradeQtyB) overviewTradeQtyB.value = merged.legB.qty;
-    overviewTradeRecalc();
+    if (!overviewTradeTbody) return;
+    const normalized = overviewTradeNormalizeState(st);
+    overviewTradeTbody.innerHTML = "";
+    normalized.rows.forEach((r) => overviewTradeTbody.appendChild(overviewTradeCreateRowEl(r)));
   }
 
   function overviewTradeSaveToStorage() {
@@ -4374,7 +4426,7 @@
 
     let tradePayload = null;
     try {
-      tradePayload = overviewTradeNav ? overviewTradeCollectFromDom() : JSON.parse(localStorage.getItem(OVERVIEW_TRADE_STORAGE_KEY) || "null");
+      tradePayload = overviewTradeTbody ? overviewTradeCollectFromDom() : JSON.parse(localStorage.getItem(OVERVIEW_TRADE_STORAGE_KEY) || "null");
     } catch (_) {}
 
     return {
