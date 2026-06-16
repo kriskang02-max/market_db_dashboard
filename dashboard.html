@@ -6135,9 +6135,43 @@
     }
   }
 
-  function reportFmtTagLabel(tag) {
+  function reportFmtTagDate(tag) {
     if (!tag || tag.length !== 8) return tag || "—";
-    return tag.slice(0, 4) + "-" + tag.slice(4, 6) + "-" + tag.slice(6, 8) + " (KST)";
+    return tag.slice(0, 4) + "-" + tag.slice(4, 6) + "-" + tag.slice(6, 8);
+  }
+
+  function reportFmtUploadKst(lastModified) {
+    if (!lastModified) return null;
+    const d = new Date(lastModified);
+    if (Number.isNaN(d.getTime())) return null;
+    const parts = new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(d);
+    const pick = (type) => (parts.find((p) => p.type === type) || {}).value || "";
+    return (
+      pick("year") +
+      "-" +
+      pick("month") +
+      "-" +
+      pick("day") +
+      " " +
+      pick("hour") +
+      ":" +
+      pick("minute")
+    );
+  }
+
+  function reportBuildDateLabel(tag, lastModified) {
+    const day = reportFmtTagDate(tag);
+    const uploaded = reportFmtUploadKst(lastModified);
+    if (uploaded) return "당일: " + day + " · 업로드 " + uploaded + " (KST)";
+    return "당일: " + day + " (KST)";
   }
 
   function renderReportPage() {
@@ -6145,7 +6179,7 @@
     const tag = reportTodayTagKst();
     const fileName = reportPdfFileName(tag);
     const url = reportPdfUrl(tag, true);
-    if (reportDateLabel) reportDateLabel.textContent = "당일: " + reportFmtTagLabel(tag);
+    if (reportDateLabel) reportDateLabel.textContent = reportBuildDateLabel(tag, null);
     reportStatus.textContent = "당일 PDF 확인 중… (" + fileName + ")";
     reportStatus.classList.remove("is-warn", "is-err");
     if (reportOpenLink) {
@@ -6155,12 +6189,18 @@
     fetch(url, { method: "HEAD", cache: "no-store" })
       .then((r) => {
         if (!r.ok) throw new Error("not found");
+        const lastModified = r.headers.get("Last-Modified");
+        if (reportDateLabel) reportDateLabel.textContent = reportBuildDateLabel(tag, lastModified);
         if (reportPdfFrame) reportPdfFrame.src = url;
         if (reportOpenLink) {
           reportOpenLink.href = url;
           reportOpenLink.hidden = false;
         }
-        reportStatus.textContent = "당일 리포트 표시 중 · " + fileName;
+        const uploaded = reportFmtUploadKst(lastModified);
+        reportStatus.textContent =
+          "당일 리포트 표시 중 · " +
+          fileName +
+          (uploaded ? " · 업로드 " + uploaded + " (KST)" : "");
       })
       .catch(() => {
         if (reportPdfFrame) reportPdfFrame.removeAttribute("src");
