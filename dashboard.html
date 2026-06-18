@@ -6113,7 +6113,9 @@
   }
 
   function reportTodayTagKst() {
-    const kst = new Date(Date.now() + (9 * 60 - new Date().getTimezoneOffset()) * 60000);
+    // Always compute "today" in KST (UTC+9), independent of the user's local timezone.
+    // Date.now() is UTC-based, so we can safely add 9 hours and then read UTC components.
+    const kst = new Date(Date.now() + 9 * 60 * 60000);
     const y = kst.getUTCFullYear();
     const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
     const d = String(kst.getUTCDate()).padStart(2, "0");

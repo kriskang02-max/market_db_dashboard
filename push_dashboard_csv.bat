@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-setlocal
+setlocal EnableDelayedExpansion
 call :main
 set "EC=%errorlevel%"
 echo.
@@ -27,7 +27,17 @@ if errorlevel 1 (
 git diff --cached --quiet
 if not errorlevel 1 (
   echo 커밋할 변경이 없습니다. ^(CSV·overview_state.json 이 이전 커밋과 동일합니다^)
-  exit /b 0
+  set /p FORCE_PUSH=변경사항이 없어도 커밋/푸시하겠습니까? ^(Y/N^): 
+  if /i not "!FORCE_PUSH!"=="Y" (
+    echo 취소되었습니다.
+    exit /b 0
+  )
+  git commit --allow-empty -m "chore: update dashboard CSV and overview_state"
+  if errorlevel 1 (
+    echo git commit 실패
+    exit /b 1
+  )
+  goto :push
 )
 
 git commit -m "chore: update dashboard CSV and overview_state"
@@ -36,6 +46,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
+:push
 git push
 if errorlevel 1 (
   echo git push 실패 ^(원격 저장소와 로그인을 확인하세요^)
