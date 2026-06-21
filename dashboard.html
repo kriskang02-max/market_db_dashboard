@@ -1979,7 +1979,7 @@
           <button type="button" id="fundReturnRankingJa" class="sidebar btn btn-secondary ovpd-toolbar-act fund-return-ranking-mode-btn">자펀드</button>
         </div>
       </div>
-      <p class="fund-summary__note" style="margin:0 0 0.45rem;">상단 기준일·구간 시작일과 동일한 연환산 수익률(%) 기준입니다. 신한은 <strong>신한초단기채</strong> 포함 펀드만, 그 외는 운용사명(신한·KB·우리·하나·키움·교보·마이다스·흥국·KCGI)이 들어간 펀드를 대상으로 구간별 내림차순 나열합니다.</p>
+      <p class="fund-summary__note" style="margin:0 0 0.45rem;">상단 기준일·구간 시작일과 동일한 연환산 수익률(%) 기준입니다. 신한은 <strong>신한초단기채</strong> 포함 펀드만, 그 외는 운용사명(신한·KB·우리·하나·키움·교보·마이다스·흥국·KCGI·코레이트)이 들어간 펀드를 대상으로 구간별 내림차순 나열합니다.</p>
       <div class="rates-table-wrap" id="fundReturnRankingWrap"></div>
 
       <h3 class="fund-summary__title fund-summary__title--sub" style="margin-top:1.25rem;">6사 수탁고 변동</h3>
@@ -4953,6 +4953,7 @@
   const FUND_RETURN_RANKING_SPECS = [
     { short: "신한", pick: (n) => n.indexOf("신한초단기채") >= 0 },
     { short: "KCGI", pick: (n) => n.indexOf("KCGI") >= 0 },
+    { short: "코레이트", pick: (n) => n.indexOf("코레이트") >= 0 },
     { short: "KB", pick: (n) => n.indexOf("KB") >= 0 },
     { short: "마이다스", pick: (n) => n.indexOf("마이다스") >= 0 },
     { short: "흥국", pick: (n) => n.indexOf("흥국") >= 0 },
