@@ -183,6 +183,30 @@
       font-size: 0.78rem;
       color: rgba(255, 255, 255, 0.55);
     }
+    #page-weekly .weekly-date-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem 0.55rem;
+      margin: 0 0 0.45rem;
+      font-size: 0.78rem;
+    }
+    #page-weekly .weekly-end-date-label {
+      color: rgba(255, 255, 255, 0.75);
+      font-weight: 600;
+    }
+    #page-weekly .weekly-end-date-input {
+      font-size: 0.78rem;
+      padding: 0.22rem 0.4rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(14, 17, 23, 0.55);
+      color: rgba(255, 255, 255, 0.92);
+      font-family: inherit;
+    }
+    #page-weekly .weekly-end-date-hint {
+      color: rgba(255, 255, 255, 0.5);
+    }
     #page-weekly .weekly-toolbar-actions {
       margin-left: auto;
       display: flex;
@@ -2180,6 +2204,11 @@
           <button type="button" id="weeklyDownloadBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">Word 다운로드</button>
         </div>
       </div>
+      <div class="weekly-date-row">
+        <label for="weeklyEndDateInput" class="weekly-end-date-label">최신일</label>
+        <input type="date" id="weeklyEndDateInput" class="weekly-end-date-input" title="비우면 금리 분석 국고채 금리 테이블 최신일을 사용합니다" />
+        <span id="weeklyEndDateAutoHint" class="weekly-end-date-hint">—</span>
+      </div>
       <p id="weeklyStatus" class="weekly-status" role="status">데이터를 불러오는 중…</p>
       <div class="weekly-block" id="weeklyTrendBlock">
         <h3>1. 지난주 채권 시장 동향</h3>
@@ -2512,6 +2541,7 @@
   const OVERVIEW_TRADE_STORAGE_KEY = "market_db_dashboard_overview_trade_v1";
   const OVERVIEW_TRADE_LOCK_KEY = "market_db_dashboard_overview_trade_lock_v1";
   const WEEKLY_STORAGE_KEY = "market_db_dashboard_weekly_reports_v1";
+  const WEEKLY_END_DATE_OVERRIDE_KEY = "market_db_dashboard_weekly_end_date_override_v1";
   const OVERVIEW_MEMO_AUTOSAVE_MS = 30 * 60 * 1000;
   const OVERVIEW_KEYBOND_TENORS = [
     { col: "1Y", csv: "1년" },
@@ -2594,6 +2624,8 @@
   const navReport = document.getElementById("navReport");
   const navWeekly = document.getElementById("navWeekly");
   const weeklyDateLabel = document.getElementById("weeklyDateLabel");
+  const weeklyEndDateInput = document.getElementById("weeklyEndDateInput");
+  const weeklyEndDateAutoHint = document.getElementById("weeklyEndDateAutoHint");
   const weeklyStatus = document.getElementById("weeklyStatus");
   const weeklyYieldTableWrap = document.getElementById("weeklyYieldTableWrap");
   const weeklySpreadTableWrap = document.getElementById("weeklySpreadTableWrap");
@@ -6509,13 +6541,54 @@
     return best;
   }
 
-  function weeklyLatestMarketDate() {
-    if (!dates || !dates.length) return null;
-    return dates[dates.length - 1];
+  function weeklyAutoEndDate() {
+    return typeof latestDateWithRatesData === "function"
+      ? latestDateWithRatesData()
+      : dates && dates.length
+        ? dates[dates.length - 1]
+        : null;
+  }
+
+  function weeklyGetEndDateOverride() {
+    try {
+      const raw = localStorage.getItem(WEEKLY_END_DATE_OVERRIDE_KEY);
+      const v = raw ? String(raw).trim() : "";
+      return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function weeklySetEndDateOverride(ymd) {
+    try {
+      if (ymd && /^\d{4}-\d{2}-\d{2}$/.test(ymd)) localStorage.setItem(WEEKLY_END_DATE_OVERRIDE_KEY, ymd);
+      else localStorage.removeItem(WEEKLY_END_DATE_OVERRIDE_KEY);
+    } catch (_) {}
+  }
+
+  function weeklyResolveEndDateWithRates(ymd) {
+    if (!ymd || !dates || !dates.length) return null;
+    let best = null;
+    for (let i = 0; i < dates.length; i++) {
+      const d = dates[i];
+      if (d > ymd) break;
+      if (typeof dateHasRatesData === "function" && dateHasRatesData(d)) best = d;
+    }
+    return best;
+  }
+
+  function weeklyResolvedEndDate() {
+    const auto = weeklyAutoEndDate();
+    const ov = weeklyGetEndDateOverride();
+    if (!ov) return auto;
+    if (!auto) return weeklyResolveEndDateWithRates(ov);
+    if (ov > auto) return auto;
+    const resolved = weeklyResolveEndDateWithRates(ov);
+    return resolved || auto;
   }
 
   function weeklyReportDates() {
-    const end = weeklyLatestMarketDate();
+    const end = weeklyResolvedEndDate();
     if (!end) return { end: null, start: null, startTarget: null };
     const startTarget = weeklySubtractCalendarDays(end, 7);
     const start = weeklyResolveDateOnOrBefore(startTarget);
@@ -6683,40 +6756,55 @@
       .replace(/\n/g, "<br/>");
   }
 
+  function weeklyDocParagraphStyle(extra) {
+    return "font-size:10pt;line-height:1.5;text-align:justify;" + (extra || "");
+  }
+
+  function weeklyDocBulletParagraph(label, text) {
+    return (
+      "<ul style='font-size:10pt;margin:6px 0 0;padding-left:1.25em;list-style-type:disc;text-align:justify;'>" +
+      "<li style='text-align:justify;line-height:1.5;'><strong>" +
+      escapeHtml(label) +
+      "</strong><br/>" +
+      weeklyEscapeDocText(text) +
+      "</li></ul>"
+    );
+  }
+
   function weeklyBuildDocHtml() {
     const { end, start } = weeklyReportDates();
     const comments = weeklyCollectCommentsFromDom();
     const yieldTableHtml = weeklyDocifyTableHtml(weeklyBuildYieldTableHtml(start, end));
     const spreadTableHtml = weeklyDocifyTableHtml(weeklyBuildSpreadTableHtml(start, end));
     let body =
-      '<h1 style="font-size:16pt;text-align:center;">신한자산 시장동향 및 전망</h1>' +
-      '<p style="text-align:center;font-size:10pt;">기준일(최신일): ' +
+      '<h1 style="font-size:10pt;font-weight:bold;text-align:center;">신한자산 시장동향 및 전망</h1>' +
+      "<p style='" +
+      weeklyDocParagraphStyle("margin:0 0 8px;") +
+      "'>기준일(최신일): " +
       escapeHtml(end || "—") +
       " · 비교일: " +
       escapeHtml(start || "—") +
       "</p>" +
-      '<h2 style="font-size:12pt;">1. 지난주 채권 시장 동향</h2>' +
+      "<h2 style='font-size:10pt;font-weight:bold;text-align:justify;margin:12px 0 6px;'>1. 지난주 채권 시장 동향</h2>" +
       yieldTableHtml +
       spreadTableHtml +
-      "<p style='font-size:10pt;line-height:1.5;margin-top:12px;'>" +
+      "<p style='" +
+      weeklyDocParagraphStyle("margin-top:12px;") +
+      "'>" +
       weeklyEscapeDocText(comments.trend) +
       "</p>" +
-      '<h2 style="font-size:12pt;margin-top:16px;">2. 금주 채권 시장 전망 및 전략</h2>';
+      "<h2 style='font-size:10pt;font-weight:bold;text-align:justify;margin:16px 0 6px;'>2. 금주 채권 시장 전망 및 전략</h2>";
     ["outlook", "duration", "curve", "credit"].forEach((key) => {
       const f = WEEKLY_COMMENT_FIELDS.find((x) => x.key === key);
       if (!f) return;
-      body +=
-        "<p style='font-size:10pt;line-height:1.5;margin:8px 0 0;'><strong>" +
-        escapeHtml(f.label) +
-        "</strong><br/>" +
-        weeklyEscapeDocText(comments[key]) +
-        "</p>";
+      body += weeklyDocBulletParagraph(f.label, comments[key]);
     });
     return (
       '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
       "<head><meta charset='utf-8'><title>신한자산 시장동향 및 전망</title>" +
       "<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->" +
-      "</head><body style='font-family:Malgun Gothic,맑은 고딕,sans-serif;color:#000;'>" +
+      "<style>body,p,li,h1,h2,td,th{font-size:10pt;text-align:justify;}table td,table th{text-align:center;}</style>" +
+      "</head><body style='font-family:Malgun Gothic,맑은 고딕,sans-serif;color:#000;font-size:10pt;text-align:justify;'>" +
       body +
       "</body></html>"
     );
@@ -6747,7 +6835,22 @@
   function renderWeeklyPage() {
     if (!pageWeeklyEl) return;
     const paint = () => {
+      const autoEnd = weeklyAutoEndDate();
       const { end, start, startTarget } = weeklyReportDates();
+      const ov = weeklyGetEndDateOverride();
+      if (weeklyEndDateInput) {
+        if (autoEnd) weeklyEndDateInput.max = autoEnd;
+        if (document.activeElement !== weeklyEndDateInput) {
+          weeklyEndDateInput.value = ov || "";
+        }
+      }
+      if (weeklyEndDateAutoHint) {
+        weeklyEndDateAutoHint.textContent = autoEnd
+          ? ov
+            ? "국고채 최신일 " + autoEnd + " · 적용 " + (end || "—")
+            : "국고채 금리 테이블 최신일 " + autoEnd + " (자동)"
+          : "—";
+      }
       if (weeklyDateLabel) {
         weeklyDateLabel.textContent = end
           ? "비교: " + (start || "—") + " ~ " + end + (startTarget && start !== startTarget ? " (목표 " + startTarget + ")" : "")
@@ -8284,6 +8387,15 @@
     });
   }
   if (weeklyDownloadBtn) weeklyDownloadBtn.addEventListener("click", () => weeklyDownloadDoc());
+  if (weeklyEndDateInput) {
+    const onWeeklyEndDateInput = () => {
+      const v = (weeklyEndDateInput.value || "").trim();
+      weeklySetEndDateOverride(v);
+      renderWeeklyPage();
+    };
+    weeklyEndDateInput.addEventListener("change", onWeeklyEndDateInput);
+    weeklyEndDateInput.addEventListener("input", onWeeklyEndDateInput);
+  }
 
   /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 → 펀드 → Overview → Report → Weekly (순환) */
   const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview", "report", "weekly"];
