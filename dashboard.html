@@ -238,10 +238,11 @@
       white-space: nowrap;
     }
     #page-weekly .weekly-market-table th:first-child,
-    #page-weekly .weekly-market-table td:first-child,
-    #page-weekly .weekly-market-table th:nth-child(2),
-    #page-weekly .weekly-market-table td:nth-child(2) {
+    #page-weekly .weekly-market-table td:first-child {
       text-align: left;
+    }
+    #page-weekly .weekly-table-wrap + .weekly-table-wrap {
+      margin-top: 0.55rem;
     }
     #page-weekly .weekly-market-table thead th {
       background: rgba(255, 255, 255, 0.06);
@@ -2180,12 +2181,10 @@
         </div>
       </div>
       <p id="weeklyStatus" class="weekly-status" role="status">데이터를 불러오는 중…</p>
-      <div class="weekly-block">
-        <h3>지난주 채권시장 동향</h3>
-        <div class="weekly-table-wrap" id="weeklyMarketTableWrap"></div>
-      </div>
-      <div class="weekly-block" id="weeklyCommentsWrap">
-        <h3>코멘트</h3>
+      <div class="weekly-block" id="weeklyTrendBlock">
+        <h3>1. 지난주 채권 시장 동향</h3>
+        <div class="weekly-table-wrap" id="weeklyYieldTableWrap"></div>
+        <div class="weekly-table-wrap" id="weeklySpreadTableWrap"></div>
         <div class="weekly-field-block" data-weekly-field="trend">
           <p class="weekly-field-label">동향</p>
           <div class="weekly-prev-ref">
@@ -2194,6 +2193,9 @@
           </div>
           <textarea id="weeklyTrendInput" class="weekly-comment-input" spellcheck="false" placeholder="동향을 입력하세요…"></textarea>
         </div>
+      </div>
+      <div class="weekly-block" id="weeklyCommentsWrap">
+        <h3>2. 금주 채권 시장 전망 및 전략</h3>
         <div class="weekly-field-block" data-weekly-field="outlook">
           <p class="weekly-field-label">전망</p>
           <div class="weekly-prev-ref">
@@ -2593,7 +2595,8 @@
   const navWeekly = document.getElementById("navWeekly");
   const weeklyDateLabel = document.getElementById("weeklyDateLabel");
   const weeklyStatus = document.getElementById("weeklyStatus");
-  const weeklyMarketTableWrap = document.getElementById("weeklyMarketTableWrap");
+  const weeklyYieldTableWrap = document.getElementById("weeklyYieldTableWrap");
+  const weeklySpreadTableWrap = document.getElementById("weeklySpreadTableWrap");
   const weeklySaveBtn = document.getElementById("weeklySaveBtn");
   const weeklyDownloadBtn = document.getElementById("weeklyDownloadBtn");
   const weeklyTrendInput = document.getElementById("weeklyTrendInput");
@@ -6438,23 +6441,37 @@
     { key: "credit", label: "크레딧 전략", input: () => weeklyCreditInput },
   ];
 
-  const WEEKLY_KTB_ROWS = [
-    { label: "3개월", t: 0.25 },
-    { label: "6개월", t: 0.5 },
-    { label: "1년", t: 1 },
-    { label: "2년", t: 2 },
-    { label: "3년", t: 3 },
-    { label: "5년", t: 5 },
-    { label: "10년", t: 10 },
-    { label: "20년", t: 20 },
-    { label: "30년", t: 30 },
+  function weeklyBaseRate(d) {
+    return yieldAt(d, "기준금리", "1");
+  }
+
+  const WEEKLY_YIELD_COLS = [
+    { label: "기준금리", fn: (d) => weeklyBaseRate(d) },
+    { label: "통안 1Y", fn: (d) => tbYield(d, 1) },
+    { label: "통안 2Y", fn: (d) => tbYield(d, 2) },
+    { label: "국고 3Y", fn: (d) => ktbYield(d, 3) },
+    { label: "국고 5Y", fn: (d) => ktbYield(d, 5) },
+    { label: "국고 10Y", fn: (d) => ktbYield(d, 10) },
+    { label: "국고 30Y", fn: (d) => ktbYield(d, 30) },
+    { label: "특수채(AAA)3Y", fn: (d) => creditYield(d, "특수채", 3) },
+    { label: "회사채(AA-)3Y", fn: (d) => creditYield(d, "회사채", 3) },
   ];
 
-  const WEEKLY_SPREAD_ROWS = [
-    { label: "3-10년", a: 3, b: 10 },
-    { label: "10-30년", a: 10, b: 30 },
-    { label: "3-5년", a: 3, b: 5 },
+  const WEEKLY_SPREAD_COLS = [
+    { label: "기준금리 ~ 통안1Y", fn: (d) => weeklySpreadBp(weeklyBaseRate(d), tbYield(d, 1)) },
+    { label: "통안1Y ~ 통안2Y", fn: (d) => weeklySpreadBp(tbYield(d, 1), tbYield(d, 2)) },
+    { label: "통안2Y ~ 국고3Y", fn: (d) => weeklySpreadBp(tbYield(d, 2), ktbYield(d, 3)) },
+    { label: "국고3Y ~ 국고5Y", fn: (d) => weeklySpreadBp(ktbYield(d, 3), ktbYield(d, 5)) },
+    { label: "국고5Y ~ 국고10Y", fn: (d) => weeklySpreadBp(ktbYield(d, 5), ktbYield(d, 10)) },
+    { label: "국고10Y ~ 국고30Y", fn: (d) => weeklySpreadBp(ktbYield(d, 10), ktbYield(d, 30)) },
+    { label: "국고3Y ~ 특수채(AAA)3Y", fn: (d) => weeklySpreadBp(ktbYield(d, 3), creditYield(d, "특수채", 3)) },
+    { label: "국고3Y ~ 회사채(AA-)3Y", fn: (d) => weeklySpreadBp(ktbYield(d, 3), creditYield(d, "회사채", 3)) },
   ];
+
+  function weeklySpreadBp(a, b) {
+    if (a === null || b === null || !Number.isFinite(a) || !Number.isFinite(b)) return null;
+    return (b - a) * 100;
+  }
 
   function weeklyLoadStore() {
     try {
@@ -6516,62 +6533,79 @@
     return s + v.toFixed(1);
   }
 
-  function weeklyYieldDeltaBp(dEnd, dStart, inst, tenorOrFn) {
-    let yEnd = null;
-    let yStart = null;
-    if (typeof tenorOrFn === "function") {
-      yEnd = tenorOrFn(dEnd);
-      yStart = tenorOrFn(dStart);
-    } else {
-      yEnd = yieldAt(dEnd, inst, tenorOrFn);
-      yStart = yieldAt(dStart, inst, tenorOrFn);
-    }
-    if (yEnd === null || yStart === null) return null;
-    return (yEnd - yStart) * 100;
+  function weeklyFmtSpreadBp(v) {
+    if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+    return v.toFixed(1);
   }
 
-  function weeklyBuildMarketTableHtml(dStart, dEnd) {
+  function weeklyFmtYieldDelta(v) {
+    if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+    return v.toFixed(3);
+  }
+
+  function weeklyBuildYieldTableHtml(dStart, dEnd) {
     if (!dStart || !dEnd) {
       return '<p class="fund-summary__note" style="margin:0.5rem;padding:0.5rem;">market_db.csv 데이터가 없습니다.</p>';
     }
-    let h =
-      '<table class="weekly-market-table"><thead><tr><th>구분</th><th>만기</th><th>' +
-      escapeHtml(dStart) +
-      "</th><th>" +
-      escapeHtml(dEnd) +
-      '</th><th>변동(bp)</th></tr></thead><tbody>';
-    WEEKLY_KTB_ROWS.forEach((row) => {
-      const yS = ktbYield(dStart, row.t);
-      const yE = ktbYield(dEnd, row.t);
-      const dBp = weeklyYieldDeltaBp(dEnd, dStart, "국고채", String(row.t));
-      h +=
-        "<tr><td>국고채</td><td>" +
-        escapeHtml(row.label) +
-        "</td><td>" +
-        weeklyFmtYield(yS) +
-        "</td><td>" +
-        weeklyFmtYield(yE) +
-        "</td><td>" +
-        weeklyFmtBp(dBp) +
-        "</td></tr>";
+    let h = '<table class="weekly-market-table"><thead><tr><th></th>';
+    WEEKLY_YIELD_COLS.forEach((col) => {
+      h += "<th>" + escapeHtml(col.label) + "</th>";
     });
-    WEEKLY_SPREAD_ROWS.forEach((row) => {
-      const sS = ktbTermSpreadBp(dStart, row.a, row.b);
-      const sE = ktbTermSpreadBp(dEnd, row.a, row.b);
-      const dBp = sE !== null && sS !== null ? sE - sS : null;
-      h +=
-        "<tr><td>국고채</td><td>" +
-        escapeHtml(row.label + " 스프레드") +
-        "</td><td>" +
-        weeklyFmtBp(sS) +
-        "</td><td>" +
-        weeklyFmtBp(sE) +
-        "</td><td>" +
-        weeklyFmtBp(dBp) +
-        "</td></tr>";
+    h += "</tr></thead><tbody>";
+    const rows = [
+      { label: dStart, date: dStart },
+      { label: dEnd, date: dEnd },
+      { label: "변동폭", date: null },
+    ];
+    rows.forEach((row) => {
+      h += "<tr><td>" + escapeHtml(row.label) + "</td>";
+      WEEKLY_YIELD_COLS.forEach((col) => {
+        let cell = "—";
+        if (row.date) {
+          cell = weeklyFmtYield(col.fn(row.date));
+        } else {
+          const yS = col.fn(dStart);
+          const yE = col.fn(dEnd);
+          cell = yS !== null && yE !== null ? weeklyFmtYieldDelta(yE - yS) : "—";
+        }
+        h += "<td>" + cell + "</td>";
+      });
+      h += "</tr>";
     });
-  h += "</tbody></table>";
+    h += "</tbody></table>";
     return h;
+  }
+
+  function weeklyBuildSpreadTableHtml(dStart, dEnd) {
+    if (!dStart || !dEnd) {
+      return "";
+    }
+    let h = '<table class="weekly-market-table"><thead><tr><th></th>';
+    WEEKLY_SPREAD_COLS.forEach((col) => {
+      h += "<th>" + escapeHtml(col.label) + "</th>";
+    });
+    h += "</tr></thead><tbody>";
+    const spreadStart = WEEKLY_SPREAD_COLS.map((col) => col.fn(dStart));
+    const spreadEnd = WEEKLY_SPREAD_COLS.map((col) => col.fn(dEnd));
+    h += "<tr><td>스프레드</td>";
+    spreadEnd.forEach((v) => {
+      h += "<td>" + weeklyFmtSpreadBp(v) + "</td>";
+    });
+    h += "</tr><tr><td>증감</td>";
+    spreadEnd.forEach((v, i) => {
+      const s = spreadStart[i];
+      const d = v !== null && s !== null ? v - s : null;
+      h += "<td>" + weeklyFmtSpreadBp(d) + "</td>";
+    });
+    h += "</tr></tbody></table>";
+    return h;
+  }
+
+  function weeklyDocifyTableHtml(html) {
+    return html
+      .replace(/class="weekly-market-table"/g, 'border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%;font-size:10pt;margin-bottom:12px;"')
+      .replace(/<td>/g, '<td style="text-align:center;">')
+      .replace(/<th>/g, '<th style="background:#f0f0f0;text-align:center;">');
   }
 
   function weeklyFindPrevReportEndDate(endDate) {
@@ -6652,27 +6686,30 @@
   function weeklyBuildDocHtml() {
     const { end, start } = weeklyReportDates();
     const comments = weeklyCollectCommentsFromDom();
-    const tableHtml = weeklyBuildMarketTableHtml(start, end)
-      .replace(/class="weekly-market-table"/g, 'border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%;font-size:10pt;"')
-      .replace(/<td>/g, '<td style="text-align:right;">')
-      .replace(/<th>/g, '<th style="background:#f0f0f0;text-align:center;">');
+    const yieldTableHtml = weeklyDocifyTableHtml(weeklyBuildYieldTableHtml(start, end));
+    const spreadTableHtml = weeklyDocifyTableHtml(weeklyBuildSpreadTableHtml(start, end));
     let body =
       '<h1 style="font-size:16pt;text-align:center;">신한자산 시장동향 및 전망</h1>' +
-      '<p style="text-align:center;font-size:10pt;">기간: ' +
-      escapeHtml(start || "—") +
-      " ~ " +
+      '<p style="text-align:center;font-size:10pt;">기준일(최신일): ' +
       escapeHtml(end || "—") +
+      " · 비교일: " +
+      escapeHtml(start || "—") +
       "</p>" +
-      '<h2 style="font-size:12pt;">1. 지난주 채권시장 동향</h2>' +
-      tableHtml;
-    WEEKLY_COMMENT_FIELDS.forEach((f, i) => {
+      '<h2 style="font-size:12pt;">1. 지난주 채권 시장 동향</h2>' +
+      yieldTableHtml +
+      spreadTableHtml +
+      "<p style='font-size:10pt;line-height:1.5;margin-top:12px;'>" +
+      weeklyEscapeDocText(comments.trend) +
+      "</p>" +
+      '<h2 style="font-size:12pt;margin-top:16px;">2. 금주 채권 시장 전망 및 전략</h2>';
+    ["outlook", "duration", "curve", "credit"].forEach((key) => {
+      const f = WEEKLY_COMMENT_FIELDS.find((x) => x.key === key);
+      if (!f) return;
       body +=
-        '<h2 style="font-size:12pt;">' +
-        (i + 2) +
-        ". " +
+        "<p style='font-size:10pt;line-height:1.5;margin:8px 0 0;'><strong>" +
         escapeHtml(f.label) +
-        "</h2><p style='font-size:10pt;line-height:1.5;'>" +
-        weeklyEscapeDocText(comments[f.key]) +
+        "</strong><br/>" +
+        weeklyEscapeDocText(comments[key]) +
         "</p>";
     });
     return (
@@ -6716,7 +6753,8 @@
           ? "비교: " + (start || "—") + " ~ " + end + (startTarget && start !== startTarget ? " (목표 " + startTarget + ")" : "")
           : "—";
       }
-      if (weeklyMarketTableWrap) weeklyMarketTableWrap.innerHTML = weeklyBuildMarketTableHtml(start, end);
+      if (weeklyYieldTableWrap) weeklyYieldTableWrap.innerHTML = weeklyBuildYieldTableHtml(start, end);
+      if (weeklySpreadTableWrap) weeklySpreadTableWrap.innerHTML = weeklyBuildSpreadTableHtml(start, end);
       const store = weeklyLoadStore();
       const saved = end && store.reports ? store.reports[end] : null;
       if (saved && saved.comments) weeklyApplyCommentsToDom(saved.comments);
