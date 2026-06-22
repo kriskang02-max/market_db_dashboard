@@ -6674,9 +6674,18 @@
     return h;
   }
 
-  function weeklyDocifyTableHtml(html) {
+  function weeklyDocifyTableHtml(html, tableGap) {
+    const marginBottom = tableGap === "after-yield" ? "6px" : "12px";
+    const marginTop = tableGap === "after-spread-gap" ? "18px" : "0";
     return html
-      .replace(/class="weekly-market-table"/g, 'border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%;font-size:10pt;margin-bottom:12px;"')
+      .replace(
+        /class="weekly-market-table"/g,
+        'border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%;font-size:10pt;margin-top:' +
+          marginTop +
+          ";margin-bottom:" +
+          marginBottom +
+          ';"'
+      )
       .replace(/<td>/g, '<td style="text-align:center;">')
       .replace(/<th>/g, '<th style="background:#f0f0f0;text-align:center;">');
   }
@@ -6760,31 +6769,32 @@
     return "font-size:10pt;line-height:1.5;text-align:justify;" + (extra || "");
   }
 
-  function weeklyDocBulletParagraph(label, text) {
+  function weeklyDocLabeledParagraph(label, text) {
     return (
-      "<ul style='font-size:10pt;margin:6px 0 0;padding-left:1.25em;list-style-type:disc;text-align:justify;'>" +
-      "<li style='text-align:justify;line-height:1.5;'><strong>" +
+      "<p style='" +
+      weeklyDocParagraphStyle("margin:8px 0 0;") +
+      "'>" +
       escapeHtml(label) +
-      "</strong><br/>" +
+      ": " +
       weeklyEscapeDocText(text) +
-      "</li></ul>"
+      "</p>"
     );
   }
+
+  const WEEKLY_DOC_OUTLOOK_LABELS = {
+    outlook: "전망",
+    duration: "듀레이션 전략",
+    curve: "커브 전략",
+    credit: "크레딧 전략",
+  };
 
   function weeklyBuildDocHtml() {
     const { end, start } = weeklyReportDates();
     const comments = weeklyCollectCommentsFromDom();
-    const yieldTableHtml = weeklyDocifyTableHtml(weeklyBuildYieldTableHtml(start, end));
-    const spreadTableHtml = weeklyDocifyTableHtml(weeklyBuildSpreadTableHtml(start, end));
+    const yieldTableHtml = weeklyDocifyTableHtml(weeklyBuildYieldTableHtml(start, end), "after-yield");
+    const spreadTableHtml = weeklyDocifyTableHtml(weeklyBuildSpreadTableHtml(start, end), "after-spread-gap");
     let body =
-      '<h1 style="font-size:10pt;font-weight:bold;text-align:center;">신한자산 시장동향 및 전망</h1>' +
-      "<p style='" +
-      weeklyDocParagraphStyle("margin:0 0 8px;") +
-      "'>기준일(최신일): " +
-      escapeHtml(end || "—") +
-      " · 비교일: " +
-      escapeHtml(start || "—") +
-      "</p>" +
+      '<h1 style="font-size:12pt;font-weight:bold;text-align:center;">&lt;시장 동향 및 전망&gt;</h1>' +
       "<h2 style='font-size:10pt;font-weight:bold;text-align:justify;margin:12px 0 6px;'>1. 지난주 채권 시장 동향</h2>" +
       yieldTableHtml +
       spreadTableHtml +
@@ -6795,15 +6805,15 @@
       "</p>" +
       "<h2 style='font-size:10pt;font-weight:bold;text-align:justify;margin:16px 0 6px;'>2. 금주 채권 시장 전망 및 전략</h2>";
     ["outlook", "duration", "curve", "credit"].forEach((key) => {
-      const f = WEEKLY_COMMENT_FIELDS.find((x) => x.key === key);
-      if (!f) return;
-      body += weeklyDocBulletParagraph(f.label, comments[key]);
+      const label = WEEKLY_DOC_OUTLOOK_LABELS[key];
+      if (!label) return;
+      body += weeklyDocLabeledParagraph(label, comments[key]);
     });
     return (
       '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
-      "<head><meta charset='utf-8'><title>신한자산 시장동향 및 전망</title>" +
+      "<head><meta charset='utf-8'><title>시장 동향 및 전망</title>" +
       "<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->" +
-      "<style>body,p,li,h1,h2,td,th{font-size:10pt;text-align:justify;}table td,table th{text-align:center;}</style>" +
+      "<style>body,p,h2,td,th{font-size:10pt;text-align:justify;}h1{font-size:12pt;font-weight:bold;text-align:center;}table td,table th{text-align:center;}</style>" +
       "</head><body style='font-family:Malgun Gothic,맑은 고딕,sans-serif;color:#000;font-size:10pt;text-align:justify;'>" +
       body +
       "</body></html>"
