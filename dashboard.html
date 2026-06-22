@@ -6749,11 +6749,18 @@
           : "지난주 저장본";
       }
       if (bodyEl) {
-        const txt = prevComments && prevComments[f.key] ? String(prevComments[f.key]).trim() : "";
+        const txt = prevComments && prevComments[f.key] != null ? String(prevComments[f.key]).trim() : "";
         bodyEl.textContent = txt || "저장된 지난주 텍스트가 없습니다.";
         bodyEl.classList.toggle("weekly-prev-ref__body--empty", !txt);
       }
     });
+  }
+
+  /** 현재 주의 비교일(= 직전 주 최신일)에 저장된 코멘트를 지난주 저장본으로 표시 */
+  function weeklyPrevReportEndDate(currentEnd) {
+    if (!currentEnd) return null;
+    const startTarget = weeklySubtractCalendarDays(currentEnd, 7);
+    return weeklyResolveDateOnOrBefore(startTarget) || weeklyFindPrevReportEndDate(currentEnd);
   }
 
   function weeklyCurrentReportPayload() {
@@ -6791,16 +6798,19 @@
     return "font-size:10pt;line-height:1.5;text-align:justify;" + (extra || "");
   }
 
-  function weeklyDocLabeledParagraph(label, text) {
+  function weeklyDocBulletList(innerHtml, marginTop) {
     return (
-      "<p style='" +
-      weeklyDocParagraphStyle("margin:8px 0 0;") +
-      "'>" +
-      escapeHtml(label) +
-      ": " +
-      weeklyEscapeDocText(text) +
-      "</p>"
+      "<ul style='font-size:10pt;margin:" +
+      (marginTop || "8px") +
+      " 0 0;padding-left:1.25em;list-style-type:disc;text-align:justify;'>" +
+      "<li style='text-align:justify;line-height:1.5;'>" +
+      innerHtml +
+      "</li></ul>"
     );
+  }
+
+  function weeklyDocLabeledParagraph(label, text) {
+    return weeklyDocBulletList(escapeHtml(label) + ": " + weeklyEscapeDocText(text));
   }
 
   const WEEKLY_DOC_OUTLOOK_LABELS = {
@@ -6821,11 +6831,7 @@
       yieldTableHtml +
       weeklyDocTableBlankLine() +
       spreadTableHtml +
-      "<p style='" +
-      weeklyDocParagraphStyle("margin-top:12px;") +
-      "'>" +
-      weeklyEscapeDocText(comments.trend) +
-      "</p>" +
+      weeklyDocBulletList(weeklyEscapeDocText(comments.trend), "12px") +
       "<h2 style='font-size:10pt;font-weight:bold;text-align:justify;margin:16px 0 6px;'>2. 금주 채권 시장 전망 및 전략</h2>";
     ["outlook", "duration", "curve", "credit"].forEach((key) => {
       const label = WEEKLY_DOC_OUTLOOK_LABELS[key];
@@ -6836,7 +6842,7 @@
       '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
       "<head><meta charset='utf-8'><title>시장 동향 및 전망</title>" +
       "<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->" +
-      "<style>body,p,h2{font-size:10pt;text-align:justify;}h1{font-size:12pt;font-weight:bold;text-align:center;}table,table td,table th{font-family:Malgun Gothic,맑은 고딕,sans-serif;font-size:9pt;line-height:1.05;mso-line-height-rule:exactly;text-align:center;}</style>" +
+      "<style>body,p,h2,ul,li{font-size:10pt;text-align:justify;}h1{font-size:12pt;font-weight:bold;text-align:center;}table,table td,table th{font-family:Malgun Gothic,맑은 고딕,sans-serif;font-size:9pt;line-height:1.05;mso-line-height-rule:exactly;text-align:center;}</style>" +
       "</head><body style='font-family:Malgun Gothic,맑은 고딕,sans-serif;color:#000;font-size:10pt;text-align:justify;'>" +
       body +
       "</body></html>"
@@ -6894,8 +6900,7 @@
       const store = weeklyLoadStore();
       const saved = end && store.reports ? store.reports[end] : null;
       if (saved && saved.comments) weeklyApplyCommentsToDom(saved.comments);
-      const prevEnd = end ? weeklyFindPrevReportEndDate(end) : null;
-      weeklyRenderPrevComments(prevEnd);
+      weeklyRenderPrevComments(weeklyPrevReportEndDate(end));
       if (weeklyStatus) {
         if (!end) {
           weeklyStatus.textContent = "market_db.csv 데이터가 없습니다.";
@@ -8412,9 +8417,16 @@
         }
         return;
       }
-      renderWeeklyPage();
+      const { end } = weeklyReportDates();
+      weeklyRenderPrevComments(weeklyPrevReportEndDate(end));
       if (weeklyStatus) {
-        weeklyStatus.textContent = "저장 완료 (" + (weeklyReportDates().end || "—") + ")";
+        const store = weeklyLoadStore();
+        const saved = end && store.reports ? store.reports[end] : null;
+        weeklyStatus.textContent =
+          "저장 완료 (" +
+          (end || "—") +
+          ")" +
+          (saved && saved.savedAt ? " · " + saved.savedAt.slice(0, 16).replace("T", " ") : "");
         weeklyStatus.classList.remove("is-warn");
       }
     });
