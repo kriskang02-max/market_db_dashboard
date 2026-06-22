@@ -256,10 +256,14 @@
     }
     #page-weekly .weekly-market-table th,
     #page-weekly .weekly-market-table td {
-      padding: 0.35rem 0.5rem;
+      padding: 0.18rem 0.32rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       text-align: right;
+      line-height: 1.15;
       white-space: nowrap;
+    }
+    #page-weekly .weekly-market-table thead th {
+      white-space: normal;
     }
     #page-weekly .weekly-market-table th:first-child,
     #page-weekly .weekly-market-table td:first-child {
@@ -6485,19 +6489,27 @@
     { label: "국고 5Y", fn: (d) => ktbYield(d, 5) },
     { label: "국고 10Y", fn: (d) => ktbYield(d, 10) },
     { label: "국고 30Y", fn: (d) => ktbYield(d, 30) },
-    { label: "특수채(AAA)3Y", fn: (d) => creditYield(d, "특수채", 3) },
-    { label: "회사채(AA-)3Y", fn: (d) => creditYield(d, "회사채", 3) },
+    { label: "특수채(AAA)3Y", header: "특수채<br/>(AAA) 3Y", fn: (d) => creditYield(d, "특수채", 3) },
+    { label: "회사채(AA-)3Y", header: "회사채<br/>(AA-) 3Y", fn: (d) => creditYield(d, "회사채", 3) },
   ];
 
   const WEEKLY_SPREAD_COLS = [
-    { label: "기준금리 ~ 통안1Y", fn: (d) => weeklySpreadBp(weeklyBaseRate(d), tbYield(d, 1)) },
-    { label: "통안1Y ~ 통안2Y", fn: (d) => weeklySpreadBp(tbYield(d, 1), tbYield(d, 2)) },
-    { label: "통안2Y ~ 국고3Y", fn: (d) => weeklySpreadBp(tbYield(d, 2), ktbYield(d, 3)) },
-    { label: "국고3Y ~ 국고5Y", fn: (d) => weeklySpreadBp(ktbYield(d, 3), ktbYield(d, 5)) },
-    { label: "국고5Y ~ 국고10Y", fn: (d) => weeklySpreadBp(ktbYield(d, 5), ktbYield(d, 10)) },
-    { label: "국고10Y ~ 국고30Y", fn: (d) => weeklySpreadBp(ktbYield(d, 10), ktbYield(d, 30)) },
-    { label: "국고3Y ~ 특수채(AAA)3Y", fn: (d) => weeklySpreadBp(ktbYield(d, 3), creditYield(d, "특수채", 3)) },
-    { label: "국고3Y ~ 회사채(AA-)3Y", fn: (d) => weeklySpreadBp(ktbYield(d, 3), creditYield(d, "회사채", 3)) },
+    { label: "기준금리 ~ 통안1Y", header: "기준금리<br/>~통안1Y", fn: (d) => weeklySpreadBp(weeklyBaseRate(d), tbYield(d, 1)) },
+    { label: "통안1Y ~ 통안2Y", header: "통안1Y<br/>~통안2Y", fn: (d) => weeklySpreadBp(tbYield(d, 1), tbYield(d, 2)) },
+    { label: "통안2Y ~ 국고3Y", header: "통안2Y<br/>~국고3Y", fn: (d) => weeklySpreadBp(tbYield(d, 2), ktbYield(d, 3)) },
+    { label: "국고3Y ~ 국고5Y", header: "국고3Y<br/>~국고5Y", fn: (d) => weeklySpreadBp(ktbYield(d, 3), ktbYield(d, 5)) },
+    { label: "국고5Y ~ 국고10Y", header: "국고5Y<br/>~국고10Y", fn: (d) => weeklySpreadBp(ktbYield(d, 5), ktbYield(d, 10)) },
+    { label: "국고10Y ~ 국고30Y", header: "국고10Y<br/>~국고30Y", fn: (d) => weeklySpreadBp(ktbYield(d, 10), ktbYield(d, 30)) },
+    {
+      label: "국고3Y ~ 특수채(AAA)3Y",
+      header: "국고3Y<br/>~특수채<br/>(AAA) 3Y",
+      fn: (d) => weeklySpreadBp(ktbYield(d, 3), creditYield(d, "특수채", 3)),
+    },
+    {
+      label: "국고3Y ~ 회사채(AA-)3Y",
+      header: "국고3Y<br/>~회사채<br/>(AA-) 3Y",
+      fn: (d) => weeklySpreadBp(ktbYield(d, 3), creditYield(d, "회사채", 3)),
+    },
   ];
 
   function weeklySpreadBp(a, b) {
@@ -6616,13 +6628,17 @@
     return v.toFixed(3);
   }
 
+  function weeklyTableThContent(col) {
+    return col.header || escapeHtml(col.label);
+  }
+
   function weeklyBuildYieldTableHtml(dStart, dEnd) {
     if (!dStart || !dEnd) {
       return '<p class="fund-summary__note" style="margin:0.5rem;padding:0.5rem;">market_db.csv 데이터가 없습니다.</p>';
     }
     let h = '<table class="weekly-market-table"><thead><tr><th></th>';
     WEEKLY_YIELD_COLS.forEach((col) => {
-      h += "<th>" + escapeHtml(col.label) + "</th>";
+      h += "<th>" + weeklyTableThContent(col) + "</th>";
     });
     h += "</tr></thead><tbody>";
     const rows = [
@@ -6655,7 +6671,7 @@
     }
     let h = '<table class="weekly-market-table"><thead><tr><th></th>';
     WEEKLY_SPREAD_COLS.forEach((col) => {
-      h += "<th>" + escapeHtml(col.label) + "</th>";
+      h += "<th>" + weeklyTableThContent(col) + "</th>";
     });
     h += "</tr></thead><tbody>";
     const spreadStart = WEEKLY_SPREAD_COLS.map((col) => col.fn(dStart));
@@ -6674,20 +6690,26 @@
     return h;
   }
 
-  function weeklyDocifyTableHtml(html, tableGap) {
-    const marginBottom = tableGap === "after-yield" ? "6px" : "12px";
-    const marginTop = tableGap === "after-spread-gap" ? "18px" : "0";
+  const WEEKLY_DOC_TABLE_FONT = "Malgun Gothic,맑은 고딕,sans-serif";
+  const WEEKLY_DOC_TABLE_CELL_STYLE =
+    "font-family:" +
+    WEEKLY_DOC_TABLE_FONT +
+    ";font-size:9pt;line-height:1.05;mso-line-height-rule:exactly;padding:1px 2px;vertical-align:middle;text-align:center;";
+
+  function weeklyDocifyTableHtml(html) {
     return html
       .replace(
         /class="weekly-market-table"/g,
-        'border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%;font-size:10pt;margin-top:' +
-          marginTop +
-          ";margin-bottom:" +
-          marginBottom +
-          ';"'
+        'border="1" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;font-family:' +
+          WEEKLY_DOC_TABLE_FONT +
+          ';font-size:9pt;line-height:1.05;mso-line-height-rule:exactly;"'
       )
-      .replace(/<td>/g, '<td style="text-align:center;">')
-      .replace(/<th>/g, '<th style="background:#f0f0f0;text-align:center;">');
+      .replace(/<td>/g, '<td style="' + WEEKLY_DOC_TABLE_CELL_STYLE + '">')
+      .replace(/<th>/g, '<th style="' + WEEKLY_DOC_TABLE_CELL_STYLE + 'background:#f0f0f0;font-weight:normal;">');
+  }
+
+  function weeklyDocTableBlankLine() {
+    return "<p style='margin:0;padding:0;font-size:9pt;line-height:9pt;mso-line-height-rule:exactly;'>&nbsp;</p>";
   }
 
   function weeklyFindPrevReportEndDate(endDate) {
@@ -6791,12 +6813,13 @@
   function weeklyBuildDocHtml() {
     const { end, start } = weeklyReportDates();
     const comments = weeklyCollectCommentsFromDom();
-    const yieldTableHtml = weeklyDocifyTableHtml(weeklyBuildYieldTableHtml(start, end), "after-yield");
-    const spreadTableHtml = weeklyDocifyTableHtml(weeklyBuildSpreadTableHtml(start, end), "after-spread-gap");
+    const yieldTableHtml = weeklyDocifyTableHtml(weeklyBuildYieldTableHtml(start, end));
+    const spreadTableHtml = weeklyDocifyTableHtml(weeklyBuildSpreadTableHtml(start, end));
     let body =
       '<h1 style="font-size:12pt;font-weight:bold;text-align:center;">&lt;시장 동향 및 전망&gt;</h1>' +
       "<h2 style='font-size:10pt;font-weight:bold;text-align:justify;margin:12px 0 6px;'>1. 지난주 채권 시장 동향</h2>" +
       yieldTableHtml +
+      weeklyDocTableBlankLine() +
       spreadTableHtml +
       "<p style='" +
       weeklyDocParagraphStyle("margin-top:12px;") +
@@ -6813,7 +6836,7 @@
       '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
       "<head><meta charset='utf-8'><title>시장 동향 및 전망</title>" +
       "<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->" +
-      "<style>body,p,h2,td,th{font-size:10pt;text-align:justify;}h1{font-size:12pt;font-weight:bold;text-align:center;}table td,table th{text-align:center;}</style>" +
+      "<style>body,p,h2{font-size:10pt;text-align:justify;}h1{font-size:12pt;font-weight:bold;text-align:center;}table,table td,table th{font-family:Malgun Gothic,맑은 고딕,sans-serif;font-size:9pt;line-height:1.05;mso-line-height-rule:exactly;text-align:center;}</style>" +
       "</head><body style='font-family:Malgun Gothic,맑은 고딕,sans-serif;color:#000;font-size:10pt;text-align:justify;'>" +
       body +
       "</body></html>"
