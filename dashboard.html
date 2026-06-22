@@ -161,6 +161,140 @@
       border: 0;
       background: #1a1a2e;
     }
+    #page-weekly .weekly-outer {
+      padding: 1rem 1.25rem 1.5rem;
+      max-width: 72rem;
+      box-sizing: border-box;
+    }
+    #page-weekly .weekly-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    #page-weekly .weekly-toolbar h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.92);
+    }
+    #page-weekly .weekly-toolbar-meta {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    #page-weekly .weekly-toolbar-actions {
+      margin-left: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    #page-weekly .weekly-toolbar-actions button {
+      font-size: 0.78rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #page-weekly .weekly-toolbar-actions button:hover {
+      background: rgba(59, 130, 246, 0.25);
+      border-color: rgba(59, 130, 246, 0.45);
+    }
+    #page-weekly .weekly-status {
+      margin: 0 0 0.65rem;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+      min-height: 1.2em;
+    }
+    #page-weekly .weekly-status.is-warn { color: #fbbf24; }
+    #page-weekly .weekly-block {
+      margin-bottom: 1.1rem;
+    }
+    #page-weekly .weekly-block h3 {
+      margin: 0 0 0.45rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    #page-weekly .weekly-table-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.45);
+    }
+    #page-weekly .weekly-market-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+    #page-weekly .weekly-market-table th,
+    #page-weekly .weekly-market-table td {
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: right;
+      white-space: nowrap;
+    }
+    #page-weekly .weekly-market-table th:first-child,
+    #page-weekly .weekly-market-table td:first-child,
+    #page-weekly .weekly-market-table th:nth-child(2),
+    #page-weekly .weekly-market-table td:nth-child(2) {
+      text-align: left;
+    }
+    #page-weekly .weekly-market-table thead th {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.75);
+      font-weight: 600;
+    }
+    #page-weekly .weekly-field-block {
+      margin-bottom: 0.85rem;
+    }
+    #page-weekly .weekly-field-label {
+      margin: 0 0 0.3rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.88);
+    }
+    #page-weekly .weekly-prev-ref {
+      margin-bottom: 0.35rem;
+      padding: 0.45rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.22);
+    }
+    #page-weekly .weekly-prev-ref__label {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 0.25rem;
+    }
+    #page-weekly .weekly-prev-ref__body {
+      font-size: 0.76rem;
+      color: rgba(255, 255, 255, 0.72);
+      white-space: pre-wrap;
+      line-height: 1.45;
+      max-height: 8rem;
+      overflow-y: auto;
+    }
+    #page-weekly .weekly-prev-ref__body--empty {
+      color: rgba(255, 255, 255, 0.38);
+      font-style: italic;
+    }
+    #page-weekly .weekly-comment-input {
+      width: 100%;
+      min-height: 5.5rem;
+      box-sizing: border-box;
+      padding: 0.45rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.96);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      font-family: inherit;
+      resize: vertical;
+    }
     nav.page-nav {
       display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem;
       margin: 0.85rem 0 0; padding: 0.55rem 0.85rem;
@@ -1725,6 +1859,8 @@
       <a href="#overview" class="page-nav__link" id="navOverview">Overview</a>
       <span class="page-nav__sep" aria-hidden="true">|</span>
       <a href="#report" class="page-nav__link" id="navReport">Report</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#weekly" class="page-nav__link" id="navWeekly">Weekly</a>
     </nav>
     <div id="spreadHeaderMeta" class="page-meta spread-header-asof">
       <p class="spread-header-asof__line">
@@ -2033,6 +2169,67 @@
     </div>
   </div>
 
+  <div id="page-weekly" class="page">
+    <div class="weekly-outer">
+      <div class="weekly-toolbar">
+        <h2>신한자산 시장동향 및 전망</h2>
+        <span id="weeklyDateLabel" class="weekly-toolbar-meta">—</span>
+        <div class="weekly-toolbar-actions">
+          <button type="button" id="weeklySaveBtn" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
+          <button type="button" id="weeklyDownloadBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">Word 다운로드</button>
+        </div>
+      </div>
+      <p id="weeklyStatus" class="weekly-status" role="status">데이터를 불러오는 중…</p>
+      <div class="weekly-block">
+        <h3>지난주 채권시장 동향</h3>
+        <div class="weekly-table-wrap" id="weeklyMarketTableWrap"></div>
+      </div>
+      <div class="weekly-block" id="weeklyCommentsWrap">
+        <h3>코멘트</h3>
+        <div class="weekly-field-block" data-weekly-field="trend">
+          <p class="weekly-field-label">동향</p>
+          <div class="weekly-prev-ref">
+            <div class="weekly-prev-ref__label" data-weekly-prev-label="trend">지난주 저장본</div>
+            <div class="weekly-prev-ref__body weekly-prev-ref__body--empty" data-weekly-prev-body="trend">—</div>
+          </div>
+          <textarea id="weeklyTrendInput" class="weekly-comment-input" spellcheck="false" placeholder="동향을 입력하세요…"></textarea>
+        </div>
+        <div class="weekly-field-block" data-weekly-field="outlook">
+          <p class="weekly-field-label">전망</p>
+          <div class="weekly-prev-ref">
+            <div class="weekly-prev-ref__label" data-weekly-prev-label="outlook">지난주 저장본</div>
+            <div class="weekly-prev-ref__body weekly-prev-ref__body--empty" data-weekly-prev-body="outlook">—</div>
+          </div>
+          <textarea id="weeklyOutlookInput" class="weekly-comment-input" spellcheck="false" placeholder="전망을 입력하세요…"></textarea>
+        </div>
+        <div class="weekly-field-block" data-weekly-field="duration">
+          <p class="weekly-field-label">듀레이션 전략</p>
+          <div class="weekly-prev-ref">
+            <div class="weekly-prev-ref__label" data-weekly-prev-label="duration">지난주 저장본</div>
+            <div class="weekly-prev-ref__body weekly-prev-ref__body--empty" data-weekly-prev-body="duration">—</div>
+          </div>
+          <textarea id="weeklyDurationInput" class="weekly-comment-input" spellcheck="false" placeholder="듀레이션 전략을 입력하세요…"></textarea>
+        </div>
+        <div class="weekly-field-block" data-weekly-field="curve">
+          <p class="weekly-field-label">커브전략</p>
+          <div class="weekly-prev-ref">
+            <div class="weekly-prev-ref__label" data-weekly-prev-label="curve">지난주 저장본</div>
+            <div class="weekly-prev-ref__body weekly-prev-ref__body--empty" data-weekly-prev-body="curve">—</div>
+          </div>
+          <textarea id="weeklyCurveInput" class="weekly-comment-input" spellcheck="false" placeholder="커브전략을 입력하세요…"></textarea>
+        </div>
+        <div class="weekly-field-block" data-weekly-field="credit">
+          <p class="weekly-field-label">크레딧 전략</p>
+          <div class="weekly-prev-ref">
+            <div class="weekly-prev-ref__label" data-weekly-prev-label="credit">지난주 저장본</div>
+            <div class="weekly-prev-ref__body weekly-prev-ref__body--empty" data-weekly-prev-body="credit">—</div>
+          </div>
+          <textarea id="weeklyCreditInput" class="weekly-comment-input" spellcheck="false" placeholder="크레딧 전략을 입력하세요…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="page-overview" class="page">
     <div class="overview-outer">
       <p id="overviewSyncBanner" class="overview-sync-banner is-warn" role="status">
@@ -2312,6 +2509,7 @@
   const OVERVIEW_MEMO_STORAGE_KEY = "market_db_dashboard_overview_memo_v1";
   const OVERVIEW_TRADE_STORAGE_KEY = "market_db_dashboard_overview_trade_v1";
   const OVERVIEW_TRADE_LOCK_KEY = "market_db_dashboard_overview_trade_lock_v1";
+  const WEEKLY_STORAGE_KEY = "market_db_dashboard_weekly_reports_v1";
   const OVERVIEW_MEMO_AUTOSAVE_MS = 30 * 60 * 1000;
   const OVERVIEW_KEYBOND_TENORS = [
     { col: "1Y", csv: "1년" },
@@ -2392,12 +2590,24 @@
   const navTerm = document.getElementById("navTerm");
   const navOverview = document.getElementById("navOverview");
   const navReport = document.getElementById("navReport");
+  const navWeekly = document.getElementById("navWeekly");
+  const weeklyDateLabel = document.getElementById("weeklyDateLabel");
+  const weeklyStatus = document.getElementById("weeklyStatus");
+  const weeklyMarketTableWrap = document.getElementById("weeklyMarketTableWrap");
+  const weeklySaveBtn = document.getElementById("weeklySaveBtn");
+  const weeklyDownloadBtn = document.getElementById("weeklyDownloadBtn");
+  const weeklyTrendInput = document.getElementById("weeklyTrendInput");
+  const weeklyOutlookInput = document.getElementById("weeklyOutlookInput");
+  const weeklyDurationInput = document.getElementById("weeklyDurationInput");
+  const weeklyCurveInput = document.getElementById("weeklyCurveInput");
+  const weeklyCreditInput = document.getElementById("weeklyCreditInput");
   const pageSpreadEl = document.getElementById("page-spread");
   const pageRatesEl = document.getElementById("page-rates");
   const pageFundEl = document.getElementById("page-fund");
   const pageTermEl = document.getElementById("page-term");
   const pageOverviewEl = document.getElementById("page-overview");
   const pageReportEl = document.getElementById("page-report");
+  const pageWeeklyEl = document.getElementById("page-weekly");
   const reportDateLabel = document.getElementById("reportDateLabel");
   const reportStatus = document.getElementById("reportStatus");
   const reportPdfFrame = document.getElementById("reportPdfFrame");
@@ -6052,12 +6262,14 @@
     const isTerm = page === "term";
     const isOverview = page === "overview";
     const isReport = page === "report";
+    const isWeekly = page === "weekly";
     if (pageSpreadEl) pageSpreadEl.classList.toggle("is-active", isSpread);
     if (pageRatesEl) pageRatesEl.classList.toggle("is-active", isRates);
     if (pageFundEl) pageFundEl.classList.toggle("is-active", isFund);
     if (pageTermEl) pageTermEl.classList.toggle("is-active", isTerm);
     if (pageOverviewEl) pageOverviewEl.classList.toggle("is-active", isOverview);
     if (pageReportEl) pageReportEl.classList.toggle("is-active", isReport);
+    if (pageWeeklyEl) pageWeeklyEl.classList.toggle("is-active", isWeekly);
     if (spreadHeaderMeta) spreadHeaderMeta.hidden = !isSpread;
     if (navSpread) navSpread.classList.toggle("is-current", isSpread);
     if (navRates) navRates.classList.toggle("is-current", isRates);
@@ -6065,12 +6277,14 @@
     if (navTerm) navTerm.classList.toggle("is-current", isTerm);
     if (navOverview) navOverview.classList.toggle("is-current", isOverview);
     if (navReport) navReport.classList.toggle("is-current", isReport);
+    if (navWeekly) navWeekly.classList.toggle("is-current", isWeekly);
     let title = "스프레드 분석";
     if (isFund) title = "펀드 분석";
     else if (isRates) title = "금리 분석";
     else if (isTerm) title = "Term Structure";
     else if (isOverview) title = "Overview";
     else if (isReport) title = "Report";
+    else if (isWeekly) title = "Weekly";
     document.title = title;
     if (isFund) {
       ensureFundData();
@@ -6111,6 +6325,7 @@
         });
     }
     if (isReport) renderReportPage();
+    if (isWeekly) renderWeeklyPage();
   }
 
   function reportTodayTagKst() {
@@ -6212,6 +6427,328 @@
           fileName +
           "). Report 폴더에서 run_all_and_upload.bat 실행 후 GitHub Pages 반영을 기다려 주세요.";
         reportStatus.classList.add("is-warn");
+      });
+  }
+
+  const WEEKLY_COMMENT_FIELDS = [
+    { key: "trend", label: "동향", input: () => weeklyTrendInput },
+    { key: "outlook", label: "전망", input: () => weeklyOutlookInput },
+    { key: "duration", label: "듀레이션 전략", input: () => weeklyDurationInput },
+    { key: "curve", label: "커브전략", input: () => weeklyCurveInput },
+    { key: "credit", label: "크레딧 전략", input: () => weeklyCreditInput },
+  ];
+
+  const WEEKLY_KTB_ROWS = [
+    { label: "3개월", t: 0.25 },
+    { label: "6개월", t: 0.5 },
+    { label: "1년", t: 1 },
+    { label: "2년", t: 2 },
+    { label: "3년", t: 3 },
+    { label: "5년", t: 5 },
+    { label: "10년", t: 10 },
+    { label: "20년", t: 20 },
+    { label: "30년", t: 30 },
+  ];
+
+  const WEEKLY_SPREAD_ROWS = [
+    { label: "3-10년", a: 3, b: 10 },
+    { label: "10-30년", a: 10, b: 30 },
+    { label: "3-5년", a: 3, b: 5 },
+  ];
+
+  function weeklyLoadStore() {
+    try {
+      const raw = localStorage.getItem(WEEKLY_STORAGE_KEY);
+      if (!raw) return { reports: {} };
+      const o = JSON.parse(raw);
+      if (!o || typeof o !== "object") return { reports: {} };
+      if (!o.reports || typeof o.reports !== "object") return { reports: {} };
+      return o;
+    } catch (_) {
+      return { reports: {} };
+    }
+  }
+
+  function weeklySaveStore(store) {
+    localStorage.setItem(WEEKLY_STORAGE_KEY, JSON.stringify(store));
+  }
+
+  function weeklySubtractCalendarDays(ymd, days) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ""));
+    if (!m) return null;
+    const dt = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    dt.setUTCDate(dt.getUTCDate() - days);
+    return dt.toISOString().slice(0, 10);
+  }
+
+  function weeklyResolveDateOnOrBefore(targetYmd) {
+    if (!targetYmd || !dates || !dates.length) return null;
+    let best = null;
+    for (let i = 0; i < dates.length; i++) {
+      const d = dates[i];
+      if (d <= targetYmd) best = d;
+      else break;
+    }
+    return best;
+  }
+
+  function weeklyLatestMarketDate() {
+    if (!dates || !dates.length) return null;
+    return dates[dates.length - 1];
+  }
+
+  function weeklyReportDates() {
+    const end = weeklyLatestMarketDate();
+    if (!end) return { end: null, start: null, startTarget: null };
+    const startTarget = weeklySubtractCalendarDays(end, 7);
+    const start = weeklyResolveDateOnOrBefore(startTarget);
+    return { end, start, startTarget };
+  }
+
+  function weeklyFmtYield(v) {
+    if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+    return v.toFixed(3);
+  }
+
+  function weeklyFmtBp(v) {
+    if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+    const s = v >= 0 ? "+" : "";
+    return s + v.toFixed(1);
+  }
+
+  function weeklyYieldDeltaBp(dEnd, dStart, inst, tenorOrFn) {
+    let yEnd = null;
+    let yStart = null;
+    if (typeof tenorOrFn === "function") {
+      yEnd = tenorOrFn(dEnd);
+      yStart = tenorOrFn(dStart);
+    } else {
+      yEnd = yieldAt(dEnd, inst, tenorOrFn);
+      yStart = yieldAt(dStart, inst, tenorOrFn);
+    }
+    if (yEnd === null || yStart === null) return null;
+    return (yEnd - yStart) * 100;
+  }
+
+  function weeklyBuildMarketTableHtml(dStart, dEnd) {
+    if (!dStart || !dEnd) {
+      return '<p class="fund-summary__note" style="margin:0.5rem;padding:0.5rem;">market_db.csv 데이터가 없습니다.</p>';
+    }
+    let h =
+      '<table class="weekly-market-table"><thead><tr><th>구분</th><th>만기</th><th>' +
+      escapeHtml(dStart) +
+      "</th><th>" +
+      escapeHtml(dEnd) +
+      '</th><th>변동(bp)</th></tr></thead><tbody>';
+    WEEKLY_KTB_ROWS.forEach((row) => {
+      const yS = ktbYield(dStart, row.t);
+      const yE = ktbYield(dEnd, row.t);
+      const dBp = weeklyYieldDeltaBp(dEnd, dStart, "국고채", String(row.t));
+      h +=
+        "<tr><td>국고채</td><td>" +
+        escapeHtml(row.label) +
+        "</td><td>" +
+        weeklyFmtYield(yS) +
+        "</td><td>" +
+        weeklyFmtYield(yE) +
+        "</td><td>" +
+        weeklyFmtBp(dBp) +
+        "</td></tr>";
+    });
+    WEEKLY_SPREAD_ROWS.forEach((row) => {
+      const sS = ktbTermSpreadBp(dStart, row.a, row.b);
+      const sE = ktbTermSpreadBp(dEnd, row.a, row.b);
+      const dBp = sE !== null && sS !== null ? sE - sS : null;
+      h +=
+        "<tr><td>국고채</td><td>" +
+        escapeHtml(row.label + " 스프레드") +
+        "</td><td>" +
+        weeklyFmtBp(sS) +
+        "</td><td>" +
+        weeklyFmtBp(sE) +
+        "</td><td>" +
+        weeklyFmtBp(dBp) +
+        "</td></tr>";
+    });
+  h += "</tbody></table>";
+    return h;
+  }
+
+  function weeklyFindPrevReportEndDate(endDate) {
+    const store = weeklyLoadStore();
+    const keys = Object.keys(store.reports || {})
+      .filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k) && k < endDate)
+      .sort();
+    return keys.length ? keys[keys.length - 1] : null;
+  }
+
+  function weeklyCollectCommentsFromDom() {
+    const comments = {};
+    WEEKLY_COMMENT_FIELDS.forEach((f) => {
+      const el = f.input();
+      comments[f.key] = el ? String(el.value || "") : "";
+    });
+    return comments;
+  }
+
+  function weeklyApplyCommentsToDom(comments) {
+    WEEKLY_COMMENT_FIELDS.forEach((f) => {
+      const el = f.input();
+      if (el) el.value = comments && comments[f.key] != null ? String(comments[f.key]) : "";
+    });
+  }
+
+  function weeklyRenderPrevComments(prevEndDate) {
+    const store = weeklyLoadStore();
+    const prev = prevEndDate && store.reports ? store.reports[prevEndDate] : null;
+    const prevComments = prev && prev.comments ? prev.comments : null;
+    WEEKLY_COMMENT_FIELDS.forEach((f) => {
+      const labelEl = document.querySelector('[data-weekly-prev-label="' + f.key + '"]');
+      const bodyEl = document.querySelector('[data-weekly-prev-body="' + f.key + '"]');
+      if (labelEl) {
+        labelEl.textContent = prevEndDate
+          ? "지난주 저장본 (" + prevEndDate + ")"
+          : "지난주 저장본";
+      }
+      if (bodyEl) {
+        const txt = prevComments && prevComments[f.key] ? String(prevComments[f.key]).trim() : "";
+        bodyEl.textContent = txt || "저장된 지난주 텍스트가 없습니다.";
+        bodyEl.classList.toggle("weekly-prev-ref__body--empty", !txt);
+      }
+    });
+  }
+
+  function weeklyCurrentReportPayload() {
+    const { end, start, startTarget } = weeklyReportDates();
+    return {
+      endDate: end,
+      startDate: start,
+      startTarget: startTarget,
+      savedAt: new Date().toISOString(),
+      comments: weeklyCollectCommentsFromDom(),
+    };
+  }
+
+  function weeklySaveCurrentReport() {
+    const { end } = weeklyReportDates();
+    if (!end) return false;
+    const store = weeklyLoadStore();
+    store.reports[end] = weeklyCurrentReportPayload();
+    weeklySaveStore(store);
+    return true;
+  }
+
+  function weeklyEscapeDocText(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .replace(/\n/g, "<br/>");
+  }
+
+  function weeklyBuildDocHtml() {
+    const { end, start } = weeklyReportDates();
+    const comments = weeklyCollectCommentsFromDom();
+    const tableHtml = weeklyBuildMarketTableHtml(start, end)
+      .replace(/class="weekly-market-table"/g, 'border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%;font-size:10pt;"')
+      .replace(/<td>/g, '<td style="text-align:right;">')
+      .replace(/<th>/g, '<th style="background:#f0f0f0;text-align:center;">');
+    let body =
+      '<h1 style="font-size:16pt;text-align:center;">신한자산 시장동향 및 전망</h1>' +
+      '<p style="text-align:center;font-size:10pt;">기간: ' +
+      escapeHtml(start || "—") +
+      " ~ " +
+      escapeHtml(end || "—") +
+      "</p>" +
+      '<h2 style="font-size:12pt;">1. 지난주 채권시장 동향</h2>' +
+      tableHtml;
+    WEEKLY_COMMENT_FIELDS.forEach((f, i) => {
+      body +=
+        '<h2 style="font-size:12pt;">' +
+        (i + 2) +
+        ". " +
+        escapeHtml(f.label) +
+        "</h2><p style='font-size:10pt;line-height:1.5;'>" +
+        weeklyEscapeDocText(comments[f.key]) +
+        "</p>";
+    });
+    return (
+      '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+      "<head><meta charset='utf-8'><title>신한자산 시장동향 및 전망</title>" +
+      "<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->" +
+      "</head><body style='font-family:Malgun Gothic,맑은 고딕,sans-serif;color:#000;'>" +
+      body +
+      "</body></html>"
+    );
+  }
+
+  function weeklyDownloadDoc() {
+    const { end } = weeklyReportDates();
+    if (!end) {
+      if (weeklyStatus) {
+        weeklyStatus.textContent = "Word 파일을 만들 수 없습니다. market_db.csv를 먼저 불러오세요.";
+        weeklyStatus.classList.add("is-warn");
+      }
+      return;
+    }
+    const html = weeklyBuildDocHtml();
+    const blob = new Blob(["\ufeff", html], { type: "application/msword" });
+    const tag = end.replace(/-/g, "");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "신한자산_시장동향및전망_" + tag + ".doc";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    if (weeklyStatus) weeklyStatus.textContent = "Word 파일 다운로드: 신한자산_시장동향및전망_" + tag + ".doc";
+  }
+
+  function renderWeeklyPage() {
+    if (!pageWeeklyEl) return;
+    const paint = () => {
+      const { end, start, startTarget } = weeklyReportDates();
+      if (weeklyDateLabel) {
+        weeklyDateLabel.textContent = end
+          ? "비교: " + (start || "—") + " ~ " + end + (startTarget && start !== startTarget ? " (목표 " + startTarget + ")" : "")
+          : "—";
+      }
+      if (weeklyMarketTableWrap) weeklyMarketTableWrap.innerHTML = weeklyBuildMarketTableHtml(start, end);
+      const store = weeklyLoadStore();
+      const saved = end && store.reports ? store.reports[end] : null;
+      if (saved && saved.comments) weeklyApplyCommentsToDom(saved.comments);
+      const prevEnd = end ? weeklyFindPrevReportEndDate(end) : null;
+      weeklyRenderPrevComments(prevEnd);
+      if (weeklyStatus) {
+        if (!end) {
+          weeklyStatus.textContent = "market_db.csv 데이터가 없습니다.";
+          weeklyStatus.classList.add("is-warn");
+        } else {
+          weeklyStatus.textContent =
+            "최신일 " +
+            end +
+            " · 표 시작일 " +
+            (start || "—") +
+            (saved && saved.savedAt ? " · 마지막 저장 " + saved.savedAt.slice(0, 16).replace("T", " ") : "");
+          weeklyStatus.classList.remove("is-warn");
+        }
+      }
+    };
+    if (dates && dates.length) {
+      paint();
+      return;
+    }
+    if (weeklyStatus) weeklyStatus.textContent = "market_db.csv 불러오는 중…";
+    loadData()
+      .then(paint)
+      .catch(() => {
+        if (weeklyStatus) {
+          weeklyStatus.textContent = "market_db.csv를 불러오지 못했습니다.";
+          weeklyStatus.classList.add("is-warn");
+        }
       });
   }
 
@@ -7692,9 +8229,26 @@
   });
 
   if (reportRefreshBtn) reportRefreshBtn.addEventListener("click", () => renderReportPage());
+  if (weeklySaveBtn) {
+    weeklySaveBtn.addEventListener("click", () => {
+      if (!weeklySaveCurrentReport()) {
+        if (weeklyStatus) {
+          weeklyStatus.textContent = "저장 실패: market_db.csv 최신일이 없습니다.";
+          weeklyStatus.classList.add("is-warn");
+        }
+        return;
+      }
+      renderWeeklyPage();
+      if (weeklyStatus) {
+        weeklyStatus.textContent = "저장 완료 (" + (weeklyReportDates().end || "—") + ")";
+        weeklyStatus.classList.remove("is-warn");
+      }
+    });
+  }
+  if (weeklyDownloadBtn) weeklyDownloadBtn.addEventListener("click", () => weeklyDownloadDoc());
 
-  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 → 펀드 → Overview → Report (순환) */
-  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview", "report"];
+  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 → 펀드 → Overview → Report → Weekly (순환) */
+  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview", "report", "weekly"];
 
   function applyHashPage() {
     const h = (location.hash || "#rates").slice(1);
@@ -7704,6 +8258,7 @@
     else if (h === "spread") setPage("spread");
     else if (h === "overview") setPage("overview");
     else if (h === "report") setPage("report");
+    else if (h === "weekly") setPage("weekly");
     else setPage("rates");
   }
   window.addEventListener("hashchange", applyHashPage);
