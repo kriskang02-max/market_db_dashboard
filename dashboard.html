@@ -7126,7 +7126,7 @@
     });
   }
 
-  function empParseEtfNavMap(ws) {
+  function empParseEtfSharesMap(ws) {
     const map = {};
     const { cols, rows } = empSheetDims(ws);
     for (let c = 0; c < cols; ) {
@@ -7138,10 +7138,10 @@
           if (d == null) break;
           const key = empDateKey(d);
           if (!key) continue;
-          byDate[key] = empNum(empCell(ws, r, c + 2));
+          byDate[key] = empNum(empCell(ws, r, c + 5));
         }
         map[String(name).trim()] = byDate;
-        c += 5;
+        c += 6;
       } else c += 1;
     }
     return map;
@@ -7167,7 +7167,7 @@
     const pdfWs = wb.Sheets["PDF정보"];
     const etfWs = wb.Sheets["ETF정보"];
     if (!pdfWs || !etfWs) throw new Error("PDF정보 또는 ETF정보 시트를 찾을 수 없습니다.");
-    const navMap = empParseEtfNavMap(etfWs);
+    const sharesMap = empParseEtfSharesMap(etfWs);
     const blocks = empParsePdfBlocks(pdfWs);
     const out = [];
     let dateTag = "";
@@ -7175,7 +7175,7 @@
       const etfName = block.name != null ? String(block.name).trim() : "";
       if (!etfName) return;
       const dateKey = empDateKey(block.dateVal);
-      const nav = navMap[etfName] ? navMap[etfName][dateKey] : null;
+      const listedShares = sharesMap[etfName] ? sharesMap[etfName][dateKey] : null;
       if (!dateTag && dateKey) dateTag = empDateTag(block.dateVal);
       for (let r = 8; r < block.rows; r++) {
         const isin = empCell(pdfWs, r, block.startCol + 1);
@@ -7183,7 +7183,9 @@
         if (isin == null && rowDate == null) break;
         if (!isin) continue;
         const weight = empNum(empCell(pdfWs, r, block.startCol + 5));
-        const evalAmt = weight != null && nav != null ? (weight / 100) * nav : null;
+        const prevEval = empNum(empCell(pdfWs, r, block.startCol + 7));
+        const evalAmt =
+          prevEval != null && listedShares != null ? (prevEval * listedShares) / 1000 : null;
         const ymd = empFormatYmd(rowDate != null ? rowDate : block.dateVal);
         if (!dateTag && ymd) dateTag = ymd.replace(/-/g, "");
         out.push({
