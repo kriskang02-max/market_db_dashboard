@@ -7828,6 +7828,37 @@
     return out;
   }
 
+  function empCuEvalDivisor(etfName, cuMap) {
+    const map = cuMap || empCuMap;
+    const cu = empNum(map[etfName]);
+    if (cu === null || cu <= 0) return 1;
+    return cu / 1000;
+  }
+
+  function empAdjustedEvalAmt(row, cuMap) {
+    const base = empNum(row.평가액);
+    if (base === null) return null;
+    const divisor = empCuEvalDivisor(row.ETF명, cuMap);
+    if (!divisor || divisor <= 0) return null;
+    return base / divisor;
+  }
+
+  function empRefreshEvalDependentViews(etfName) {
+    empRenderTable();
+    if (!etfName || !empSummaryWrap) return;
+    const rows = empGetSortedEtfGroups().byEtf.get(etfName);
+    if (!rows) return;
+    const durationOverrides = empLoadFuturesDurations();
+    const tr = empSummaryWrap.querySelector('tr[data-emp-summary-etf="' + CSS.escape(etfName) + '"]');
+    if (!tr) return;
+    const tds = tr.querySelectorAll("td");
+    const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
+    const wYtm = empEtfWeightedYtm(rows, etfName);
+    if (tds[6]) tds[6].textContent = empFmtDisplay(wDur, 4);
+    if (tds[7]) tds[7].textContent = empFmtDisplay(wYtm, 4);
+    empRenderFundTableIfNotEditing();
+  }
+
   function empSummarySaveToStorage() {
     if (empSummaryIsLocked()) return;
     empCuMap = empCollectCuFromDom();
@@ -7947,8 +7978,9 @@
     return empDatasetRows.filter((row) => !empHoldingsEtfUnchecked.has(row.ETF명 || ""));
   }
 
-  function empHoldingsCellHtml(row, col) {
-    const raw = row[col.key];
+  function empHoldingsCellHtml(row, col, cuMap) {
+    const map = cuMap || empLoadCuMap();
+    const raw = col.key === "평가액" ? empAdjustedEvalAmt(row, map) : row[col.key];
     const text = col.decimals != null ? empFmtDisplay(raw, col.decimals) : raw != null ? String(raw) : "";
     const titleAttr = col.title && text && text !== "—" ? ' title="' + escapeHtml(text) + '"' : "";
     return "<td" + titleAttr + ">" + escapeHtml(text) + "</td>";
@@ -8337,9 +8369,10 @@
   function empEtfWeightedDuration(rows, etfName, durationOverrides) {
     const nav = empNum(empEtfNavMap[etfName]);
     if (nav === null || nav <= 0) return null;
+    const cuMap = empLoadCuMap();
     let numerator = 0;
     rows.forEach((r) => {
-      const evalAmt = empNum(r.평가액);
+      const evalAmt = empAdjustedEvalAmt(r, cuMap);
       const dur = empRowDuration(r, durationOverrides);
       if (evalAmt === null || evalAmt <= 0 || dur === null) return;
       numerator += evalAmt * dur;
@@ -8350,9 +8383,10 @@
   function empEtfWeightedYtm(rows, etfName) {
     const nav = empNum(empEtfNavMap[etfName]);
     if (nav === null || nav <= 0) return null;
+    const cuMap = empLoadCuMap();
     let numerator = 0;
     rows.forEach((r) => {
-      const evalAmt = empNum(r.평가액);
+      const evalAmt = empAdjustedEvalAmt(r, cuMap);
       const ytm = empRowYtm(r);
       if (evalAmt === null || evalAmt <= 0 || ytm === null) return;
       numerator += evalAmt * ytm;
@@ -8935,6 +8969,7 @@
       return;
     }
     const rows = empGetHoldingsFilteredRows();
+    const cuMap = empLoadCuMap();
     let h = '<table class="emp-table"><colgroup>';
     EMP_HOLDINGS_COLUMNS.forEach((col) => {
       h += '<col class="' + col.col + '" />';
@@ -8953,7 +8988,7 @@
       rows.forEach((row) => {
         h += "<tr>";
         EMP_HOLDINGS_COLUMNS.forEach((col) => {
-          h += empHoldingsCellHtml(row, col);
+          h += empHoldingsCellHtml(row, col, cuMap);
         });
         h += "</tr>";
       });
@@ -9024,10 +9059,11 @@
     }
     const tag = empDatasetDateTag || empDateTag(empDatasetRows[0].일자) || "export";
     const aoa = [EMP_HOLDINGS_COLUMNS.map((col) => col.label)];
+    const cuMap = empLoadCuMap();
     empGetHoldingsFilteredRows().forEach((row) => {
       aoa.push(
         EMP_HOLDINGS_COLUMNS.map((col) => {
-          const v = row[col.key];
+          const v = col.key === "평가액" ? empAdjustedEvalAmt(row, cuMap) : row[col.key];
           return v != null ? v : "";
         })
       );
@@ -10655,6 +10691,7 @@
       } catch (_) {}
       const tr = el.closest("tr[data-emp-summary-etf]");
       empUpdateOneCuCell(tr, etf);
+      empRefreshEvalDependentViews(etf);
       empScheduleCuPersist();
     });
   }
