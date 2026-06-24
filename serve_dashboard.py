@@ -20,6 +20,24 @@ def _truthy(val: str | None) -> bool:
     return (val or "").strip().lower() in ("1", "true", "yes", "on")
 
 
+def _outlook_available() -> bool:
+    if os.name != "nt":
+        return False
+    try:
+        import win32com.client  # type: ignore  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def _use_outlook_email() -> bool:
+    if _truthy(os.environ.get("EMP_EMAIL_USE_OUTLOOK")):
+        return True
+    if os.environ.get("EMP_EMAIL_USE_OUTLOOK", "").strip().lower() in ("0", "false", "no", "off"):
+        return False
+    return _outlook_available()
+
+
 def send_emp_summary_email(*, html: str, subject: str) -> None:
     if not html or not html.strip():
         raise ValueError("Empty email body")
@@ -30,7 +48,7 @@ def send_emp_summary_email(*, html: str, subject: str) -> None:
         + "</body></html>"
     )
 
-    if _truthy(os.environ.get("EMP_EMAIL_USE_OUTLOOK")):
+    if _use_outlook_email():
         _send_via_outlook(body_html, subject, EMP_EMAIL_TO)
         return
 
@@ -68,24 +86,35 @@ def send_emp_summary_email(*, html: str, subject: str) -> None:
 
 def _send_via_outlook(html: str, subject: str, to_addr: str) -> None:
     try:
+        import pythoncom
         import win32com.client  # type: ignore
     except ImportError as exc:
         raise RuntimeError("Outlook 발송에는 pywin32 가 필요합니다: pip install pywin32") from exc
 
-    outlook = win32com.client.Dispatch("Outlook.Application")
-    mail = outlook.CreateItem(0)
-    mail.To = to_addr
-    mail.Subject = subject
-    mail.HTMLBody = html
-    mail.Send()
-
-    # Send()는 보낼편지함에 넣기만 함. Send/Receive로 서버 전송을 즉시 트리거.
-    namespace = outlook.GetNamespace("MAPI")
+    initialized = False
     try:
-        namespace.SendAndReceive(False)
-    except Exception:
-        for i in range(1, namespace.SyncObjects.Count + 1):
-            namespace.SyncObjects.Item(i).Start()
+        pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
+        initialized = True
+    except pythoncom.com_error:
+        pass
+    try:
+        outlook = win32com.client.Dispatch("Outlook.Application")
+        mail = outlook.CreateItem(0)
+        mail.To = to_addr
+        mail.Subject = subject
+        mail.HTMLBody = html
+        mail.Send()
+
+        # Send()는 보낼편지함에 넣기만 함. Send/Receive로 서버 전송을 즉시 트리거.
+        namespace = outlook.GetNamespace("MAPI")
+        try:
+            namespace.SendAndReceive(False)
+        except Exception:
+            for i in range(1, namespace.SyncObjects.Count + 1):
+                namespace.SyncObjects.Item(i).Start()
+    finally:
+        if initialized:
+            pythoncom.CoUninitialize()
 
 
 class DashboardHandler(SimpleHTTPRequestHandler):
@@ -170,8 +199,8 @@ def main() -> None:
     print(f"Dashboard: http://{host}:{port}/dashboard.html")
     print(f"Overview 저장 파일: {os.path.join(ROOT, STATE_FILE)}")
     print(f"ETF 개요 메일 API: http://{host}:{port}{EMP_EMAIL_API}")
-    if _truthy(os.environ.get("EMP_EMAIL_USE_OUTLOOK")):
-        print("ETF 개요 메일: Outlook(EMP_EMAIL_USE_OUTLOOK=1)")
+    if _use_outlook_email():
+        print("ETF 개요 메일: Outlook")
     elif os.environ.get("EMP_SMTP_HOST"):
         print(f"ETF 개요 메일: SMTP → {EMP_EMAIL_TO}")
     else:

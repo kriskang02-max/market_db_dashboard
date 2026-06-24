@@ -8621,8 +8621,16 @@
       body: JSON.stringify({ html: html, subject: subject }),
       cache: "no-store",
     })
-      .then((r) => r.json().catch(() => ({})).then((data) => ({ ok: r.ok, data })))
-      .then(({ ok, data }) => {
+      .then((r) =>
+        r.text().then((text) => {
+          let data = {};
+          try {
+            data = text ? JSON.parse(text) : {};
+          } catch (_) {}
+          return { ok: r.ok, status: r.status, data, text };
+        })
+      )
+      .then(({ ok, status, data, text }) => {
         if (ok && data && data.ok) {
           const msg = "발송 완료 · " + (data.to || EMP_SUMMARY_EMAIL_TO);
           if (empSummaryStatus) empSummaryStatus.textContent = msg;
@@ -8633,7 +8641,13 @@
           }, 2000);
           return;
         }
-        const err = (data && data.error) || "메일 발송에 실패했습니다.";
+        let err = data && data.error ? String(data.error) : "";
+        if (!err && status === 404) {
+          err =
+            "메일 API를 찾을 수 없습니다. python serve_dashboard.py 실행 후 http://127.0.0.1:8000/dashboard.html 로 접속하세요.";
+        } else if (!err) {
+          err = "메일 발송에 실패했습니다." + (status ? " (HTTP " + status + ")" : "");
+        }
         if (empSummaryStatus) empSummaryStatus.textContent = err;
         empSetStatus(err, true);
         if (btn) btn.textContent = prevLabel;
