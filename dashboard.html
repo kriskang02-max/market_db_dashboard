@@ -8211,7 +8211,7 @@
     const locked = empSummaryIsLocked();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
     let h =
-      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율</th><th>CU</th><th>1CU</th><th>순자산총액</th><th>듀레이션</th></tr></thead><tbody>';
+      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율</th><th>CU</th><th>1CU</th><th>순자산총액(억)</th><th>듀레이션</th></tr></thead><tbody>';
     etfNames.forEach((etfName) => {
       const rows = byEtf.get(etfName);
       const meta = empEtfMetaMap[etfName] || {};
@@ -8245,7 +8245,7 @@
           '" /></td>';
       }
       h += '<td class="emp-onecu-cell">' + empFmtDisplay(oneCu, 0) + "</td>";
-      h += "<td>" + empFmtDisplay(nav, 0) + "</td>";
+      h += "<td>" + empFmtNavEok(nav) + "</td>";
       h += "<td>" + empFmtDisplay(wDur, 4) + "</td>";
       h += "</tr>";
     });
@@ -8328,7 +8328,7 @@
     const durationOverrides = empLoadFuturesDurations();
     const cuSaved = empLoadCuMap();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
-    const lines = ["ETF명\t기준가\t괴리율\tCU\t1CU\t순자산총액\t듀레이션"];
+    const lines = ["ETF명\t기준가\t괴리율\tCU\t1CU\t순자산총액(억)\t듀레이션"];
     etfNames.forEach((etfName) => {
         const rows = byEtf.get(etfName);
         const meta = empEtfMetaMap[etfName] || {};
@@ -8343,7 +8343,7 @@
             empFmtDisparity(meta.disparity),
             cu != null ? String(cu) : "",
             empFmtDisplay(oneCu, 0),
-            empFmtDisplay(nav, 0),
+            empFmtNavEok(nav),
             empFmtDisplay(wDur, 4),
           ].join("\t")
         );
@@ -8371,7 +8371,7 @@
     h +=
       '<table style="border-collapse:collapse;font-family:Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:12px;">';
     h += "<thead><tr>";
-    ["ETF명", "기준가", "괴리율", "CU", "1CU", "순자산총액", "듀레이션"].forEach((col, i) => {
+    ["ETF명", "기준가", "괴리율", "CU", "1CU", "순자산총액(억)", "듀레이션"].forEach((col, i) => {
       h += '<th style="' + thStyle + (i === 0 ? "text-align:left;" : "") + '">' + escapeHtml(col) + "</th>";
     });
     h += "</tr></thead><tbody>";
@@ -8393,7 +8393,7 @@
       h += '<td style="' + dispStyle + '">' + escapeHtml(empFmtDisparity(meta.disparity)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(cu != null ? empFmtDisplay(cu, 0) : "—") + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(oneCu, 0)) + "</td>";
-      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(nav, 0)) + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtNavEok(nav)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wDur, 4)) + "</td>";
       h += "</tr>";
     });
@@ -8631,6 +8631,12 @@
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     });
+  }
+
+  function empFmtNavEok(nav) {
+    const n = empNum(nav);
+    if (n === null) return "—";
+    return empFmtDisplay(n / 100000000, 2);
   }
 
   function empParseEtfInfoMap(ws) {
