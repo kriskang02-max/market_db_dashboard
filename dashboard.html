@@ -350,7 +350,11 @@
       margin: 0 0 0.55rem;
       font-size: 0.78rem;
       color: rgba(255, 255, 255, 0.6);
-      min-height: 1.2em;
+      min-height: 0;
+    }
+    #page-emp .emp-status[hidden] {
+      display: none;
+      margin: 0;
     }
     #page-emp .emp-status.is-warn { color: #fbbf24; }
     #page-emp .emp-split-layout {
@@ -376,45 +380,11 @@
     #page-emp .emp-summary-block {
       margin-bottom: 0;
     }
-    #page-emp .emp-summary-header-row h3,
-    #page-emp .emp-holdings-header-row h3,
-    #page-emp .emp-summary-block > h3 {
-      margin: 0;
-      font-size: 0.84rem;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.9);
-    }
-    #page-emp .emp-summary-block > h3 {
+    #page-emp .emp-summary-block > .overview-prevday-table-heading {
       margin-bottom: 0.35rem;
-    }
-    #page-emp .emp-summary-header-row,
-    #page-emp .emp-holdings-header-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.4rem 0.55rem;
-      margin-bottom: 0.35rem;
-    }
-    #page-emp .emp-summary-header-row h3,
-    #page-emp .emp-holdings-header-row h3 {
-      margin: 0;
-    }
-    #page-emp .emp-summary-header-row {
-      justify-content: space-between;
-    }
-    #page-emp .emp-holdings-header-left {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.4rem 0.55rem;
     }
     #page-emp .emp-holdings-block {
       margin-top: 0.15rem;
-    }
-    #page-emp .emp-summary-header-row .sidebar.btn,
-    #page-emp .emp-holdings-header-left .sidebar.btn {
-      font-size: 0.78rem;
-      padding: 0.35rem 0.65rem;
     }
     #page-emp .emp-summary-wrap,
     #page-emp .emp-futures-wrap {
@@ -452,11 +422,6 @@
     #page-emp .emp-futures-table th:first-child,
     #page-emp .emp-futures-table th:nth-child(2) {
       text-align: left;
-    }
-    #page-emp .emp-futures-hint {
-      margin: 0 0 0.35rem;
-      font-size: 0.72rem;
-      color: rgba(255, 255, 255, 0.48);
     }
     #page-emp .emp-futures-duration-input {
       width: 5.5rem;
@@ -1788,7 +1753,8 @@
     #page-overview .overview-keybond-table .ovkb-btn-del:hover {
       background: rgba(248, 113, 113, 0.22);
     }
-    #page-overview .overview-prevday-header-row {
+    #page-overview .overview-prevday-header-row,
+    #page-emp .overview-prevday-header-row {
       display: flex;
       flex-wrap: nowrap;
       align-items: center;
@@ -1800,12 +1766,14 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
-    #page-overview .overview-prevday-header-row .overview-prevday-toolbar {
+    #page-overview .overview-prevday-header-row .overview-prevday-toolbar,
+    #page-emp .overview-prevday-header-row .overview-prevday-toolbar {
       margin-bottom: 0;
       flex: 0 1 auto;
       min-width: 0;
     }
-    #page-overview .overview-prevday-table-heading {
+    #page-overview .overview-prevday-table-heading,
+    #page-emp .overview-prevday-table-heading {
       margin: 0;
       flex: 0 0 auto;
       font-size: 0.88rem;
@@ -1813,11 +1781,13 @@
       color: rgba(255, 255, 255, 0.92);
       line-height: 1.35;
     }
-    #page-overview .overview-prevday-header-spacer {
+    #page-overview .overview-prevday-header-spacer,
+    #page-emp .overview-prevday-header-spacer {
       flex: 1 1 auto;
       min-width: 0.25rem;
     }
-    #page-overview .overview-prevday-toolbar {
+    #page-overview .overview-prevday-toolbar,
+    #page-emp .overview-prevday-toolbar {
       display: flex;
       flex-wrap: nowrap;
       align-items: center;
@@ -1829,13 +1799,15 @@
     }
     #page-overview .overview-prevday-toolbar.overview-prevday-toolbar--compact,
     #page-overview .overview-policy-toolbar.overview-policy-toolbar--compact,
-    #page-overview .overview-keybond-toolbar.overview-keybond-toolbar--compact {
+    #page-overview .overview-keybond-toolbar.overview-keybond-toolbar--compact,
+    #page-emp .overview-prevday-toolbar.overview-prevday-toolbar--compact {
       min-height: calc(0.74rem * 1.35 + 0.2rem);
       box-sizing: border-box;
     }
     #page-overview .overview-prevday-toolbar--compact > .sidebar.btn,
     #page-overview .overview-policy-toolbar--compact > .sidebar.btn,
-    #page-overview .overview-keybond-toolbar--compact > .sidebar.btn {
+    #page-overview .overview-keybond-toolbar--compact > .sidebar.btn,
+    #page-emp .overview-prevday-toolbar--compact > .sidebar.btn {
       flex: 0 0 auto;
       width: max-content;
       min-width: 0;
@@ -1849,7 +1821,8 @@
     }
     #page-overview .overview-prevday-toolbar--compact .sidebar.btn-secondary,
     #page-overview .overview-policy-toolbar--compact > .sidebar.btn-secondary,
-    #page-overview .overview-keybond-toolbar--compact > .sidebar.btn-secondary {
+    #page-overview .overview-keybond-toolbar--compact > .sidebar.btn-secondary,
+    #page-emp .overview-prevday-toolbar--compact .sidebar.btn-secondary {
       color: #fff;
     }
     #page-overview .overview-prevday-toolbar .ovpd-toolbar-textlike,
@@ -2455,27 +2428,30 @@
         <h2>EMP</h2>
         <span id="empMetaLabel" class="emp-toolbar-meta">—</span>
       </div>
-      <p id="empStatus" class="emp-status" role="status">데이터를 불러오는 중…</p>
+      <p id="empStatus" class="emp-status" role="status" hidden></p>
       <div class="emp-split-layout">
         <div class="emp-summary-block emp-split-col" id="empFuturesBlock">
-          <h3>국채선물 듀레이션</h3>
-          <p class="emp-futures-hint">ISIN이 KR4A로 시작하는 국채선물은 민평 듀레이션이 없습니다. 듀레이션을 입력하면 ETF 가중평균 듀레이션에 즉시 반영되며, Overview와 같이 자동 저장됩니다.</p>
+          <h3 class="overview-prevday-table-heading">국채선물 듀레이션</h3>
           <div class="emp-futures-wrap" id="empFuturesWrap"></div>
         </div>
         <div class="emp-summary-block emp-split-col">
-          <div class="emp-summary-header-row">
-            <h3>ETF 개요</h3>
-            <button type="button" id="empSummaryCopyBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">복사</button>
+          <div class="overview-prevday-header-row">
+            <h3 class="overview-prevday-table-heading">ETF 개요</h3>
+            <span class="overview-prevday-header-spacer" aria-hidden="true"></span>
+            <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
+              <button type="button" id="empSummaryCopyBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">복사</button>
+            </div>
           </div>
           <div class="emp-summary-wrap" id="empSummaryWrap"></div>
         </div>
       </div>
       <div class="emp-holdings-block">
-        <div class="emp-holdings-header-row">
-          <div class="emp-holdings-header-left">
+        <div class="overview-prevday-header-row">
+          <h3 class="overview-prevday-table-heading">ETF 보유명세</h3>
+          <span class="overview-prevday-header-spacer" aria-hidden="true"></span>
+          <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
             <button type="button" id="empReloadBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">새로고침</button>
             <button type="button" id="empExportBtn" class="sidebar btn btn-primary ovpd-toolbar-act">Excel 저장</button>
-            <h3>ETF 보유명세</h3>
           </div>
         </div>
         <div class="emp-table-wrap" id="empTableWrap"></div>
@@ -7193,6 +7169,7 @@
   let empDatasetRows = [];
   let empDatasetDateTag = "";
   let empEtfNavMap = {};
+  let empDatasetLoadedAt = null;
   let empFuturesMetaList = [];
   let empFuturesPersistTimer = null;
 
@@ -7398,8 +7375,46 @@
 
   function empSetStatus(msg, isWarn) {
     if (!empStatus) return;
-    empStatus.textContent = msg || "";
+    const text = msg || "";
+    empStatus.textContent = text;
     empStatus.classList.toggle("is-warn", !!isWarn);
+    empStatus.hidden = !text;
+  }
+
+  function empFormatLoadedAt(ms) {
+    if (!ms) return "";
+    try {
+      return new Date(ms).toLocaleString("ko-KR", {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function empUpdateMetaLabel(loading) {
+    if (!empMetaLabel) return;
+    if (loading) {
+      empMetaLabel.textContent = "불러오는 중…";
+      return;
+    }
+    if (!empDatasetRows.length) {
+      empMetaLabel.textContent = "—";
+      return;
+    }
+    let text =
+      "일자 " +
+      (empDatasetRows[0].일자 || "—") +
+      " · " +
+      empDatasetRows.length +
+      "행 · ETF " +
+      new Set(empDatasetRows.map((r) => r.ETF명)).size +
+      "개";
+    if (empDatasetLoadedAt) text += " · 업로드 " + empFormatLoadedAt(empDatasetLoadedAt);
+    empMetaLabel.textContent = text;
   }
 
   function empSheetDims(ws) {
@@ -7574,30 +7589,17 @@
     empTableWrap.innerHTML = h;
   }
 
-  function empApplyDataset(result, sourceLabel) {
+  function empApplyDataset(result) {
     empDatasetRows = result.rows || [];
     empDatasetDateTag = result.dateTag || "";
     empEtfNavMap = result.navMap || {};
-    if (empMetaLabel) {
-      empMetaLabel.textContent = empDatasetRows.length
-        ? "일자 " +
-          (empDatasetRows[0].일자 || "—") +
-          " · " +
-          empDatasetRows.length +
-          "행 · ETF " +
-          new Set(empDatasetRows.map((r) => r.ETF명)).size +
-          "개"
-        : "—";
-    }
+    empDatasetLoadedAt = empDatasetRows.length ? Date.now() : null;
+    empUpdateMetaLabel(false);
     empRefreshEmpViews();
-    empSetStatus(
-      sourceLabel +
-        (empDatasetRows.length ? " · " + empDatasetRows.length + "행 생성" : " · 데이터 없음"),
-      !empDatasetRows.length
-    );
+    empSetStatus("");
   }
 
-  function empProcessArrayBuffer(buf, sourceLabel) {
+  function empProcessArrayBuffer(buf) {
     if (typeof XLSX === "undefined") {
       empSetStatus("Excel 라이브러리를 불러오지 못했습니다.", true);
       return;
@@ -7605,28 +7607,33 @@
     try {
       const wb = XLSX.read(buf, { type: "array", cellDates: true });
       const result = empBuildDatasetFromWorkbook(wb);
-      empApplyDataset(result, sourceLabel || "ETF_Worksheet.xlsx");
+      empApplyDataset(result);
     } catch (err) {
       empDatasetRows = [];
       empDatasetDateTag = "";
       empEtfNavMap = {};
+      empDatasetLoadedAt = null;
+      empUpdateMetaLabel(false);
       empRefreshEmpViews();
       empSetStatus("파일 처리 실패: " + (err && err.message ? err.message : String(err)), true);
     }
   }
 
   function empLoadDefaultWorkbook() {
-    empSetStatus("ETF_Worksheet.xlsx 불러오는 중…");
+    empUpdateMetaLabel(true);
+    empSetStatus("");
     return fetchCsvNoCache(EMP_WORKBOOK_URL)
       .then((r) => {
         if (!r.ok) throw new Error("파일 없음");
         return r.arrayBuffer();
       })
       .then((buf) => {
-        empProcessArrayBuffer(buf, "ETF_Worksheet.xlsx");
+        empProcessArrayBuffer(buf);
       })
       .catch(() => {
-        empSetStatus("ETF_Worksheet.xlsx를 불러오지 못했습니다. 「파일 선택」으로 업로드해 주세요.", true);
+        empDatasetLoadedAt = null;
+        empUpdateMetaLabel(false);
+        empSetStatus("ETF_Worksheet.xlsx를 불러오지 못했습니다.", true);
         empRefreshEmpViews();
       });
   }
@@ -7649,7 +7656,7 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "EMP");
     XLSX.writeFile(wb, tag + "_EMP.xlsx");
-    empSetStatus("저장: " + tag + "_EMP.xlsx");
+    empSetStatus("");
   }
 
   let empLoadPromise = null;
@@ -9183,6 +9190,7 @@
       empDatasetRows = [];
       empDatasetDateTag = "";
       empEtfNavMap = {};
+      empDatasetLoadedAt = null;
       empLoadDefaultWorkbook();
     });
   }
