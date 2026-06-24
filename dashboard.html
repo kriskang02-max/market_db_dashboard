@@ -642,15 +642,6 @@
       margin: 0;
       flex-shrink: 0;
     }
-    #page-emp .emp-holdings-filter__actions {
-      display: flex;
-      gap: 0.35rem;
-      flex-shrink: 0;
-    }
-    #page-emp .emp-holdings-filter__actions .ovpd-toolbar-act {
-      padding: 0.2rem 0.45rem;
-      font-size: 0.72rem;
-    }
     #page-emp .emp-table {
       width: max-content;
       min-width: 100%;
@@ -2693,6 +2684,8 @@
           <h3 class="overview-prevday-table-heading">ETF 보유명세</h3>
           <span class="overview-prevday-header-spacer" aria-hidden="true"></span>
           <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
+            <button type="button" id="empHoldingsFilterAll" class="sidebar btn btn-secondary ovpd-toolbar-act" hidden>전체</button>
+            <button type="button" id="empHoldingsFilterClear" class="sidebar btn btn-secondary ovpd-toolbar-act" hidden>해제</button>
             <button type="button" id="empReloadBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">새로고침</button>
             <button type="button" id="empExportBtn" class="sidebar btn btn-primary ovpd-toolbar-act">Excel 저장</button>
           </div>
@@ -2700,10 +2693,6 @@
         <div class="emp-holdings-filter-bar" id="empHoldingsFilterBar" hidden>
           <span class="emp-holdings-filter__label">ETF</span>
           <div class="emp-holdings-filter__chips" id="empHoldingsFilterChips"></div>
-          <div class="emp-holdings-filter__actions">
-            <button type="button" id="empHoldingsFilterAll" class="sidebar btn btn-secondary ovpd-toolbar-act">전체</button>
-            <button type="button" id="empHoldingsFilterClear" class="sidebar btn btn-secondary ovpd-toolbar-act">해제</button>
-          </div>
         </div>
         <div class="emp-table-wrap" id="empTableWrap"></div>
       </div>
@@ -7607,7 +7596,7 @@
   function empFmtDisparity(v) {
     const n = empNum(v);
     if (n === null) return "—";
-    return empFmtDisplay(n, 4) + "%";
+    return empFmtDisplay(n * 100, 2) + "bp";
   }
 
   function empLoadDisparityFilter() {
@@ -7993,9 +7982,13 @@
     if (!etfNames.length) {
       empHoldingsFilterBar.hidden = true;
       empHoldingsFilterChips.innerHTML = "";
+      if (empHoldingsFilterAll) empHoldingsFilterAll.hidden = true;
+      if (empHoldingsFilterClear) empHoldingsFilterClear.hidden = true;
       return;
     }
     empHoldingsFilterBar.hidden = false;
+    if (empHoldingsFilterAll) empHoldingsFilterAll.hidden = false;
+    if (empHoldingsFilterClear) empHoldingsFilterClear.hidden = false;
     let h = "";
     etfNames.forEach((name) => {
       const checked = !empHoldingsEtfUnchecked.has(name);
@@ -8405,7 +8398,7 @@
     const locked = empSummaryIsLocked();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
     let h =
-      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율</th><th>CU</th><th>1CU</th><th>순자산총액(억)</th><th>듀레이션</th><th>YTM</th></tr></thead><tbody>';
+      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율(bp)</th><th>CU</th><th>1CU</th><th>순자산총액(억)</th><th>듀레이션</th><th>YTM</th></tr></thead><tbody>';
     etfNames.forEach((etfName) => {
       const rows = byEtf.get(etfName);
       const meta = empEtfMetaMap[etfName] || {};
@@ -8524,7 +8517,7 @@
     const durationOverrides = empLoadFuturesDurations();
     const cuSaved = empLoadCuMap();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
-    const lines = ["ETF명\t기준가\t괴리율\tCU\t1CU\t순자산총액(억)\t듀레이션\tYTM"];
+    const lines = ["ETF명\t기준가\t괴리율(bp)\tCU\t1CU\t순자산총액(억)\t듀레이션\tYTM"];
     etfNames.forEach((etfName) => {
         const rows = byEtf.get(etfName);
         const meta = empEtfMetaMap[etfName] || {};
@@ -8569,7 +8562,7 @@
     h +=
       '<table style="border-collapse:collapse;font-family:Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:12px;">';
     h += "<thead><tr>";
-    ["ETF명", "기준가", "괴리율", "CU", "1CU", "순자산총액(억)", "듀레이션", "YTM"].forEach((col, i) => {
+    ["ETF명", "기준가", "괴리율(bp)", "CU", "1CU", "순자산총액(억)", "듀레이션", "YTM"].forEach((col, i) => {
       h += '<th style="' + thStyle + (i === 0 ? "text-align:left;" : "") + '">' + escapeHtml(col) + "</th>";
     });
     h += "</tr></thead><tbody>";
