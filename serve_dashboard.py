@@ -79,6 +79,14 @@ def _send_via_outlook(html: str, subject: str, to_addr: str) -> None:
     mail.HTMLBody = html
     mail.Send()
 
+    # Send()는 보낼편지함에 넣기만 함. Send/Receive로 서버 전송을 즉시 트리거.
+    namespace = outlook.GetNamespace("MAPI")
+    try:
+        namespace.SendAndReceive(False)
+    except Exception:
+        for i in range(1, namespace.SyncObjects.Count + 1):
+            namespace.SyncObjects.Item(i).Start()
+
 
 class DashboardHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
