@@ -54,4 +54,26 @@ if errorlevel 1 (
 )
 
 echo 푸시 완료. 잠시 후 GitHub Pages에 반영됩니다.
+echo.
+call :start_dashboard_server
+exit /b %errorlevel%
+
+:start_dashboard_server
+if not exist "serve_dashboard.py" (
+  echo [경고] serve_dashboard.py 가 없어 로컬 서버를 시작하지 않습니다.
+  exit /b 0
+)
+
+echo 로컬 대시보드 서버를 시작합니다 ^(ETF 개요 발송, Outlook^).
+echo   http://127.0.0.1:8000/dashboard.html
+echo 종료하려면 이 창에서 Ctrl+C 를 누르세요.
+echo.
+
+set "EMP_EMAIL_USE_OUTLOOK=1"
+start "" "http://127.0.0.1:8000/dashboard.html"
+python serve_dashboard.py
+if errorlevel 1 (
+  echo serve_dashboard.py 실행 실패 ^(Python 설치: python --version^)
+  exit /b 1
+)
 exit /b 0

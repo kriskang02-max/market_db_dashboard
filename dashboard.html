@@ -2606,6 +2606,7 @@
               <button type="button" id="empSummarySave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
               <button type="button" id="empSummaryLock" class="sidebar btn btn-secondary ovpd-toolbar-act" aria-pressed="false">잠금</button>
               <button type="button" id="empSummaryCopyBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">복사</button>
+              <button type="button" id="empSummarySendBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">발송</button>
             </div>
           </div>
           <div class="emp-summary-wrap" id="empSummaryWrap"></div>
@@ -2909,6 +2910,13 @@
     }
     return "";
   })();
+  const EMP_SUMMARY_EMAIL_API = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("api/emp_summary_email", location.href).href;
+    }
+    return "";
+  })();
+  const EMP_SUMMARY_EMAIL_TO = "chanhong.kang@shinhanamc.com";
 
   const OVERVIEW_PREVDAY_STORAGE_KEY = "market_db_dashboard_overview_prevday_v1";
   const OVERVIEW_SYNC_META_KEY = "market_db_dashboard_overview_sync_meta_v1";
@@ -3090,6 +3098,7 @@
   const empReloadBtn = document.getElementById("empReloadBtn");
   const empExportBtn = document.getElementById("empExportBtn");
   const empSummaryCopyBtn = document.getElementById("empSummaryCopyBtn");
+  const empSummarySendBtn = document.getElementById("empSummarySendBtn");
   const empSummarySave = document.getElementById("empSummarySave");
   const empSummaryAddFundBtn = document.getElementById("empSummaryAddFundBtn");
   const empSummaryLock = document.getElementById("empSummaryLock");
@@ -8342,6 +8351,108 @@
     return lines.join("\n");
   }
 
+  function empBuildSummaryEmailSubject() {
+    const d = empDatasetRows.length ? empDatasetRows[0].일자 || "" : "";
+    return d ? "ETF 개요 " + d : "ETF 개요";
+  }
+
+  function empBuildSummaryEmailHtml() {
+    if (!empDatasetRows.length) return "";
+    const durationOverrides = empLoadFuturesDurations();
+    const cuSaved = empCollectCuFromDom();
+    const { byEtf, etfNames } = empGetSortedEtfGroups();
+    const dateLabel = empDatasetRows[0].일자 || "—";
+    const thStyle =
+      "border:1px solid #444;padding:6px 8px;background:#1e293b;color:#f8fafc;font-weight:600;text-align:center;";
+    const tdStyle = "border:1px solid #ccc;padding:6px 8px;text-align:center;";
+    const tdLeft = "border:1px solid #ccc;padding:6px 8px;text-align:left;";
+    let h = '<p style="font-family:Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:13px;">ETF 개요 (';
+    h += escapeHtml(dateLabel) + ")</p>";
+    h +=
+      '<table style="border-collapse:collapse;font-family:Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:12px;">';
+    h += "<thead><tr>";
+    ["ETF명", "기준가", "괴리율", "CU", "1CU", "순자산총액", "듀레이션"].forEach((col, i) => {
+      h += '<th style="' + thStyle + (i === 0 ? "text-align:left;" : "") + '">' + escapeHtml(col) + "</th>";
+    });
+    h += "</tr></thead><tbody>";
+    etfNames.forEach((etfName) => {
+      const rows = byEtf.get(etfName);
+      const meta = empEtfMetaMap[etfName] || {};
+      const nav = empEtfNavMap[etfName];
+      const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
+      const cu = cuSaved[etfName];
+      const oneCu = empCalcOneCu(meta.basePrice, cu);
+      const disparityAlert = empIsDisparityFiltered(meta.disparity);
+      const rowStyle = disparityAlert ? ' style="background:#fef3c7;"' : "";
+      h += "<tr" + rowStyle + ">";
+      h += '<td style="' + tdLeft + '">' + escapeHtml(etfName) + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(meta.basePrice, 0)) + "</td>";
+      const dispStyle =
+        tdStyle +
+        (disparityAlert ? "font-weight:700;color:#b45309;" : "");
+      h += '<td style="' + dispStyle + '">' + escapeHtml(empFmtDisparity(meta.disparity)) + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(cu != null ? empFmtDisplay(cu, 0) : "—") + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(oneCu, 0)) + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(nav, 0)) + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wDur, 4)) + "</td>";
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    return h;
+  }
+
+  function empSendSummaryEmail() {
+    if (!empDatasetRows.length) {
+      empSetStatus("발송할 ETF 개요 데이터가 없습니다.", true);
+      return;
+    }
+    if (!EMP_SUMMARY_EMAIL_API) {
+      empSetStatus("발송은 python serve_dashboard.py 로 http 접속 시에만 가능합니다.", true);
+      return;
+    }
+    const html = empBuildSummaryEmailHtml();
+    const subject = empBuildSummaryEmailSubject();
+    const btn = empSummarySendBtn;
+    const prevLabel = btn ? btn.textContent : "";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "발송 중…";
+    }
+    if (empSummaryStatus) empSummaryStatus.textContent = "메일 발송 중…";
+    fetch(EMP_SUMMARY_EMAIL_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ html: html, subject: subject }),
+      cache: "no-store",
+    })
+      .then((r) => r.json().catch(() => ({})).then((data) => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data && data.ok) {
+          const msg = "발송 완료 · " + (data.to || EMP_SUMMARY_EMAIL_TO);
+          if (empSummaryStatus) empSummaryStatus.textContent = msg;
+          empSetStatus(msg, false);
+          if (btn) btn.textContent = "발송됨";
+          setTimeout(() => {
+            if (btn) btn.textContent = prevLabel;
+          }, 2000);
+          return;
+        }
+        const err = (data && data.error) || "메일 발송에 실패했습니다.";
+        if (empSummaryStatus) empSummaryStatus.textContent = err;
+        empSetStatus(err, true);
+        if (btn) btn.textContent = prevLabel;
+      })
+      .catch((e) => {
+        const err = "발송 실패: " + (e && e.message ? e.message : String(e));
+        if (empSummaryStatus) empSummaryStatus.textContent = err;
+        empSetStatus(err, true);
+        if (btn) btn.textContent = prevLabel;
+      })
+      .finally(() => {
+        if (btn) btn.disabled = false;
+      });
+  }
+
   function empCopySummaryTable() {
     const text = empBuildSummaryCopyText();
     if (!text) {
@@ -10275,6 +10386,7 @@
     });
   }
   if (empSummaryCopyBtn) empSummaryCopyBtn.addEventListener("click", () => empCopySummaryTable());
+  if (empSummarySendBtn) empSummarySendBtn.addEventListener("click", () => empSendSummaryEmail());
   function empOnDisparityFilterInput() {
     empSaveDisparityFilter();
     empApplyDisparityHighlights();

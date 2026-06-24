@@ -24,7 +24,7 @@
    cd C:\Users\infomax\Documents\market_db_dashboard
    python serve_dashboard.py
    ```
-   (읽기만 필요하면 `python -m http.server 8000` 도 가능하나, Overview **저장**은 `serve_dashboard.py`에서만 다른 기기와 공유됩니다.)
+   (읽기만 필요하면 `python -m http.server 8000` 도 가능하나, Overview **저장**·ETF 개요 **메일 발송**은 `serve_dashboard.py` 필요.)
 2. 브라우저: **http://localhost:8000/dashboard.html**  
    (`file://` 로 열어도 되며, CSV 경로는 스크립트에 이 폴더가 박혀 있습니다. Overview 공유 저장은 http + `serve_dashboard.py` 필요.)
 3. Overview에서 저장 후 **`push_dashboard_csv.bat`**(또는 `overview_state.json` 포함 git push) → GitHub Pages·다른 PC에서 동일 내용 로드.
@@ -40,7 +40,18 @@
 - `bond_db.xlsx` — 채권 DB 원본 (선택); CSV는 `BondDb_ExportToCsv.bas`로 생성
 - `bond_db_ktb.csv`, `bond_db_msb.csv` — 국고채·통안채 표 형태 CSV (`BondDb_ExportToCsv`)
 - `overview_state.json` — Overview 메모·전일종가표·통화정책·주요종목민평 저장 (git push로 기기 간 공유)
-- `serve_dashboard.py` — 로컬 http 서버 + Overview `overview_state.json` POST 저장
+- `serve_dashboard.py` — 로컬 http 서버 + Overview `overview_state.json` POST 저장 + ETF 개요 메일 발송 API
+
+### ETF 개요 메일 발송
+
+1. `serve_dashboard.py`로 대시보드를 연 뒤 ETF 개요 **발송** 클릭 → `chanhong.kang@shinhanamc.com` 으로 HTML 표 본문 발송.
+2. **Outlook(권장, Windows)** — PowerShell에서 서버 실행 전:
+   ```powershell
+   $env:EMP_EMAIL_USE_OUTLOOK = "1"
+   python serve_dashboard.py
+   ```
+   (`pip install pywin32` 필요, Outlook 로그인 상태)
+3. **SMTP** — `EMP_SMTP_HOST`, `EMP_SMTP_PORT`(기본 587), `EMP_SMTP_USER`, `EMP_SMTP_PASS` 환경 변수 설정.
 
 ## 웹에 올리기 (정적 호스팅)
 
