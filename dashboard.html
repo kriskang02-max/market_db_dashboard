@@ -402,14 +402,29 @@
       border-collapse: collapse;
       font-size: 0.76rem;
     }
+    #page-emp .emp-summary-table {
+      table-layout: fixed;
+    }
+    #page-emp .emp-summary-table col.emp-col-name {
+      width: 30%;
+    }
+    #page-emp .emp-summary-table col.emp-col-data {
+      width: calc(70% / 6);
+    }
     #page-emp .emp-summary-table th,
     #page-emp .emp-summary-table td,
     #page-emp .emp-futures-table th,
     #page-emp .emp-futures-table td {
       padding: 0.3rem 0.45rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      text-align: right;
+      text-align: center;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #page-emp .emp-summary-table th:first-child,
+    #page-emp .emp-summary-table td:first-child {
+      text-align: left;
     }
     #page-emp .emp-summary-table th,
     #page-emp .emp-futures-table th {
@@ -417,17 +432,51 @@
       color: rgba(255, 255, 255, 0.92);
       font-weight: 600;
     }
-    #page-emp .emp-summary-table td:first-child,
-    #page-emp .emp-summary-table th:first-child,
+    #page-emp .emp-futures-table th,
+    #page-emp .emp-futures-table td {
+      text-align: right;
+    }
     #page-emp .emp-futures-table td:first-child,
     #page-emp .emp-futures-table td:nth-child(2),
     #page-emp .emp-futures-table th:first-child,
     #page-emp .emp-futures-table th:nth-child(2) {
       text-align: left;
     }
+    #page-emp .emp-summary-table tr.is-disparity-alert {
+      background: rgba(251, 191, 36, 0.14);
+    }
+    #page-emp .emp-summary-table .emp-disparity-cell.is-alert {
+      font-weight: 700;
+      color: #fbbf24;
+    }
+    #page-emp .emp-disparity-filter {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 0.22rem;
+      margin-left: 0.35rem;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    #page-emp .emp-disparity-filter__input {
+      width: 3.6rem;
+      font-size: 0.72rem;
+      padding: 0.12rem 0.28rem;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.95);
+      font-family: inherit;
+      text-align: center;
+    }
+    #page-emp .emp-disparity-filter__sep {
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 0.68rem;
+    }
     #page-emp .emp-futures-duration-input,
     #page-emp .emp-cu-input {
-      width: 5.5rem;
+      width: 100%;
+      max-width: 5.5rem;
       font-size: 0.76rem;
       padding: 0.2rem 0.35rem;
       border-radius: 5px;
@@ -435,7 +484,15 @@
       background: rgba(0, 0, 0, 0.35);
       color: rgba(255, 255, 255, 0.95);
       font-family: inherit;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    #page-emp .emp-futures-duration-input {
       text-align: right;
+    }
+    #page-emp .emp-cu-plain {
+      display: block;
+      text-align: center;
     }
     #page-emp .emp-table-wrap {
       overflow: auto;
@@ -2440,6 +2497,12 @@
         <div class="emp-summary-block emp-split-col">
           <div class="overview-prevday-header-row">
             <h3 class="overview-prevday-table-heading">ETF 개요</h3>
+            <div class="emp-disparity-filter" title="괴리율 상·하한 필터">
+              <span class="emp-disparity-filter__label">괴리율</span>
+              <input type="number" id="empDisparityFilterUpper" class="emp-disparity-filter__input" placeholder="상한" step="any" aria-label="괴리율 상한" />
+              <span class="emp-disparity-filter__sep">/</span>
+              <input type="number" id="empDisparityFilterLower" class="emp-disparity-filter__input" placeholder="하한" step="any" aria-label="괴리율 하한" />
+            </div>
             <span id="empSummaryStatus" class="overview-prevday-status" role="status"></span>
             <span class="overview-prevday-header-spacer" aria-hidden="true"></span>
             <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
@@ -2747,6 +2810,7 @@
   const EMP_FUTURES_DURATION_STORAGE_KEY = "market_db_dashboard_emp_futures_duration_v1";
   const EMP_CU_STORAGE_KEY = "market_db_dashboard_emp_cu_v1";
   const EMP_SUMMARY_LOCK_KEY = "market_db_dashboard_emp_summary_lock_v1";
+  const EMP_DISPARITY_FILTER_STORAGE_KEY = "market_db_dashboard_emp_disparity_filter_v1";
   let empFuturesDurationMap = (function () {
     try {
       const raw = localStorage.getItem(EMP_FUTURES_DURATION_STORAGE_KEY);
@@ -2882,6 +2946,8 @@
   const empSummaryLock = document.getElementById("empSummaryLock");
   const empSummaryStatus = document.getElementById("empSummaryStatus");
   const empSummaryWrap = document.getElementById("empSummaryWrap");
+  const empDisparityFilterUpper = document.getElementById("empDisparityFilterUpper");
+  const empDisparityFilterLower = document.getElementById("empDisparityFilterLower");
   const empFuturesWrap = document.getElementById("empFuturesWrap");
   const empFuturesBlock = document.getElementById("empFuturesBlock");
   const reportDateLabel = document.getElementById("reportDateLabel");
@@ -4796,7 +4862,7 @@
     const fileOk = res && res.fileOk;
     const cloud = res && res.cloud;
     const downloaded = res && res.downloaded;
-    if (cloud) return "저장됨 · PC·휴대폰에 반영됩니다";
+    if (cloud) return "저장됨";
     if (fileOk) return "저장됨 · overview_state.json (push 시 다른 기기 반영)";
     if (downloaded)
       return "저장됨 · overview_state.json 다운로드됨 → 폴더에 넣고 push";
@@ -7275,6 +7341,62 @@
     return empFmtDisplay(n, 4) + "%";
   }
 
+  function empLoadDisparityFilter() {
+    try {
+      const raw = localStorage.getItem(EMP_DISPARITY_FILTER_STORAGE_KEY);
+      if (!raw) return { upper: "", lower: "" };
+      const o = JSON.parse(raw);
+      return {
+        upper: o && o.upper != null ? String(o.upper) : "",
+        lower: o && o.lower != null ? String(o.lower) : "",
+      };
+    } catch (_) {
+      return { upper: "", lower: "" };
+    }
+  }
+
+  function empSaveDisparityFilter() {
+    const upper = empDisparityFilterUpper ? String(empDisparityFilterUpper.value || "").trim() : "";
+    const lower = empDisparityFilterLower ? String(empDisparityFilterLower.value || "").trim() : "";
+    try {
+      localStorage.setItem(EMP_DISPARITY_FILTER_STORAGE_KEY, JSON.stringify({ upper, lower }));
+    } catch (_) {}
+  }
+
+  function empSyncDisparityFilterInputs() {
+    const saved = empLoadDisparityFilter();
+    if (empDisparityFilterUpper) empDisparityFilterUpper.value = saved.upper;
+    if (empDisparityFilterLower) empDisparityFilterLower.value = saved.lower;
+  }
+
+  function empGetDisparityFilterBounds() {
+    const upper = empDisparityFilterUpper ? empNum(empDisparityFilterUpper.value) : null;
+    const lower = empDisparityFilterLower ? empNum(empDisparityFilterLower.value) : null;
+    return { upper, lower };
+  }
+
+  function empIsDisparityFiltered(disparity) {
+    const n = empNum(disparity);
+    if (n === null) return false;
+    const { upper, lower } = empGetDisparityFilterBounds();
+    if (upper === null && lower === null) return false;
+    if (upper !== null && n > upper) return true;
+    if (lower !== null && n < lower) return true;
+    return false;
+  }
+
+  function empApplyDisparityHighlights() {
+    if (!empSummaryWrap) return;
+    empSummaryWrap.querySelectorAll("tr[data-emp-summary-etf]").forEach((tr) => {
+      const etf = tr.getAttribute("data-emp-summary-etf");
+      const meta = empEtfMetaMap[etf] || {};
+      const alert = empIsDisparityFiltered(meta.disparity);
+      tr.classList.toggle("is-disparity-alert", alert);
+      const cell = tr.querySelector(".emp-disparity-cell");
+      if (cell) cell.classList.toggle("is-alert", alert);
+    });
+  }
+
   function empSummaryIsLocked() {
     try {
       return localStorage.getItem(EMP_SUMMARY_LOCK_KEY) === "1";
@@ -7293,11 +7415,6 @@
       empSummarySave.disabled = locked;
       empSummarySave.classList.toggle("ovpd-toolbar-textlike", locked);
     }
-    if (empSummaryWrap) {
-      empSummaryWrap.querySelectorAll(".emp-cu-input").forEach((el) => {
-        el.disabled = locked;
-      });
-    }
   }
 
   function empSummarySetLocked(on) {
@@ -7305,16 +7422,41 @@
       localStorage.setItem(EMP_SUMMARY_LOCK_KEY, on ? "1" : "0");
     } catch (_) {}
     empSummarySyncLockUi();
+    empRenderSummary();
     overviewSyncPersistAll({ manual: false });
+  }
+
+  function empReadCuFromCell(etf) {
+    if (!empSummaryWrap) return empCuMap[etf];
+    const input = empSummaryWrap.querySelector('.emp-cu-input[data-emp-cu-etf="' + CSS.escape(etf) + '"]');
+    if (input) {
+      const v = String(input.value || "").trim();
+      if (v === "") return null;
+      return empNum(v);
+    }
+    const plain = empSummaryWrap.querySelector('.emp-cu-plain[data-emp-cu-etf="' + CSS.escape(etf) + '"]');
+    if (plain) {
+      const v = String(plain.textContent || "").trim();
+      if (!v || v === "—") return null;
+      return empNum(v.replace(/,/g, ""));
+    }
+    const saved = empCuMap[etf];
+    return saved != null ? saved : null;
   }
 
   function empCollectCuFromDom() {
     const out = { ...empCuMap };
     if (!empSummaryWrap) return out;
-    empSummaryWrap.querySelectorAll(".emp-cu-input").forEach((el) => {
+    empSummaryWrap.querySelectorAll(".emp-cu-input, .emp-cu-plain").forEach((el) => {
       const etf = el.getAttribute("data-emp-cu-etf");
       if (!etf) return;
-      const v = String(el.value || "").trim();
+      let v = "";
+      if (el.classList.contains("emp-cu-plain")) {
+        v = String(el.textContent || "").trim().replace(/,/g, "");
+        if (v === "—") v = "";
+      } else {
+        v = String(el.value || "").trim();
+      }
       if (v === "") delete out[etf];
       else {
         const n = empNum(v);
@@ -7349,8 +7491,7 @@
     const oneCuTd = tr.querySelector(".emp-onecu-cell");
     if (!oneCuTd) return;
     const meta = empEtfMetaMap[etfName] || {};
-    const cuInput = tr.querySelector(".emp-cu-input");
-    const cuVal = cuInput ? cuInput.value : empCuMap[etfName];
+    const cuVal = empReadCuFromCell(etfName);
     const oneCu = empCalcOneCu(meta.basePrice, cuVal);
     oneCuTd.textContent = empFmtDisplay(oneCu, 0);
   }
@@ -7414,7 +7555,7 @@
     });
     const etfNames = Array.from(byEtf.keys()).sort();
     let h =
-      '<table class="emp-summary-table"><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율</th><th>CU</th><th>1CU</th><th>순자산총액</th><th>가중평균 듀레이션</th></tr></thead><tbody>';
+      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율</th><th>CU</th><th>1CU</th><th>순자산총액</th><th>가중평균 듀레이션</th></tr></thead><tbody>';
     etfNames.forEach((etfName) => {
       const rows = byEtf.get(etfName);
       const meta = empEtfMetaMap[etfName] || {};
@@ -7422,18 +7563,31 @@
       const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
       const cuVal = cuSaved[etfName] != null ? String(cuSaved[etfName]) : "";
       const oneCu = empCalcOneCu(meta.basePrice, cuVal);
-      h += '<tr data-emp-summary-etf="' + escapeHtml(etfName) + '">';
+      const disparityAlert = empIsDisparityFiltered(meta.disparity);
+      h += '<tr data-emp-summary-etf="' + escapeHtml(etfName) + '"' + (disparityAlert ? ' class="is-disparity-alert"' : "") + ">";
       h += "<td>" + escapeHtml(etfName) + "</td>";
       h += "<td>" + empFmtDisplay(meta.basePrice, 0) + "</td>";
-      h += "<td>" + empFmtDisparity(meta.disparity) + "</td>";
       h +=
-        '<td><input type="number" class="emp-cu-input" data-emp-cu-etf="' +
-        escapeHtml(etfName) +
-        '" step="1" min="0" placeholder="CU" value="' +
-        escapeHtml(cuVal) +
-        '"' +
-        (locked ? " disabled" : "") +
-        " /></td>";
+        '<td class="emp-disparity-cell' +
+        (disparityAlert ? " is-alert" : "") +
+        '">' +
+        empFmtDisparity(meta.disparity) +
+        "</td>";
+      if (locked) {
+        h +=
+          '<td><span class="emp-cu-plain" data-emp-cu-etf="' +
+          escapeHtml(etfName) +
+          '">' +
+          (cuVal ? escapeHtml(empFmtDisplay(cuVal, 0)) : "—") +
+          "</span></td>";
+      } else {
+        h +=
+          '<td><input type="number" class="emp-cu-input" data-emp-cu-etf="' +
+          escapeHtml(etfName) +
+          '" step="1" min="0" placeholder="CU" value="' +
+          escapeHtml(cuVal) +
+          '" /></td>';
+      }
       h += '<td class="emp-onecu-cell">' + empFmtDisplay(oneCu, 0) + "</td>";
       h += "<td>" + empFmtDisplay(nav, 0) + "</td>";
       h += "<td>" + empFmtDisplay(wDur, 4) + "</td>";
@@ -9392,6 +9546,17 @@
     empSummaryLock.addEventListener("click", () => empSummarySetLocked(!empSummaryIsLocked()));
   }
   if (empSummaryCopyBtn) empSummaryCopyBtn.addEventListener("click", () => empCopySummaryTable());
+  function empOnDisparityFilterInput() {
+    empSaveDisparityFilter();
+    empApplyDisparityHighlights();
+  }
+  if (empDisparityFilterUpper) {
+    empDisparityFilterUpper.addEventListener("input", empOnDisparityFilterInput);
+  }
+  if (empDisparityFilterLower) {
+    empDisparityFilterLower.addEventListener("input", empOnDisparityFilterInput);
+  }
+  empSyncDisparityFilterInputs();
   if (empSummaryWrap) {
     empSummaryWrap.addEventListener("input", (e) => {
       const el = e.target;
