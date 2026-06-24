@@ -598,17 +598,79 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(14, 17, 23, 0.45);
     }
+    #page-emp .emp-holdings-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem 0.65rem;
+      margin: 0 0 0.45rem;
+      padding: 0.4rem 0.55rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.35);
+      font-size: 0.76rem;
+    }
+    #page-emp .emp-holdings-filter-bar[hidden] {
+      display: none !important;
+    }
+    #page-emp .emp-holdings-filter__label {
+      color: rgba(255, 255, 255, 0.72);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    #page-emp .emp-holdings-filter__chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem 0.5rem;
+      flex: 1;
+      min-width: 0;
+    }
+    #page-emp .emp-holdings-filter__chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.88);
+      max-width: 13rem;
+    }
+    #page-emp .emp-holdings-filter__chip span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #page-emp .emp-holdings-filter__chip input {
+      margin: 0;
+      flex-shrink: 0;
+    }
+    #page-emp .emp-holdings-filter__actions {
+      display: flex;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+    #page-emp .emp-holdings-filter__actions .ovpd-toolbar-act {
+      padding: 0.2rem 0.45rem;
+      font-size: 0.72rem;
+    }
     #page-emp .emp-table {
-      width: 100%;
+      width: max-content;
+      min-width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       font-size: 0.76rem;
     }
     #page-emp .emp-table th,
     #page-emp .emp-table td {
-      padding: 0.28rem 0.45rem;
+      padding: 0.28rem 0.35rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
       white-space: nowrap;
-      text-align: right;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #page-emp .emp-table th:last-child,
+    #page-emp .emp-table td:last-child {
+      border-right: none;
     }
     #page-emp .emp-table th {
       position: sticky;
@@ -618,16 +680,12 @@
       color: rgba(255, 255, 255, 0.92);
       font-weight: 600;
     }
-    #page-emp .emp-table td:first-child,
-    #page-emp .emp-table td:nth-child(2),
-    #page-emp .emp-table td:nth-child(3),
-    #page-emp .emp-table td:nth-child(4),
-    #page-emp .emp-table th:first-child,
-    #page-emp .emp-table th:nth-child(2),
-    #page-emp .emp-table th:nth-child(3),
-    #page-emp .emp-table th:nth-child(4) {
-      text-align: left;
-    }
+    #page-emp .emp-table col.emp-hold-col-date { width: 5.25rem; }
+    #page-emp .emp-table col.emp-hold-col-etf { width: 8.5rem; }
+    #page-emp .emp-table col.emp-hold-col-isin { width: 7.25rem; }
+    #page-emp .emp-table col.emp-hold-col-name { width: 9.5rem; }
+    #page-emp .emp-table col.emp-hold-col-mat { width: 5.5rem; }
+    #page-emp .emp-table col.emp-hold-col-num { width: 4.85rem; }
     nav.page-nav {
       display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem;
       margin: 0.85rem 0 0; padding: 0.55rem 0.85rem;
@@ -2639,6 +2697,14 @@
             <button type="button" id="empExportBtn" class="sidebar btn btn-primary ovpd-toolbar-act">Excel 저장</button>
           </div>
         </div>
+        <div class="emp-holdings-filter-bar" id="empHoldingsFilterBar" hidden>
+          <span class="emp-holdings-filter__label">ETF</span>
+          <div class="emp-holdings-filter__chips" id="empHoldingsFilterChips"></div>
+          <div class="emp-holdings-filter__actions">
+            <button type="button" id="empHoldingsFilterAll" class="sidebar btn btn-secondary ovpd-toolbar-act">전체</button>
+            <button type="button" id="empHoldingsFilterClear" class="sidebar btn btn-secondary ovpd-toolbar-act">해제</button>
+          </div>
+        </div>
         <div class="emp-table-wrap" id="empTableWrap"></div>
       </div>
     </div>
@@ -2934,6 +3000,7 @@
   const EMP_CU_STORAGE_KEY = "market_db_dashboard_emp_cu_v1";
   const EMP_SUMMARY_LOCK_KEY = "market_db_dashboard_emp_summary_lock_v1";
   const EMP_FUND_LOCK_KEY = "market_db_dashboard_emp_fund_lock_v1";
+  const EMP_HOLDINGS_FILTER_STORAGE_KEY = "market_db_dashboard_emp_holdings_etf_filter_v1";
   const EMP_DISPARITY_FILTER_STORAGE_KEY = "market_db_dashboard_emp_disparity_filter_v1";
   const EMP_FUND_HOLDINGS_STORAGE_KEY = "market_db_dashboard_emp_fund_holdings_v1";
   let empFuturesDurationMap = (function () {
@@ -3097,6 +3164,10 @@
   const empTableWrap = document.getElementById("empTableWrap");
   const empReloadBtn = document.getElementById("empReloadBtn");
   const empExportBtn = document.getElementById("empExportBtn");
+  const empHoldingsFilterBar = document.getElementById("empHoldingsFilterBar");
+  const empHoldingsFilterChips = document.getElementById("empHoldingsFilterChips");
+  const empHoldingsFilterAll = document.getElementById("empHoldingsFilterAll");
+  const empHoldingsFilterClear = document.getElementById("empHoldingsFilterClear");
   const empSummaryCopyBtn = document.getElementById("empSummaryCopyBtn");
   const empSummarySendBtn = document.getElementById("empSummarySendBtn");
   const empSummarySave = document.getElementById("empSummarySave");
@@ -7455,8 +7526,20 @@
   }
 
   const EMP_WORKBOOK_URL = "ETF_Worksheet.xlsx";
-  const EMP_DATA_COLUMNS = ["일자", "ETF명", "ISIN", "종목명", "만기", "평가액", "ETF비중", "민평3사가격", "민평3사듀레이션"];
+  const EMP_HOLDINGS_COLUMNS = [
+    { key: "일자", label: "일자", col: "emp-hold-col-date", decimals: null, title: false },
+    { key: "ETF명", label: "ETF명", col: "emp-hold-col-etf", decimals: null, title: true },
+    { key: "ISIN", label: "ISIN", col: "emp-hold-col-isin", decimals: null, title: false },
+    { key: "종목명", label: "종목명", col: "emp-hold-col-name", decimals: null, title: true },
+    { key: "만기", label: "만기", col: "emp-hold-col-mat", decimals: null, title: false },
+    { key: "평가액", label: "평가액", col: "emp-hold-col-num", decimals: 0, title: false },
+    { key: "ETF비중", label: "ETF비중", col: "emp-hold-col-num", decimals: 2, title: false },
+    { key: "민평3사가격", label: "민평3사가격", col: "emp-hold-col-num", decimals: 2, title: false },
+    { key: "민평3사듀레이션", label: "민평3사듀레이션", col: "emp-hold-col-num", decimals: 4, title: false },
+    { key: "민평3사수익률", label: "평가수익률", col: "emp-hold-col-num", decimals: 4, title: false },
+  ];
   let empDatasetRows = [];
+  let empHoldingsEtfUnchecked = new Set();
   let empDatasetDateTag = "";
   let empEtfNavMap = {};
   let empEtfMetaMap = {};
@@ -7835,6 +7918,65 @@
       byEtf.get(key).push(r);
     });
     return { byEtf, etfNames: empSortEtfNames(Array.from(byEtf.keys())) };
+  }
+
+  function empLoadHoldingsEtfFilter() {
+    try {
+      const raw = localStorage.getItem(EMP_HOLDINGS_FILTER_STORAGE_KEY);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) empHoldingsEtfUnchecked = new Set(arr.filter((x) => typeof x === "string" && x));
+    } catch (_) {}
+  }
+
+  function empSaveHoldingsEtfFilter() {
+    try {
+      localStorage.setItem(EMP_HOLDINGS_FILTER_STORAGE_KEY, JSON.stringify([...empHoldingsEtfUnchecked]));
+    } catch (_) {}
+  }
+
+  function empSyncHoldingsEtfUnchecked(etfNames) {
+    const valid = new Set(etfNames);
+    [...empHoldingsEtfUnchecked].forEach((name) => {
+      if (!valid.has(name)) empHoldingsEtfUnchecked.delete(name);
+    });
+  }
+
+  function empGetHoldingsFilteredRows() {
+    if (!empHoldingsEtfUnchecked.size) return empDatasetRows.slice();
+    return empDatasetRows.filter((row) => !empHoldingsEtfUnchecked.has(row.ETF명 || ""));
+  }
+
+  function empHoldingsCellHtml(row, col) {
+    const raw = row[col.key];
+    const text = col.decimals != null ? empFmtDisplay(raw, col.decimals) : raw != null ? String(raw) : "";
+    const titleAttr = col.title && text && text !== "—" ? ' title="' + escapeHtml(text) + '"' : "";
+    return "<td" + titleAttr + ">" + escapeHtml(text) + "</td>";
+  }
+
+  function empRenderHoldingsFilter() {
+    if (!empHoldingsFilterBar || !empHoldingsFilterChips) return;
+    const etfNames = empGetSortedEtfGroups().etfNames;
+    empSyncHoldingsEtfUnchecked(etfNames);
+    if (!etfNames.length) {
+      empHoldingsFilterBar.hidden = true;
+      empHoldingsFilterChips.innerHTML = "";
+      return;
+    }
+    empHoldingsFilterBar.hidden = false;
+    let h = "";
+    etfNames.forEach((name) => {
+      const checked = !empHoldingsEtfUnchecked.has(name);
+      h += '<label class="emp-holdings-filter__chip" title="' + escapeHtml(name) + '">';
+      h +=
+        '<input type="checkbox" class="emp-holdings-filter__cb" data-etf="' +
+        escapeHtml(name) +
+        '"' +
+        (checked ? " checked" : "") +
+        " />";
+      h += "<span>" + escapeHtml(name) + "</span></label>";
+    });
+    empHoldingsFilterChips.innerHTML = h;
   }
 
   function empComputeFundEtfWeight(qty, basePrice, navEok) {
@@ -8550,6 +8692,7 @@
     empRenderFundTable();
     empSyncBmWeightInput();
     empRenderFuturesInputs();
+    empRenderHoldingsFilter();
     empRenderTable();
   }
 
@@ -8791,24 +8934,30 @@
       empTableWrap.innerHTML = '<p class="fund-summary__note" style="margin:0.5rem;padding:0.5rem;">표시할 데이터가 없습니다.</p>';
       return;
     }
-    let h = '<table class="emp-table"><thead><tr>';
-    EMP_DATA_COLUMNS.forEach((col) => {
-      h += "<th>" + escapeHtml(col) + "</th>";
+    const rows = empGetHoldingsFilteredRows();
+    let h = '<table class="emp-table"><colgroup>';
+    EMP_HOLDINGS_COLUMNS.forEach((col) => {
+      h += '<col class="' + col.col + '" />';
+    });
+    h += "</colgroup><thead><tr>";
+    EMP_HOLDINGS_COLUMNS.forEach((col) => {
+      h += "<th>" + escapeHtml(col.label) + "</th>";
     });
     h += "</tr></thead><tbody>";
-    empDatasetRows.forEach((row) => {
-      h += "<tr>";
-      h += "<td>" + escapeHtml(row.일자 || "") + "</td>";
-      h += "<td>" + escapeHtml(row.ETF명 || "") + "</td>";
-      h += "<td>" + escapeHtml(row.ISIN || "") + "</td>";
-      h += "<td>" + escapeHtml(row.종목명 || "") + "</td>";
-      h += "<td>" + escapeHtml(row.만기 || "") + "</td>";
-      h += "<td>" + empFmtDisplay(row.평가액, 0) + "</td>";
-      h += "<td>" + empFmtDisplay(row["ETF비중"], 2) + "</td>";
-      h += "<td>" + empFmtDisplay(row.민평3사가격, 2) + "</td>";
-      h += "<td>" + empFmtDisplay(row.민평3사듀레이션, 4) + "</td>";
-      h += "</tr>";
-    });
+    if (!rows.length) {
+      h +=
+        '<tr><td colspan="' +
+        EMP_HOLDINGS_COLUMNS.length +
+        '" style="padding:0.65rem;">선택된 ETF가 없습니다.</td></tr>';
+    } else {
+      rows.forEach((row) => {
+        h += "<tr>";
+        EMP_HOLDINGS_COLUMNS.forEach((col) => {
+          h += empHoldingsCellHtml(row, col);
+        });
+        h += "</tr>";
+      });
+    }
     h += "</tbody></table>";
     empTableWrap.innerHTML = h;
   }
@@ -8874,9 +9023,14 @@
       return;
     }
     const tag = empDatasetDateTag || empDateTag(empDatasetRows[0].일자) || "export";
-    const aoa = [EMP_DATA_COLUMNS.slice()];
-    empDatasetRows.forEach((row) => {
-      aoa.push(EMP_DATA_COLUMNS.map((col) => (row[col] != null ? row[col] : "")));
+    const aoa = [EMP_HOLDINGS_COLUMNS.map((col) => col.label)];
+    empGetHoldingsFilteredRows().forEach((row) => {
+      aoa.push(
+        EMP_HOLDINGS_COLUMNS.map((col) => {
+          const v = row[col.key];
+          return v != null ? v : "";
+        })
+      );
     });
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const wb = XLSX.utils.book_new();
@@ -10422,6 +10576,35 @@
     });
   }
   if (empExportBtn) empExportBtn.addEventListener("click", () => empExportXlsx());
+  empLoadHoldingsEtfFilter();
+  if (empHoldingsFilterChips) {
+    empHoldingsFilterChips.addEventListener("change", (e) => {
+      const cb = e.target;
+      if (!cb || !cb.classList || !cb.classList.contains("emp-holdings-filter__cb")) return;
+      const name = cb.getAttribute("data-etf") || "";
+      if (!name) return;
+      if (cb.checked) empHoldingsEtfUnchecked.delete(name);
+      else empHoldingsEtfUnchecked.add(name);
+      empSaveHoldingsEtfFilter();
+      empRenderTable();
+    });
+  }
+  if (empHoldingsFilterAll) {
+    empHoldingsFilterAll.addEventListener("click", () => {
+      empHoldingsEtfUnchecked.clear();
+      empSaveHoldingsEtfFilter();
+      empRenderHoldingsFilter();
+      empRenderTable();
+    });
+  }
+  if (empHoldingsFilterClear) {
+    empHoldingsFilterClear.addEventListener("click", () => {
+      empGetSortedEtfGroups().etfNames.forEach((name) => empHoldingsEtfUnchecked.add(name));
+      empSaveHoldingsEtfFilter();
+      empRenderHoldingsFilter();
+      empRenderTable();
+    });
+  }
   if (empSummarySave) empSummarySave.addEventListener("click", () => empSummarySaveToStorage());
   if (empFundSave) empFundSave.addEventListener("click", () => empFundSaveToStorage());
   if (empSummaryAddFundBtn) empSummaryAddFundBtn.addEventListener("click", () => empAddFundColumn());
