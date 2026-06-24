@@ -6,4 +6,5 @@ Thumbs.db
 # 바로가기·로컬 바이너리(원하면 git add -f 로 추가)
 *.lnk
 *.xlsx
+!ETF_Worksheet.xlsx
 *.xlsm

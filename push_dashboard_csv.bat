@@ -18,7 +18,7 @@ if not exist ".git" (
   exit /b 1
 )
 
-git add market_db.csv fund_db.csv term_table_long.csv bond_db_ktb.csv bond_db_msb.csv overview_state.json
+git add market_db.csv fund_db.csv term_table_long.csv bond_db_ktb.csv bond_db_msb.csv overview_state.json ETF_Worksheet.xlsx
 if errorlevel 1 (
   echo git add 실패 ^(파일 경로를 확인하세요^)
   exit /b 1
@@ -26,13 +26,13 @@ if errorlevel 1 (
 
 git diff --cached --quiet
 if not errorlevel 1 (
-  echo 커밋할 변경이 없습니다. ^(CSV·overview_state.json 이 이전 커밋과 동일합니다^)
+  echo 커밋할 변경이 없습니다. ^(CSV·overview_state.json·ETF_Worksheet.xlsx 가 이전 커밋과 동일합니다^)
   set /p FORCE_PUSH=변경사항이 없어도 커밋/푸시하겠습니까? ^(Y/N^): 
   if /i not "!FORCE_PUSH!"=="Y" (
     echo 취소되었습니다.
     exit /b 0
   )
-  git commit --allow-empty -m "chore: update dashboard CSV and overview_state"
+  git commit --allow-empty -m "chore: update dashboard CSV, overview_state, and ETF_Worksheet"
   if errorlevel 1 (
     echo git commit 실패
     exit /b 1
@@ -40,7 +40,7 @@ if not errorlevel 1 (
   goto :push
 )
 
-git commit -m "chore: update dashboard CSV and overview_state"
+git commit -m "chore: update dashboard CSV, overview_state, and ETF_Worksheet"
 if errorlevel 1 (
   echo git commit 실패
   exit /b 1

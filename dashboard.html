@@ -7,6 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="apple-touch-icon" href="favicon.svg" />
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { font-family: 'Malgun Gothic', 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #1a1a2e; color: rgba(255,255,255,0.9); }
@@ -323,6 +324,95 @@
       line-height: 1.45;
       font-family: inherit;
       resize: vertical;
+    }
+    #page-emp .emp-outer {
+      max-width: 100%;
+      padding: 0.75rem 1rem 1.5rem;
+    }
+    #page-emp .emp-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.45rem 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    #page-emp .emp-toolbar h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.92);
+    }
+    #page-emp .emp-toolbar-meta {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    #page-emp .emp-toolbar-actions {
+      margin-left: auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    #page-emp .emp-toolbar-actions button,
+    #page-emp .emp-toolbar-actions label.emp-file-btn {
+      font-size: 0.78rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #page-emp .emp-toolbar-actions button:hover,
+    #page-emp .emp-toolbar-actions label.emp-file-btn:hover {
+      background: rgba(59, 130, 246, 0.25);
+      border-color: rgba(59, 130, 246, 0.45);
+    }
+    #page-emp .emp-file-btn input { display: none; }
+    #page-emp .emp-status {
+      margin: 0 0 0.55rem;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+      min-height: 1.2em;
+    }
+    #page-emp .emp-status.is-warn { color: #fbbf24; }
+    #page-emp .emp-table-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 9rem);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.45);
+    }
+    #page-emp .emp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+    }
+    #page-emp .emp-table th,
+    #page-emp .emp-table td {
+      padding: 0.28rem 0.45rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      white-space: nowrap;
+      text-align: right;
+    }
+    #page-emp .emp-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: rgba(22, 33, 62, 0.98);
+      color: rgba(255, 255, 255, 0.92);
+      font-weight: 600;
+    }
+    #page-emp .emp-table td:first-child,
+    #page-emp .emp-table td:nth-child(2),
+    #page-emp .emp-table td:nth-child(3),
+    #page-emp .emp-table td:nth-child(4),
+    #page-emp .emp-table th:first-child,
+    #page-emp .emp-table th:nth-child(2),
+    #page-emp .emp-table th:nth-child(3),
+    #page-emp .emp-table th:nth-child(4) {
+      text-align: left;
     }
     nav.page-nav {
       display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem;
@@ -1890,6 +1980,8 @@
       <a href="#report" class="page-nav__link" id="navReport">Report</a>
       <span class="page-nav__sep" aria-hidden="true">|</span>
       <a href="#weekly" class="page-nav__link" id="navWeekly">Weekly</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#emp" class="page-nav__link" id="navEmp">EMP</a>
     </nav>
     <div id="spreadHeaderMeta" class="page-meta spread-header-asof">
       <p class="spread-header-asof__line">
@@ -2265,6 +2357,25 @@
     </div>
   </div>
 
+  <div id="page-emp" class="page">
+    <div class="emp-outer">
+      <div class="emp-toolbar">
+        <h2>EMP</h2>
+        <span id="empMetaLabel" class="emp-toolbar-meta">—</span>
+        <div class="emp-toolbar-actions">
+          <button type="button" id="empReloadBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">새로고침</button>
+          <button type="button" id="empExportBtn" class="sidebar btn btn-primary ovpd-toolbar-act">Excel 저장</button>
+          <label class="emp-file-btn sidebar btn btn-secondary ovpd-toolbar-act">
+            파일 선택
+            <input type="file" id="empFileInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+          </label>
+        </div>
+      </div>
+      <p id="empStatus" class="emp-status" role="status">데이터를 불러오는 중…</p>
+      <div class="emp-table-wrap" id="empTableWrap"></div>
+    </div>
+  </div>
+
   <div id="page-overview" class="page">
     <div class="overview-outer">
       <p id="overviewSyncBanner" class="overview-sync-banner is-warn" role="status">
@@ -2627,6 +2738,7 @@
   const navOverview = document.getElementById("navOverview");
   const navReport = document.getElementById("navReport");
   const navWeekly = document.getElementById("navWeekly");
+  const navEmp = document.getElementById("navEmp");
   const weeklyDateLabel = document.getElementById("weeklyDateLabel");
   const weeklyEndDateInput = document.getElementById("weeklyEndDateInput");
   const weeklyEndDateAutoHint = document.getElementById("weeklyEndDateAutoHint");
@@ -2647,6 +2759,13 @@
   const pageOverviewEl = document.getElementById("page-overview");
   const pageReportEl = document.getElementById("page-report");
   const pageWeeklyEl = document.getElementById("page-weekly");
+  const pageEmpEl = document.getElementById("page-emp");
+  const empMetaLabel = document.getElementById("empMetaLabel");
+  const empStatus = document.getElementById("empStatus");
+  const empTableWrap = document.getElementById("empTableWrap");
+  const empReloadBtn = document.getElementById("empReloadBtn");
+  const empExportBtn = document.getElementById("empExportBtn");
+  const empFileInput = document.getElementById("empFileInput");
   const reportDateLabel = document.getElementById("reportDateLabel");
   const reportStatus = document.getElementById("reportStatus");
   const reportPdfFrame = document.getElementById("reportPdfFrame");
@@ -6302,6 +6421,7 @@
     const isOverview = page === "overview";
     const isReport = page === "report";
     const isWeekly = page === "weekly";
+    const isEmp = page === "emp";
     if (pageSpreadEl) pageSpreadEl.classList.toggle("is-active", isSpread);
     if (pageRatesEl) pageRatesEl.classList.toggle("is-active", isRates);
     if (pageFundEl) pageFundEl.classList.toggle("is-active", isFund);
@@ -6309,6 +6429,7 @@
     if (pageOverviewEl) pageOverviewEl.classList.toggle("is-active", isOverview);
     if (pageReportEl) pageReportEl.classList.toggle("is-active", isReport);
     if (pageWeeklyEl) pageWeeklyEl.classList.toggle("is-active", isWeekly);
+    if (pageEmpEl) pageEmpEl.classList.toggle("is-active", isEmp);
     if (spreadHeaderMeta) spreadHeaderMeta.hidden = !isSpread;
     if (navSpread) navSpread.classList.toggle("is-current", isSpread);
     if (navRates) navRates.classList.toggle("is-current", isRates);
@@ -6317,6 +6438,7 @@
     if (navOverview) navOverview.classList.toggle("is-current", isOverview);
     if (navReport) navReport.classList.toggle("is-current", isReport);
     if (navWeekly) navWeekly.classList.toggle("is-current", isWeekly);
+    if (navEmp) navEmp.classList.toggle("is-current", isEmp);
     let title = "스프레드 분석";
     if (isFund) title = "펀드 분석";
     else if (isRates) title = "금리 분석";
@@ -6324,6 +6446,7 @@
     else if (isOverview) title = "Overview";
     else if (isReport) title = "Report";
     else if (isWeekly) title = "Weekly";
+    else if (isEmp) title = "EMP";
     document.title = title;
     if (isFund) {
       ensureFundData();
@@ -6365,6 +6488,7 @@
     }
     if (isReport) renderReportPage();
     if (isWeekly) renderWeeklyPage();
+    if (isEmp) renderEmpPage();
   }
 
   function reportTodayTagKst() {
@@ -6929,6 +7053,268 @@
           weeklyStatus.classList.add("is-warn");
         }
       });
+  }
+
+  const EMP_WORKBOOK_URL = "ETF_Worksheet.xlsx";
+  const EMP_DATA_COLUMNS = ["일자", "ETF명", "ISIN", "종목명", "평가액", "ETF비중", "민평3사가격", "민평3사듀레이션"];
+  let empDatasetRows = [];
+  let empDatasetDateTag = "";
+
+  function empSetStatus(msg, isWarn) {
+    if (!empStatus) return;
+    empStatus.textContent = msg || "";
+    empStatus.classList.toggle("is-warn", !!isWarn);
+  }
+
+  function empSheetDims(ws) {
+    const ref = ws && ws["!ref"];
+    if (!ref) return { rows: 0, cols: 0 };
+    const r = XLSX.utils.decode_range(ref);
+    return { rows: r.e.r + 1, cols: r.e.c + 1 };
+  }
+
+  function empCell(ws, r0, c0) {
+    const addr = XLSX.utils.encode_cell({ r: r0, c: c0 });
+    const cell = ws[addr];
+    if (!cell || cell.v == null || cell.v === "") return null;
+    return cell.v;
+  }
+
+  function empExcelDateToDate(v) {
+    if (v == null) return null;
+    if (v instanceof Date && !Number.isNaN(v.getTime())) return v;
+    if (typeof v === "number" && XLSX.SSF && typeof XLSX.SSF.parse_date_code === "function") {
+      const p = XLSX.SSF.parse_date_code(v);
+      if (p) return new Date(p.y, p.m - 1, p.d);
+    }
+    if (typeof v === "string") {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v.trim());
+      if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    }
+    return null;
+  }
+
+  function empFormatYmd(v) {
+    const d = empExcelDateToDate(v);
+    if (!d) return v == null ? "" : String(v);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+
+  function empDateKey(v) {
+    return empFormatYmd(v);
+  }
+
+  function empDateTag(v) {
+    return empDateKey(v).replace(/-/g, "");
+  }
+
+  function empNum(v) {
+    if (v == null || v === "") return null;
+    const n = typeof v === "number" ? v : parseFloat(String(v).replace(/,/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function empFmtDisplay(v, decimals) {
+    const n = empNum(v);
+    if (n === null) return "—";
+    return n.toLocaleString("ko-KR", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+
+  function empParseEtfNavMap(ws) {
+    const map = {};
+    const { cols, rows } = empSheetDims(ws);
+    for (let c = 0; c < cols; ) {
+      const name = empCell(ws, 1, c);
+      if (name && empCell(ws, 2, c) === "일자") {
+        const byDate = {};
+        for (let r = 3; r < rows; r++) {
+          const d = empCell(ws, r, c);
+          if (d == null) break;
+          const key = empDateKey(d);
+          if (!key) continue;
+          byDate[key] = empNum(empCell(ws, r, c + 2));
+        }
+        map[String(name).trim()] = byDate;
+        c += 5;
+      } else c += 1;
+    }
+    return map;
+  }
+
+  function empParsePdfBlocks(ws) {
+    const blocks = [];
+    const { cols, rows } = empSheetDims(ws);
+    for (let c = 0; c < cols; c++) {
+      if (empCell(ws, 0, c) !== "코드") continue;
+      blocks.push({
+        startCol: c,
+        code: empCell(ws, 0, c + 1),
+        name: empCell(ws, 6, c),
+        dateVal: empCell(ws, 2, c + 1),
+        rows,
+      });
+    }
+    return blocks;
+  }
+
+  function empBuildDatasetFromWorkbook(wb) {
+    const pdfWs = wb.Sheets["PDF정보"];
+    const etfWs = wb.Sheets["ETF정보"];
+    if (!pdfWs || !etfWs) throw new Error("PDF정보 또는 ETF정보 시트를 찾을 수 없습니다.");
+    const navMap = empParseEtfNavMap(etfWs);
+    const blocks = empParsePdfBlocks(pdfWs);
+    const out = [];
+    let dateTag = "";
+    blocks.forEach((block) => {
+      const etfName = block.name != null ? String(block.name).trim() : "";
+      if (!etfName) return;
+      const dateKey = empDateKey(block.dateVal);
+      const nav = navMap[etfName] ? navMap[etfName][dateKey] : null;
+      if (!dateTag && dateKey) dateTag = empDateTag(block.dateVal);
+      for (let r = 8; r < block.rows; r++) {
+        const isin = empCell(pdfWs, r, block.startCol + 1);
+        const rowDate = empCell(pdfWs, r, block.startCol);
+        if (isin == null && rowDate == null) break;
+        if (!isin) continue;
+        const weight = empNum(empCell(pdfWs, r, block.startCol + 5));
+        const evalAmt = weight != null && nav != null ? (weight / 100) * nav : null;
+        const ymd = empFormatYmd(rowDate != null ? rowDate : block.dateVal);
+        if (!dateTag && ymd) dateTag = ymd.replace(/-/g, "");
+        out.push({
+          일자: ymd,
+          ETF명: etfName,
+          ISIN: String(isin),
+          종목명: empCell(pdfWs, r, block.startCol + 3) != null ? String(empCell(pdfWs, r, block.startCol + 3)) : "",
+          평가액: evalAmt,
+          "ETF비중": weight,
+          민평3사가격: empNum(empCell(pdfWs, r, block.startCol + 8)),
+          민평3사듀레이션: empNum(empCell(pdfWs, r, block.startCol + 9)),
+        });
+      }
+    });
+    return { rows: out, dateTag };
+  }
+
+  function empRenderTable() {
+    if (!empTableWrap) return;
+    if (!empDatasetRows.length) {
+      empTableWrap.innerHTML = '<p class="fund-summary__note" style="margin:0.5rem;padding:0.5rem;">표시할 데이터가 없습니다.</p>';
+      return;
+    }
+    let h = '<table class="emp-table"><thead><tr>';
+    EMP_DATA_COLUMNS.forEach((col) => {
+      h += "<th>" + escapeHtml(col) + "</th>";
+    });
+    h += "</tr></thead><tbody>";
+    empDatasetRows.forEach((row) => {
+      h += "<tr>";
+      h += "<td>" + escapeHtml(row.일자 || "") + "</td>";
+      h += "<td>" + escapeHtml(row.ETF명 || "") + "</td>";
+      h += "<td>" + escapeHtml(row.ISIN || "") + "</td>";
+      h += "<td>" + escapeHtml(row.종목명 || "") + "</td>";
+      h += "<td>" + empFmtDisplay(row.평가액, 0) + "</td>";
+      h += "<td>" + empFmtDisplay(row["ETF비중"], 2) + "</td>";
+      h += "<td>" + empFmtDisplay(row.민평3사가격, 2) + "</td>";
+      h += "<td>" + empFmtDisplay(row.민평3사듀레이션, 4) + "</td>";
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    empTableWrap.innerHTML = h;
+  }
+
+  function empApplyDataset(result, sourceLabel) {
+    empDatasetRows = result.rows || [];
+    empDatasetDateTag = result.dateTag || "";
+    if (empMetaLabel) {
+      empMetaLabel.textContent = empDatasetRows.length
+        ? "일자 " +
+          (empDatasetRows[0].일자 || "—") +
+          " · " +
+          empDatasetRows.length +
+          "행 · ETF " +
+          new Set(empDatasetRows.map((r) => r.ETF명)).size +
+          "개"
+        : "—";
+    }
+    empRenderTable();
+    empSetStatus(
+      sourceLabel +
+        (empDatasetRows.length ? " · " + empDatasetRows.length + "행 생성" : " · 데이터 없음"),
+      !empDatasetRows.length
+    );
+  }
+
+  function empProcessArrayBuffer(buf, sourceLabel) {
+    if (typeof XLSX === "undefined") {
+      empSetStatus("Excel 라이브러리를 불러오지 못했습니다.", true);
+      return;
+    }
+    try {
+      const wb = XLSX.read(buf, { type: "array", cellDates: true });
+      const result = empBuildDatasetFromWorkbook(wb);
+      empApplyDataset(result, sourceLabel || "ETF_Worksheet.xlsx");
+    } catch (err) {
+      empDatasetRows = [];
+      empDatasetDateTag = "";
+      empRenderTable();
+      empSetStatus("파일 처리 실패: " + (err && err.message ? err.message : String(err)), true);
+    }
+  }
+
+  function empLoadDefaultWorkbook() {
+    empSetStatus("ETF_Worksheet.xlsx 불러오는 중…");
+    return fetchCsvNoCache(EMP_WORKBOOK_URL)
+      .then((r) => {
+        if (!r.ok) throw new Error("파일 없음");
+        return r.arrayBuffer();
+      })
+      .then((buf) => {
+        empProcessArrayBuffer(buf, "ETF_Worksheet.xlsx");
+      })
+      .catch(() => {
+        empSetStatus("ETF_Worksheet.xlsx를 불러오지 못했습니다. 「파일 선택」으로 업로드해 주세요.", true);
+        empRenderTable();
+      });
+  }
+
+  function empExportXlsx() {
+    if (!empDatasetRows.length) {
+      empSetStatus("저장할 데이터가 없습니다.", true);
+      return;
+    }
+    if (typeof XLSX === "undefined") {
+      empSetStatus("Excel 라이브러리를 불러오지 못했습니다.", true);
+      return;
+    }
+    const tag = empDatasetDateTag || empDateTag(empDatasetRows[0].일자) || "export";
+    const aoa = [EMP_DATA_COLUMNS.slice()];
+    empDatasetRows.forEach((row) => {
+      aoa.push(EMP_DATA_COLUMNS.map((col) => (row[col] != null ? row[col] : "")));
+    });
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "EMP");
+    XLSX.writeFile(wb, tag + "_EMP.xlsx");
+    empSetStatus("저장: " + tag + "_EMP.xlsx");
+  }
+
+  let empLoadPromise = null;
+  function renderEmpPage() {
+    if (!pageEmpEl) return;
+    if (empDatasetRows.length) {
+      empRenderTable();
+      return;
+    }
+    if (empLoadPromise) return;
+    empLoadPromise = empLoadDefaultWorkbook().finally(() => {
+      empLoadPromise = null;
+    });
   }
 
   function ensureFundData() {
@@ -8442,8 +8828,30 @@
     weeklyEndDateInput.addEventListener("input", onWeeklyEndDateInput);
   }
 
-  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 → 펀드 → Overview → Report → Weekly (순환) */
-  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview", "report", "weekly"];
+  if (empReloadBtn) {
+    empReloadBtn.addEventListener("click", () => {
+      empDatasetRows = [];
+      empDatasetDateTag = "";
+      empLoadDefaultWorkbook();
+    });
+  }
+  if (empExportBtn) empExportBtn.addEventListener("click", () => empExportXlsx());
+  if (empFileInput) {
+    empFileInput.addEventListener("change", () => {
+      const file = empFileInput.files && empFileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        empProcessArrayBuffer(reader.result, file.name);
+        empFileInput.value = "";
+      };
+      reader.onerror = () => empSetStatus("파일을 읽지 못했습니다.", true);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 → 펀드 → Overview → Report → Weekly → EMP (순환) */
+  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview", "report", "weekly", "emp"];
 
   function applyHashPage() {
     const h = (location.hash || "#rates").slice(1);
@@ -8454,6 +8862,7 @@
     else if (h === "overview") setPage("overview");
     else if (h === "report") setPage("report");
     else if (h === "weekly") setPage("weekly");
+    else if (h === "emp") setPage("emp");
     else setPage("rates");
   }
   window.addEventListener("hashchange", applyHashPage);
