@@ -7843,8 +7843,8 @@
     const tds = tr.querySelectorAll("td");
     const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
     const wYtm = empEtfWeightedYtm(rows, etfName);
-    if (tds[6]) tds[6].textContent = empFmtDisplay(wDur, 4);
-    if (tds[7]) tds[7].textContent = empFmtDisplay(wYtm, 4);
+    if (tds[7]) tds[7].textContent = empFmtDisplay(wDur, 4);
+    if (tds[8]) tds[8].textContent = empFmtDisplay(wYtm, 4);
     empRenderFundTableIfNotEditing();
   }
 
@@ -8398,7 +8398,7 @@
     const locked = empSummaryIsLocked();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
     let h =
-      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율(bp)</th><th>CU</th><th>1CU</th><th>순자산총액(억)</th><th>듀레이션</th><th>YTM</th></tr></thead><tbody>';
+      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율(bp)</th><th>괴리율(-1)</th><th>CU</th><th>1CU</th><th>순자산총액(억)</th><th>듀레이션</th><th>YTM</th></tr></thead><tbody>';
     etfNames.forEach((etfName) => {
       const rows = byEtf.get(etfName);
       const meta = empEtfMetaMap[etfName] || {};
@@ -8417,6 +8417,7 @@
         '">' +
         empFmtDisparity(meta.disparity) +
         "</td>";
+      h += "<td>" + empFmtDisparity(meta.disparityPrev) + "</td>";
       if (locked) {
         h +=
           '<td><span class="emp-cu-plain" data-emp-cu-etf="' +
@@ -8517,7 +8518,7 @@
     const durationOverrides = empLoadFuturesDurations();
     const cuSaved = empLoadCuMap();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
-    const lines = ["ETF명\t기준가\t괴리율(bp)\tCU\t1CU\t순자산총액(억)\t듀레이션\tYTM"];
+    const lines = ["ETF명\t기준가\t괴리율(bp)\t괴리율(-1)\tCU\t1CU\t순자산총액(억)\t듀레이션\tYTM"];
     etfNames.forEach((etfName) => {
         const rows = byEtf.get(etfName);
         const meta = empEtfMetaMap[etfName] || {};
@@ -8531,6 +8532,7 @@
             etfName,
             empFmtDisplay(meta.basePrice, 0),
             empFmtDisparity(meta.disparity),
+            empFmtDisparity(meta.disparityPrev),
             cu != null ? String(cu) : "",
             empFmtDisplay(oneCu, 0),
             empFmtNavEok(nav),
@@ -8562,7 +8564,7 @@
     h +=
       '<table style="border-collapse:collapse;font-family:Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:12px;">';
     h += "<thead><tr>";
-    ["ETF명", "기준가", "괴리율(bp)", "CU", "1CU", "순자산총액(억)", "듀레이션", "YTM"].forEach((col, i) => {
+    ["ETF명", "기준가", "괴리율(bp)", "괴리율(-1)", "CU", "1CU", "순자산총액(억)", "듀레이션", "YTM"].forEach((col, i) => {
       h += '<th style="' + thStyle + (i === 0 ? "text-align:left;" : "") + '">' + escapeHtml(col) + "</th>";
     });
     h += "</tr></thead><tbody>";
@@ -8583,6 +8585,7 @@
         tdStyle +
         (disparityAlert ? "font-weight:700;color:#b45309;" : "");
       h += '<td style="' + dispStyle + '">' + escapeHtml(empFmtDisparity(meta.disparity)) + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisparity(meta.disparityPrev)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(cu != null ? empFmtDisplay(cu, 0) : "—") + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(oneCu, 0)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtNavEok(nav)) + "</td>";
@@ -8878,6 +8881,18 @@
     return map;
   }
 
+  function empGetEtfInfoDisparityPrev(etfInfoMap, etfName, dateKey) {
+    const byDate = etfInfoMap[etfName];
+    if (!byDate || !dateKey) return null;
+    const keys = Object.keys(byDate)
+      .filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k))
+      .sort();
+    const idx = keys.indexOf(dateKey);
+    if (idx <= 0) return null;
+    const prev = byDate[keys[idx - 1]];
+    return prev && prev.disparity != null ? prev.disparity : null;
+  }
+
   function empParsePdfBlocks(ws) {
     const blocks = [];
     const { cols, rows } = empSheetDims(ws);
@@ -8916,10 +8931,11 @@
         metaMap[etfName] = {
           basePrice: etfInfo.basePrice,
           disparity: etfInfo.disparity,
+          disparityPrev: empGetEtfInfoDisparityPrev(etfInfoMap, etfName, dateKey),
           code: etfCode,
         };
       } else if (!metaMap[etfName]) {
-        metaMap[etfName] = { basePrice: null, disparity: null, code: etfCode };
+        metaMap[etfName] = { basePrice: null, disparity: null, disparityPrev: null, code: etfCode };
       }
       if (!dateTag && dateKey) dateTag = empDateTag(block.dateVal);
       for (let r = 8; r < block.rows; r++) {
