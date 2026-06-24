@@ -676,6 +676,7 @@
     #page-emp .emp-table col.emp-hold-col-isin { width: 7.25rem; }
     #page-emp .emp-table col.emp-hold-col-name { width: 9.5rem; }
     #page-emp .emp-table col.emp-hold-col-mat { width: 5.5rem; }
+    #page-emp .emp-table col.emp-hold-col-bucket { width: 4.25rem; }
     #page-emp .emp-table col.emp-hold-col-num { width: 4.85rem; }
     nav.page-nav {
       display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem;
@@ -7521,6 +7522,7 @@
     { key: "ISIN", label: "ISIN", col: "emp-hold-col-isin", decimals: null, title: false },
     { key: "종목명", label: "종목명", col: "emp-hold-col-name", decimals: null, title: true },
     { key: "만기", label: "만기", col: "emp-hold-col-mat", decimals: null, title: false },
+    { key: "만기구분", label: "만기구분", col: "emp-hold-col-bucket", decimals: null, title: false },
     { key: "평가액", label: "평가액", col: "emp-hold-col-num", decimals: 0, title: false },
     { key: "ETF비중", label: "ETF비중", col: "emp-hold-col-num", decimals: 2, title: false },
     { key: "민평3사가격", label: "민평3사가격", col: "emp-hold-col-num", decimals: 2, title: false },
@@ -7967,9 +7969,15 @@
     return empDatasetRows.filter((row) => !empHoldingsEtfUnchecked.has(row.ETF명 || ""));
   }
 
-  function empHoldingsCellHtml(row, col, cuMap) {
+  function empHoldingsCellValue(row, col, cuMap) {
     const map = cuMap || empLoadCuMap();
-    const raw = col.key === "평가액" ? empAdjustedEvalAmt(row, map) : row[col.key];
+    if (col.key === "평가액") return empAdjustedEvalAmt(row, map);
+    if (col.key === "만기구분") return empFmtMaturityBucket(row.만기);
+    return row[col.key];
+  }
+
+  function empHoldingsCellHtml(row, col, cuMap) {
+    const raw = empHoldingsCellValue(row, col, cuMap);
     const text = col.decimals != null ? empFmtDisplay(raw, col.decimals) : raw != null ? String(raw) : "";
     const titleAttr = col.title && text && text !== "—" ? ' title="' + escapeHtml(text) + '"' : "";
     return "<td" + titleAttr + ">" + escapeHtml(text) + "</td>";
@@ -8840,6 +8848,32 @@
     return s || "—";
   }
 
+  function empMaturityYearsRemaining(maturityYmd) {
+    const s = String(maturityYmd || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    const p = s.split("-").map((x) => parseInt(x, 10));
+    const mat = new Date(p[0], p[1] - 1, p[2]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    mat.setHours(0, 0, 0, 0);
+    const diffMs = mat.getTime() - today.getTime();
+    if (diffMs <= 0) return 0;
+    return diffMs / (365.25 * 24 * 60 * 60 * 1000);
+  }
+
+  function empFmtMaturityBucket(maturityYmd) {
+    const years = empMaturityYearsRemaining(maturityYmd);
+    if (years === null) return "—";
+    if (years < 1) return "1년";
+    if (years < 2) return "2년";
+    if (years < 3) return "3년";
+    if (years < 5) return "5년";
+    if (years < 10) return "10년";
+    if (years < 20) return "20년";
+    if (years < 30) return "30년";
+    return "50년";
+  }
+
   function empDateKey(v) {
     return empFormatYmd(v);
   }
@@ -9096,8 +9130,8 @@
     empGetHoldingsFilteredRows().forEach((row) => {
       aoa.push(
         EMP_HOLDINGS_COLUMNS.map((col) => {
-          const v = col.key === "평가액" ? empAdjustedEvalAmt(row, cuMap) : row[col.key];
-          return v != null ? v : "";
+          const v = empHoldingsCellValue(row, col, cuMap);
+          return v != null && v !== "—" ? v : "";
         })
       );
     });
