@@ -377,6 +377,71 @@
       min-height: 1.2em;
     }
     #page-emp .emp-status.is-warn { color: #fbbf24; }
+    #page-emp .emp-summary-block {
+      margin-bottom: 0.75rem;
+    }
+    #page-emp .emp-summary-block h3 {
+      margin: 0 0 0.35rem;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    #page-emp .emp-summary-wrap,
+    #page-emp .emp-futures-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.45);
+      margin-bottom: 0.55rem;
+    }
+    #page-emp .emp-summary-table,
+    #page-emp .emp-futures-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+    }
+    #page-emp .emp-summary-table th,
+    #page-emp .emp-summary-table td,
+    #page-emp .emp-futures-table th,
+    #page-emp .emp-futures-table td {
+      padding: 0.3rem 0.45rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: right;
+      white-space: nowrap;
+    }
+    #page-emp .emp-summary-table th,
+    #page-emp .emp-futures-table th {
+      background: rgba(22, 33, 62, 0.98);
+      color: rgba(255, 255, 255, 0.92);
+      font-weight: 600;
+    }
+    #page-emp .emp-summary-table td:first-child,
+    #page-emp .emp-summary-table th:first-child,
+    #page-emp .emp-futures-table td:first-child,
+    #page-emp .emp-futures-table td:nth-child(2),
+    #page-emp .emp-futures-table th:first-child,
+    #page-emp .emp-futures-table th:nth-child(2) {
+      text-align: left;
+    }
+    #page-emp .emp-futures-hint {
+      margin: 0 0 0.35rem;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.48);
+    }
+    #page-emp .emp-futures-toolbar {
+      margin-bottom: 0.5rem;
+    }
+    #page-emp .emp-futures-duration-input {
+      width: 5.5rem;
+      font-size: 0.76rem;
+      padding: 0.2rem 0.35rem;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.95);
+      font-family: inherit;
+      text-align: right;
+    }
     #page-emp .emp-table-wrap {
       overflow: auto;
       max-height: calc(100vh - 9rem);
@@ -2372,6 +2437,19 @@
         </div>
       </div>
       <p id="empStatus" class="emp-status" role="status">데이터를 불러오는 중…</p>
+      <div class="emp-summary-block">
+        <h3>ETF별 평가액 가중평균</h3>
+        <div class="emp-summary-wrap" id="empSummaryWrap"></div>
+      </div>
+      <div class="emp-summary-block" id="empFuturesBlock">
+        <h3>국채선물 듀레이션 (수기)</h3>
+        <p class="emp-futures-hint">ISIN이 KR4A로 시작하는 국채선물은 민평 듀레이션이 없습니다. 듀레이션을 입력하면 ETF 가중평균 듀레이션에 반영됩니다.</p>
+        <div class="emp-futures-toolbar overview-prevday-toolbar overview-prevday-toolbar--compact">
+          <button type="button" id="empFuturesSaveBtn" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
+          <span id="empFuturesSyncStatus" class="overview-prevday-status" aria-live="polite"></span>
+        </div>
+        <div class="emp-futures-wrap" id="empFuturesWrap"></div>
+      </div>
       <div class="emp-table-wrap" id="empTableWrap"></div>
     </div>
   </div>
@@ -2766,6 +2844,11 @@
   const empReloadBtn = document.getElementById("empReloadBtn");
   const empExportBtn = document.getElementById("empExportBtn");
   const empFileInput = document.getElementById("empFileInput");
+  const empSummaryWrap = document.getElementById("empSummaryWrap");
+  const empFuturesWrap = document.getElementById("empFuturesWrap");
+  const empFuturesBlock = document.getElementById("empFuturesBlock");
+  const empFuturesSaveBtn = document.getElementById("empFuturesSaveBtn");
+  const empFuturesSyncStatus = document.getElementById("empFuturesSyncStatus");
   const reportDateLabel = document.getElementById("reportDateLabel");
   const reportStatus = document.getElementById("reportStatus");
   const reportPdfFrame = document.getElementById("reportPdfFrame");
@@ -4614,6 +4697,7 @@
       overviewSyncUpdateBanner(val, true);
     };
     ref.on("value", overviewFirebaseListenerCb);
+    empFirebaseStartListener();
   }
 
   function overviewFirebaseStopListener() {
@@ -4622,6 +4706,7 @@
       overviewFirebaseListenerRef = null;
       overviewFirebaseListenerCb = null;
     }
+    empFirebaseStopListener();
   }
 
   function overviewFirebaseSaveConfigFromForm() {
@@ -7057,8 +7142,377 @@
 
   const EMP_WORKBOOK_URL = "ETF_Worksheet.xlsx";
   const EMP_DATA_COLUMNS = ["일자", "ETF명", "ISIN", "종목명", "평가액", "ETF비중", "민평3사가격", "민평3사듀레이션"];
+  const EMP_FUTURES_DURATION_STORAGE_KEY = "market_db_dashboard_emp_futures_duration_v1";
+  const EMP_SYNC_META_KEY = "market_db_dashboard_emp_sync_meta_v1";
+  const EMP_FIREBASE_DB_PATH = "emp_state_v1";
+  const EMP_STATE_PATH = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("emp_state.json", location.href).href;
+    }
+    return "file:///C:/Users/infomax/Documents/market_db_dashboard/emp_state.json";
+  })();
+  const EMP_STATE_POST_PATH = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("emp_state.json", location.href).href;
+    }
+    return "";
+  })();
   let empDatasetRows = [];
   let empDatasetDateTag = "";
+  let empFuturesMetaList = [];
+  let empFuturesDurationMap = (function () {
+    try {
+      const raw = localStorage.getItem(EMP_FUTURES_DURATION_STORAGE_KEY);
+      if (!raw) return {};
+      const o = JSON.parse(raw);
+      return o && typeof o === "object" ? o : {};
+    } catch (_) {
+      return {};
+    }
+  })();
+  let empSyncLoadPromise = null;
+  let empSyncPostSupported = null;
+  let empFirebaseListenerRef = null;
+  let empFirebaseListenerCb = null;
+  let empFuturesPersistTimer = null;
+
+  function empFirebaseRef() {
+    const db = overviewFirebaseGetDb();
+    return db ? db.ref(EMP_FIREBASE_DB_PATH) : null;
+  }
+
+  function empLoadFuturesDurations() {
+    return empFuturesDurationMap;
+  }
+
+  function empSyncCollectSnapshot() {
+    return {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      futures: { ...empFuturesDurationMap },
+    };
+  }
+
+  function empSyncSnapshotHasData(snap) {
+    if (!snap || snap.version !== 1) return false;
+    if (snap.updatedAt) return true;
+    if (snap.futures && typeof snap.futures === "object" && Object.keys(snap.futures).length) return true;
+    return false;
+  }
+
+  function empSyncShouldApplyFile(snap) {
+    if (!empSyncSnapshotHasData(snap)) return false;
+    if (!snap.updatedAt) return false;
+    try {
+      const raw = localStorage.getItem(EMP_SYNC_META_KEY);
+      if (!raw) return true;
+      const meta = JSON.parse(raw);
+      if (!meta || !meta.updatedAt) return true;
+      return String(snap.updatedAt) >= String(meta.updatedAt);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  function empSyncApplySnapshot(snap) {
+    if (!snap || snap.version !== 1) return;
+    if (snap.futures && typeof snap.futures === "object") {
+      empFuturesDurationMap = {};
+      Object.keys(snap.futures).forEach((k) => {
+        const n = empNum(snap.futures[k]);
+        if (n !== null) empFuturesDurationMap[k] = n;
+      });
+    }
+    try {
+      localStorage.setItem(EMP_FUTURES_DURATION_STORAGE_KEY, JSON.stringify(empFuturesDurationMap));
+      if (snap.updatedAt) localStorage.setItem(EMP_SYNC_META_KEY, JSON.stringify({ updatedAt: snap.updatedAt }));
+    } catch (_) {}
+  }
+
+  function empSyncPersistLocalCache(snap) {
+    try {
+      localStorage.setItem(EMP_FUTURES_DURATION_STORAGE_KEY, JSON.stringify(empFuturesDurationMap));
+      if (snap && snap.updatedAt) localStorage.setItem(EMP_SYNC_META_KEY, JSON.stringify({ updatedAt: snap.updatedAt }));
+    } catch (_) {}
+  }
+
+  function empSyncManualSaveStatus(res) {
+    const fileOk = res && res.fileOk;
+    const cloud = res && res.cloud;
+    const downloaded = res && res.downloaded;
+    if (cloud) return "저장됨 · PC·휴대폰에 반영됩니다";
+    if (fileOk) return "저장됨 · emp_state.json (push 시 다른 기기 반영)";
+    if (downloaded) return "저장됨 · emp_state.json 다운로드됨 → 폴더에 넣고 push";
+    if (!overviewFirebaseIsConfigured() && overviewSyncIsReadOnlyHost())
+      return "저장됨 · 이 기기만 (Overview Firebase 연결 후 다시 저장하면 휴대폰에도 보임)";
+    if (location.protocol === "http:" || location.protocol === "https:")
+      return "저장됨 · 이 브라우저만 (클라우드 미연결)";
+    return "저장됨 · 브라우저에만 보관";
+  }
+
+  function empSyncUpdateStatus(res, snap) {
+    if (!empFuturesSyncStatus) return;
+    let msg = empSyncManualSaveStatus(res);
+    if (snap && snap.updatedAt) {
+      msg += " · " + overviewSyncFormatUpdatedAt(snap.updatedAt);
+    }
+    empFuturesSyncStatus.textContent = msg;
+  }
+
+  function empSyncDownloadSnapshot(snapshot) {
+    try {
+      const blob = new Blob([JSON.stringify(snapshot, null, 2) + "\n"], {
+        type: "application/json;charset=utf-8",
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "emp_state.json";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function empSyncSaveToCloud(snapshot) {
+    const ref = empFirebaseRef();
+    if (!ref) return Promise.resolve(false);
+    return ref
+      .set(snapshot)
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  function empSyncLoadFromCloud() {
+    const ref = empFirebaseRef();
+    if (!ref) return Promise.resolve(null);
+    return ref
+      .once("value")
+      .then((snap) => snap.val())
+      .catch(() => null);
+  }
+
+  function empSyncSaveToFile(snapshot) {
+    if (!EMP_STATE_POST_PATH || overviewSyncIsReadOnlyHost()) return Promise.resolve(false);
+    const body = JSON.stringify(snapshot, null, 2);
+    return fetch(EMP_STATE_POST_PATH, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body,
+      cache: "no-store",
+    })
+      .then((r) => {
+        empSyncPostSupported = r.ok;
+        return r.ok;
+      })
+      .catch(() => {
+        empSyncPostSupported = false;
+        return false;
+      });
+  }
+
+  function empSyncPersist(opts) {
+    const manual = !!(opts && opts.manual);
+    const snap = empSyncCollectSnapshot();
+    empSyncPersistLocalCache(snap);
+    return empSyncSaveToCloud(snap).then((cloudOk) => {
+      if (cloudOk) {
+        empSyncUpdateStatus({ fileOk: true, cloud: true, downloaded: false }, snap);
+        return { fileOk: true, cloud: true, downloaded: false };
+      }
+      return empSyncSaveToFile(snap).then((fileOk) => {
+        let downloaded = false;
+        if (!fileOk && manual && (location.protocol === "http:" || location.protocol === "https:")) {
+          downloaded = empSyncDownloadSnapshot(snap);
+        }
+        empSyncUpdateStatus({ fileOk, cloud: false, downloaded }, snap);
+        return { fileOk, cloud: false, downloaded };
+      });
+    });
+  }
+
+  function empSyncFetchState() {
+    return fetchCsvNoCache(EMP_STATE_PATH)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+  }
+
+  function empSyncReloadAndApply() {
+    if (empFirebaseRef()) {
+      empSyncLoadPromise = empSyncLoadFromCloud().then((snap) => {
+        const applied = !!(snap && empSyncShouldApplyFile(snap) && (empSyncApplySnapshot(snap), true));
+        if (applied && snap) empSyncUpdateStatus({ fileOk: true, cloud: true }, snap);
+        return { snap, applied };
+      });
+      return empSyncLoadPromise;
+    }
+    empSyncLoadPromise = empSyncFetchState().then((snap) => {
+      const applied = !!(snap && empSyncShouldApplyFile(snap) && (empSyncApplySnapshot(snap), true));
+      if (applied && snap) empSyncUpdateStatus({ fileOk: true, cloud: false }, snap);
+      return { snap, applied };
+    });
+    return empSyncLoadPromise;
+  }
+
+  function empSyncEnsureLoaded(forceReload) {
+    if (forceReload) return empSyncReloadAndApply();
+    if (!empSyncLoadPromise) return empSyncReloadAndApply();
+    return empSyncLoadPromise;
+  }
+
+  function empSyncUpdateFuturesInputsFromMap() {
+    if (!empFuturesWrap) return;
+    empFuturesWrap.querySelectorAll(".emp-futures-duration-input").forEach((el) => {
+      const isin = el.getAttribute("data-emp-future-isin");
+      if (!isin) return;
+      const v = empFuturesDurationMap[isin];
+      el.value = v != null ? String(v) : "";
+    });
+  }
+
+  function empFirebaseStartListener() {
+    const ref = empFirebaseRef();
+    if (!ref) return;
+    if (empFirebaseListenerRef && empFirebaseListenerCb) {
+      empFirebaseListenerRef.off("value", empFirebaseListenerCb);
+    }
+    empFirebaseListenerRef = ref;
+    empFirebaseListenerCb = (snap) => {
+      const val = snap.val();
+      if (!val || val.version !== 1 || !empSyncShouldApplyFile(val)) return;
+      empSyncApplySnapshot(val);
+      if (pageEmpEl && pageEmpEl.classList.contains("is-active")) {
+        empRenderSummary();
+        empSyncUpdateFuturesInputsFromMap();
+      }
+      empSyncUpdateStatus({ fileOk: true, cloud: true }, val);
+    };
+    ref.on("value", empFirebaseListenerCb);
+  }
+
+  function empFirebaseStopListener() {
+    if (empFirebaseListenerRef && empFirebaseListenerCb) {
+      empFirebaseListenerRef.off("value", empFirebaseListenerCb);
+      empFirebaseListenerRef = null;
+      empFirebaseListenerCb = null;
+    }
+  }
+
+  function empScheduleFuturesPersist() {
+    clearTimeout(empFuturesPersistTimer);
+    empFuturesPersistTimer = setTimeout(() => empSyncPersist({ manual: false }), 500);
+  }
+
+  function empIsFutureIsin(isin) {
+    return /^KR4A/i.test(String(isin || "").trim());
+  }
+
+  function empCollectFuturesMeta(rows) {
+    const map = new Map();
+    rows.forEach((r) => {
+      if (!empIsFutureIsin(r.ISIN)) return;
+      if (!map.has(r.ISIN)) {
+        map.set(r.ISIN, {
+          isin: r.ISIN,
+          code: r.종목코드 || "",
+          name: r.종목명 || "",
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.isin.localeCompare(b.isin));
+  }
+
+  function empRowDuration(row, durationOverrides) {
+    const ov = durationOverrides || empLoadFuturesDurations();
+    if (empIsFutureIsin(row.ISIN)) {
+      const manual = empNum(ov[row.ISIN]);
+      if (manual !== null) return manual;
+      return null;
+    }
+    return empNum(row.민평3사듀레이션);
+  }
+
+  function empWeightedAvg(rows, valueFn) {
+    let wSum = 0;
+    let vSum = 0;
+    rows.forEach((r) => {
+      const w = empNum(r.평가액);
+      const v = valueFn(r);
+      if (w === null || w <= 0 || v === null) return;
+      wSum += w;
+      vSum += w * v;
+    });
+    return wSum > 0 ? vSum / wSum : null;
+  }
+
+  function empRenderSummary() {
+    if (!empSummaryWrap) return;
+    if (!empDatasetRows.length) {
+      empSummaryWrap.innerHTML = '<p class="fund-summary__note" style="margin:0.5rem;padding:0.5rem;">—</p>';
+      return;
+    }
+    const durationOverrides = empLoadFuturesDurations();
+    const byEtf = new Map();
+    empDatasetRows.forEach((r) => {
+      const key = r.ETF명 || "—";
+      if (!byEtf.has(key)) byEtf.set(key, []);
+      byEtf.get(key).push(r);
+    });
+    const etfNames = Array.from(byEtf.keys()).sort();
+    let h =
+      '<table class="emp-summary-table"><thead><tr><th>ETF명</th><th>평가액 합계</th><th>가중평균 듀레이션</th></tr></thead><tbody>';
+    etfNames.forEach((etfName) => {
+      const rows = byEtf.get(etfName);
+      const totalEval = rows.reduce((s, r) => s + (empNum(r.평가액) || 0), 0);
+      const wDur = empWeightedAvg(rows, (r) => empRowDuration(r, durationOverrides));
+      h += "<tr>";
+      h += "<td>" + escapeHtml(etfName) + "</td>";
+      h += "<td>" + empFmtDisplay(totalEval, 0) + "</td>";
+      h += "<td>" + empFmtDisplay(wDur, 4) + "</td>";
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    empSummaryWrap.innerHTML = h;
+  }
+
+  function empRenderFuturesInputs() {
+    if (!empFuturesWrap) return;
+    empFuturesMetaList = empCollectFuturesMeta(empDatasetRows);
+    if (empFuturesBlock) empFuturesBlock.hidden = empFuturesMetaList.length === 0;
+    if (!empFuturesMetaList.length) {
+      empFuturesWrap.innerHTML = "";
+      return;
+    }
+    const saved = empLoadFuturesDurations();
+    let h =
+      '<table class="emp-futures-table"><thead><tr><th>코드명</th><th>종목명</th><th>ISIN</th><th>듀레이션(입력)</th></tr></thead><tbody>';
+    empFuturesMetaList.forEach((f) => {
+      const val = saved[f.isin] != null ? String(saved[f.isin]) : "";
+      h += "<tr>";
+      h += "<td>" + escapeHtml(f.code || "—") + "</td>";
+      h += "<td>" + escapeHtml(f.name || "—") + "</td>";
+      h += "<td>" + escapeHtml(f.isin) + "</td>";
+      h +=
+        '<td><input type="number" class="emp-futures-duration-input" data-emp-future-isin="' +
+        escapeHtml(f.isin) +
+        '" step="0.0001" min="0" placeholder="예: 3.5" value="' +
+        escapeHtml(val) +
+        '" /></td>';
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    empFuturesWrap.innerHTML = h;
+  }
+
+  function empRefreshEmpViews() {
+    empRenderSummary();
+    empRenderFuturesInputs();
+    empRenderTable();
+  }
 
   function empSetStatus(msg, isWarn) {
     if (!empStatus) return;
@@ -7192,6 +7646,8 @@
           일자: ymd,
           ETF명: etfName,
           ISIN: String(isin),
+          종목코드:
+            empCell(pdfWs, r, block.startCol + 2) != null ? String(empCell(pdfWs, r, block.startCol + 2)) : "",
           종목명: empCell(pdfWs, r, block.startCol + 3) != null ? String(empCell(pdfWs, r, block.startCol + 3)) : "",
           평가액: evalAmt,
           "ETF비중": weight,
@@ -7244,7 +7700,7 @@
           "개"
         : "—";
     }
-    empRenderTable();
+    empRefreshEmpViews();
     empSetStatus(
       sourceLabel +
         (empDatasetRows.length ? " · " + empDatasetRows.length + "행 생성" : " · 데이터 없음"),
@@ -7264,7 +7720,7 @@
     } catch (err) {
       empDatasetRows = [];
       empDatasetDateTag = "";
-      empRenderTable();
+      empRefreshEmpViews();
       empSetStatus("파일 처리 실패: " + (err && err.message ? err.message : String(err)), true);
     }
   }
@@ -7281,7 +7737,7 @@
       })
       .catch(() => {
         empSetStatus("ETF_Worksheet.xlsx를 불러오지 못했습니다. 「파일 선택」으로 업로드해 주세요.", true);
-        empRenderTable();
+        empRefreshEmpViews();
       });
   }
 
@@ -7309,13 +7765,15 @@
   let empLoadPromise = null;
   function renderEmpPage() {
     if (!pageEmpEl) return;
-    if (empDatasetRows.length) {
-      empRenderTable();
-      return;
-    }
-    if (empLoadPromise) return;
-    empLoadPromise = empLoadDefaultWorkbook().finally(() => {
-      empLoadPromise = null;
+    empSyncEnsureLoaded(false).finally(() => {
+      if (empDatasetRows.length) {
+        empRefreshEmpViews();
+        return;
+      }
+      if (empLoadPromise) return;
+      empLoadPromise = empLoadDefaultWorkbook().finally(() => {
+        empLoadPromise = null;
+      });
     });
   }
 
@@ -8849,6 +9307,29 @@
       };
       reader.onerror = () => empSetStatus("파일을 읽지 못했습니다.", true);
       reader.readAsArrayBuffer(file);
+    });
+  }
+  if (empFuturesWrap) {
+    empFuturesWrap.addEventListener("input", (e) => {
+      const el = e.target;
+      if (!el || !el.classList || !el.classList.contains("emp-futures-duration-input")) return;
+      const isin = el.getAttribute("data-emp-future-isin");
+      if (!isin) return;
+      const v = String(el.value || "").trim();
+      if (v === "") delete empFuturesDurationMap[isin];
+      else {
+        const n = empNum(v);
+        if (n === null) return;
+        empFuturesDurationMap[isin] = n;
+      }
+      empSyncPersistLocalCache(empSyncCollectSnapshot());
+      empRenderSummary();
+      empScheduleFuturesPersist();
+    });
+  }
+  if (empFuturesSaveBtn) {
+    empFuturesSaveBtn.addEventListener("click", () => {
+      empSyncPersist({ manual: true });
     });
   }
 
