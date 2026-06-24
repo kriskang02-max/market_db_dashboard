@@ -2619,8 +2619,10 @@
             <input type="number" id="empBmWeightInput" class="emp-bm-weight__input" placeholder="%" step="0.01" aria-label="BM 비중" />
             <span id="empBmDurationLabel" class="emp-bm-weight__label">BM 듀레이션: —</span>
           </div>
+          <span id="empFundStatus" class="overview-prevday-status" role="status"></span>
           <span class="overview-prevday-header-spacer" aria-hidden="true"></span>
           <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
+            <button type="button" id="empFundSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
             <button type="button" id="empFundLock" class="sidebar btn btn-secondary ovpd-toolbar-act" aria-pressed="false">잠금</button>
             <button type="button" id="empSummaryAddFundBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">펀드 추가</button>
           </div>
@@ -3092,6 +3094,8 @@
   const empSummaryAddFundBtn = document.getElementById("empSummaryAddFundBtn");
   const empSummaryLock = document.getElementById("empSummaryLock");
   const empFundLock = document.getElementById("empFundLock");
+  const empFundSave = document.getElementById("empFundSave");
+  const empFundStatus = document.getElementById("empFundStatus");
   const empBmWeightInput = document.getElementById("empBmWeightInput");
   const empBmDurationLabel = document.getElementById("empBmDurationLabel");
   const empSummaryStatus = document.getElementById("empSummaryStatus");
@@ -7612,10 +7616,16 @@
   }
 
   function empEmpSyncSaveButtonUi() {
-    if (!empSummarySave) return;
-    const allLocked = empSummaryIsLocked() && empFundIsLocked();
-    empSummarySave.disabled = allLocked;
-    empSummarySave.classList.toggle("ovpd-toolbar-textlike", allLocked);
+    if (empSummarySave) {
+      const summaryLocked = empSummaryIsLocked();
+      empSummarySave.disabled = summaryLocked;
+      empSummarySave.classList.toggle("ovpd-toolbar-textlike", summaryLocked);
+    }
+    if (empFundSave) {
+      const fundLocked = empFundIsLocked();
+      empFundSave.disabled = fundLocked;
+      empFundSave.classList.toggle("ovpd-toolbar-textlike", fundLocked);
+    }
   }
 
   function empSummarySetLocked(on) {
@@ -7727,31 +7737,34 @@
   }
 
   function empSummarySaveToStorage() {
-    const summaryLocked = empSummaryIsLocked();
-    const fundLocked = empFundIsLocked();
-    if (summaryLocked && fundLocked) return;
-    if (!summaryLocked) {
-      empCuMap = empCollectCuFromDom();
-      try {
-        localStorage.setItem(EMP_CU_STORAGE_KEY, JSON.stringify(empCuMap));
-      } catch (_) {}
-    }
-    if (!fundLocked) {
-      empCollectFundHoldingsFromDom();
-      try {
-        localStorage.setItem(
-          EMP_FUND_HOLDINGS_STORAGE_KEY,
-          JSON.stringify({ funds: empFundColumns.map(empSerializeFund), bmWeight: empBmWeight })
-        );
-      } catch (_) {}
-    }
+    if (empSummaryIsLocked()) return;
+    empCuMap = empCollectCuFromDom();
     try {
+      localStorage.setItem(EMP_CU_STORAGE_KEY, JSON.stringify(empCuMap));
       overviewSyncPersistAll({ manual: true }).then((res) => {
         if (empSummaryStatus) empSummaryStatus.textContent = overviewSyncManualSaveStatus(res);
       });
     } catch (e) {
       if (empSummaryStatus) {
         empSummaryStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
+      }
+    }
+  }
+
+  function empFundSaveToStorage() {
+    if (empFundIsLocked()) return;
+    empCollectFundHoldingsFromDom();
+    try {
+      localStorage.setItem(
+        EMP_FUND_HOLDINGS_STORAGE_KEY,
+        JSON.stringify({ funds: empFundColumns.map(empSerializeFund), bmWeight: empBmWeight })
+      );
+      overviewSyncPersistAll({ manual: true }).then((res) => {
+        if (empFundStatus) empFundStatus.textContent = overviewSyncManualSaveStatus(res);
+      });
+    } catch (e) {
+      if (empFundStatus) {
+        empFundStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
       }
     }
   }
@@ -10244,6 +10257,7 @@
   }
   if (empExportBtn) empExportBtn.addEventListener("click", () => empExportXlsx());
   if (empSummarySave) empSummarySave.addEventListener("click", () => empSummarySaveToStorage());
+  if (empFundSave) empFundSave.addEventListener("click", () => empFundSaveToStorage());
   if (empSummaryAddFundBtn) empSummaryAddFundBtn.addEventListener("click", () => empAddFundColumn());
   if (empSummaryLock) {
     empSummaryLock.addEventListener("click", () => empSummarySetLocked(!empSummaryIsLocked()));
