@@ -7455,7 +7455,7 @@
   }
 
   const EMP_WORKBOOK_URL = "ETF_Worksheet.xlsx";
-  const EMP_DATA_COLUMNS = ["일자", "ETF명", "ISIN", "종목명", "평가액", "ETF비중", "민평3사가격", "민평3사듀레이션"];
+  const EMP_DATA_COLUMNS = ["일자", "ETF명", "ISIN", "종목명", "만기", "평가액", "ETF비중", "민평3사가격", "민평3사듀레이션"];
   let empDatasetRows = [];
   let empDatasetDateTag = "";
   let empEtfNavMap = {};
@@ -8187,6 +8187,11 @@
     return empNum(row.민평3사듀레이션);
   }
 
+  function empRowYtm(row) {
+    if (empIsFutureIsin(row.ISIN)) return null;
+    return empNum(row.민평3사수익률);
+  }
+
   function empEtfWeightedDuration(rows, etfName, durationOverrides) {
     const nav = empNum(empEtfNavMap[etfName]);
     if (nav === null || nav <= 0) return null;
@@ -8196,6 +8201,19 @@
       const dur = empRowDuration(r, durationOverrides);
       if (evalAmt === null || evalAmt <= 0 || dur === null) return;
       numerator += evalAmt * dur;
+    });
+    return numerator / nav;
+  }
+
+  function empEtfWeightedYtm(rows, etfName) {
+    const nav = empNum(empEtfNavMap[etfName]);
+    if (nav === null || nav <= 0) return null;
+    let numerator = 0;
+    rows.forEach((r) => {
+      const evalAmt = empNum(r.평가액);
+      const ytm = empRowYtm(r);
+      if (evalAmt === null || evalAmt <= 0 || ytm === null) return;
+      numerator += evalAmt * ytm;
     });
     return numerator / nav;
   }
@@ -8211,12 +8229,13 @@
     const locked = empSummaryIsLocked();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
     let h =
-      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율</th><th>CU</th><th>1CU</th><th>순자산총액(억)</th><th>듀레이션</th></tr></thead><tbody>';
+      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율</th><th>CU</th><th>1CU</th><th>순자산총액(억)</th><th>듀레이션</th><th>YTM</th></tr></thead><tbody>';
     etfNames.forEach((etfName) => {
       const rows = byEtf.get(etfName);
       const meta = empEtfMetaMap[etfName] || {};
       const nav = empEtfNavMap[etfName];
       const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
+      const wYtm = empEtfWeightedYtm(rows, etfName);
       const cuVal = cuSaved[etfName] != null ? String(cuSaved[etfName]) : "";
       const oneCu = empCalcOneCu(meta.basePrice, cuVal);
       const disparityAlert = empIsDisparityFiltered(meta.disparity);
@@ -8247,6 +8266,7 @@
       h += '<td class="emp-onecu-cell">' + empFmtDisplay(oneCu, 0) + "</td>";
       h += "<td>" + empFmtNavEok(nav) + "</td>";
       h += "<td>" + empFmtDisplay(wDur, 4) + "</td>";
+      h += "<td>" + empFmtDisplay(wYtm, 4) + "</td>";
       h += "</tr>";
     });
     h += "</tbody></table>";
@@ -8328,12 +8348,13 @@
     const durationOverrides = empLoadFuturesDurations();
     const cuSaved = empLoadCuMap();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
-    const lines = ["ETF명\t기준가\t괴리율\tCU\t1CU\t순자산총액(억)\t듀레이션"];
+    const lines = ["ETF명\t기준가\t괴리율\tCU\t1CU\t순자산총액(억)\t듀레이션\tYTM"];
     etfNames.forEach((etfName) => {
         const rows = byEtf.get(etfName);
         const meta = empEtfMetaMap[etfName] || {};
         const nav = empEtfNavMap[etfName];
         const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
+        const wYtm = empEtfWeightedYtm(rows, etfName);
         const cu = cuSaved[etfName];
         const oneCu = empCalcOneCu(meta.basePrice, cu);
         lines.push(
@@ -8345,6 +8366,7 @@
             empFmtDisplay(oneCu, 0),
             empFmtNavEok(nav),
             empFmtDisplay(wDur, 4),
+            empFmtDisplay(wYtm, 4),
           ].join("\t")
         );
       });
@@ -8371,7 +8393,7 @@
     h +=
       '<table style="border-collapse:collapse;font-family:Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:12px;">';
     h += "<thead><tr>";
-    ["ETF명", "기준가", "괴리율", "CU", "1CU", "순자산총액(억)", "듀레이션"].forEach((col, i) => {
+    ["ETF명", "기준가", "괴리율", "CU", "1CU", "순자산총액(억)", "듀레이션", "YTM"].forEach((col, i) => {
       h += '<th style="' + thStyle + (i === 0 ? "text-align:left;" : "") + '">' + escapeHtml(col) + "</th>";
     });
     h += "</tr></thead><tbody>";
@@ -8380,6 +8402,7 @@
       const meta = empEtfMetaMap[etfName] || {};
       const nav = empEtfNavMap[etfName];
       const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
+      const wYtm = empEtfWeightedYtm(rows, etfName);
       const cu = cuSaved[etfName];
       const oneCu = empCalcOneCu(meta.basePrice, cu);
       const disparityAlert = empIsDisparityFiltered(meta.disparity);
@@ -8395,6 +8418,7 @@
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(oneCu, 0)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtNavEok(nav)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wDur, 4)) + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wYtm, 4)) + "</td>";
       h += "</tr>";
     });
     h += "</tbody></table>";
@@ -8610,6 +8634,25 @@
     return y + "-" + m + "-" + day;
   }
 
+  function empFmtMaturityYmd(v) {
+    if (v == null || v === "") return "—";
+    const raw = typeof v === "number" ? v : String(v).trim();
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      const n = Math.floor(raw);
+      if (n >= 19000101 && n <= 29991231) {
+        const d = String(n);
+        return d.slice(0, 4) + "-" + d.slice(4, 6) + "-" + d.slice(6, 8);
+      }
+    }
+    const s = String(raw).trim();
+    if (/^\d{8}$/.test(s)) {
+      return s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8);
+    }
+    const ymd = empFormatYmd(v);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+    return s || "—";
+  }
+
   function empDateKey(v) {
     return empFormatYmd(v);
   }
@@ -8727,10 +8770,15 @@
           종목코드:
             empCell(pdfWs, r, block.startCol + 2) != null ? String(empCell(pdfWs, r, block.startCol + 2)) : "",
           종목명: empCell(pdfWs, r, block.startCol + 3) != null ? String(empCell(pdfWs, r, block.startCol + 3)) : "",
+          만기:
+            empCell(pdfWs, r, block.startCol + 10) != null
+              ? empFmtMaturityYmd(empCell(pdfWs, r, block.startCol + 10))
+              : "",
           평가액: evalAmt,
           "ETF비중": weight,
           민평3사가격: empNum(empCell(pdfWs, r, block.startCol + 8)),
           민평3사듀레이션: empNum(empCell(pdfWs, r, block.startCol + 9)),
+          민평3사수익률: empNum(empCell(pdfWs, r, block.startCol + 11)),
         });
       }
     });
@@ -8754,6 +8802,7 @@
       h += "<td>" + escapeHtml(row.ETF명 || "") + "</td>";
       h += "<td>" + escapeHtml(row.ISIN || "") + "</td>";
       h += "<td>" + escapeHtml(row.종목명 || "") + "</td>";
+      h += "<td>" + escapeHtml(row.만기 || "") + "</td>";
       h += "<td>" + empFmtDisplay(row.평가액, 0) + "</td>";
       h += "<td>" + empFmtDisplay(row["ETF비중"], 2) + "</td>";
       h += "<td>" + empFmtDisplay(row.민평3사가격, 2) + "</td>";
