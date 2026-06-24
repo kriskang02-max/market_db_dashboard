@@ -8881,16 +8881,25 @@
     return map;
   }
 
-  function empGetEtfInfoDisparityPrev(etfInfoMap, etfName, dateKey) {
-    const byDate = etfInfoMap[etfName];
-    if (!byDate || !dateKey) return null;
-    const keys = Object.keys(byDate)
+  function empGetEtfInfoSortedDateKeys(byDate) {
+    if (!byDate) return [];
+    return Object.keys(byDate)
       .filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k))
       .sort();
+  }
+
+  function empGetEtfInfoDisparityPair(etfInfoMap, etfName, dateKey) {
+    const byDate = etfInfoMap[etfName];
+    if (!byDate || !dateKey) return { disparity: null, disparityPrev: null };
+    const keys = empGetEtfInfoSortedDateKeys(byDate);
     const idx = keys.indexOf(dateKey);
-    if (idx <= 0) return null;
-    const prev = byDate[keys[idx - 1]];
-    return prev && prev.disparity != null ? prev.disparity : null;
+    if (idx < 0) return { disparity: null, disparityPrev: null };
+    const read = (i) => {
+      if (i < 0 || i >= keys.length) return null;
+      const info = byDate[keys[i]];
+      return info && info.disparity != null ? info.disparity : null;
+    };
+    return { disparity: read(idx - 1), disparityPrev: read(idx - 2) };
   }
 
   function empParsePdfBlocks(ws) {
@@ -8928,10 +8937,11 @@
       const etfCode = block.code != null ? String(block.code).trim() : "";
       if (etfInfo) {
         if (etfInfo.nav != null) navMap[etfName] = etfInfo.nav;
+        const disparities = empGetEtfInfoDisparityPair(etfInfoMap, etfName, dateKey);
         metaMap[etfName] = {
           basePrice: etfInfo.basePrice,
-          disparity: etfInfo.disparity,
-          disparityPrev: empGetEtfInfoDisparityPrev(etfInfoMap, etfName, dateKey),
+          disparity: disparities.disparity,
+          disparityPrev: disparities.disparityPrev,
           code: etfCode,
         };
       } else if (!metaMap[etfName]) {
