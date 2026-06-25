@@ -490,8 +490,24 @@
       background: rgba(14, 17, 23, 0.55);
       padding: 0.45rem 0.5rem 0.55rem;
     }
+    #page-emp .emp-bm-matrix-debug__body {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
     #page-emp .emp-bm-matrix-debug .emp-fund-matrix-panel {
+      flex: 1 1 auto;
+      min-width: 0;
       max-width: 36rem;
+    }
+    #page-emp .emp-bm-matrix-debug .emp-bm-weight {
+      flex: 0 0 auto;
+      margin-left: 0;
+      margin-top: 0.15rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.22rem;
     }
     #page-emp .emp-matrix-legend {
       display: inline-flex;
@@ -2770,11 +2786,6 @@
       <div class="emp-fund-block">
         <div class="overview-prevday-header-row">
           <h3 class="overview-prevday-table-heading">EMP 펀드</h3>
-          <div class="emp-bm-weight" title="KODEX 종합채권(AA-이상)액티브 듀레이션 × 비중">
-            <span class="emp-bm-weight__label">비중</span>
-            <input type="number" id="empBmWeightInput" class="emp-bm-weight__input" placeholder="%" step="0.01" aria-label="BM 비중" />
-            <span id="empBmDurationLabel" class="emp-bm-weight__label">BM 듀레이션: —</span>
-          </div>
           <span id="empFundStatus" class="overview-prevday-status" role="status"></span>
           <span class="overview-prevday-header-spacer" aria-hidden="true"></span>
           <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
@@ -2784,7 +2795,19 @@
           </div>
         </div>
         <div class="emp-fund-wrap" id="empFundWrap"></div>
-        <div class="emp-fund-matrix-wrap" id="empFundMatrixWrap"></div>
+        <div class="emp-fund-matrix-wrap" id="empFundMatrixWrap">
+          <div class="emp-bm-matrix-debug" id="empBmMatrixDebug" hidden>
+            <div class="emp-fund-matrix-fund__title">BM 듀레이션 (BM정보 · 비중치%)</div>
+            <div class="emp-bm-matrix-debug__body">
+              <div class="emp-fund-matrix-panel" id="empBmMatrixTableWrap"></div>
+              <div class="emp-bm-weight" title="BM 듀레이션 매트릭스에 곱해지는 비중(%)">
+                <span class="emp-bm-weight__label">BM 비중</span>
+                <input type="number" id="empBmWeightInput" class="emp-bm-weight__input" placeholder="%" step="0.01" aria-label="BM 비중" />
+              </div>
+            </div>
+          </div>
+          <div id="empFundMatrixFundsWrap"></div>
+        </div>
       </div>
       <div class="emp-holdings-block">
         <div class="overview-prevday-header-row">
@@ -3273,11 +3296,13 @@
   const empFundSave = document.getElementById("empFundSave");
   const empFundStatus = document.getElementById("empFundStatus");
   const empBmWeightInput = document.getElementById("empBmWeightInput");
-  const empBmDurationLabel = document.getElementById("empBmDurationLabel");
   const empSummaryStatus = document.getElementById("empSummaryStatus");
   const empSummaryWrap = document.getElementById("empSummaryWrap");
   const empFundWrap = document.getElementById("empFundWrap");
   const empFundMatrixWrap = document.getElementById("empFundMatrixWrap");
+  const empBmMatrixDebug = document.getElementById("empBmMatrixDebug");
+  const empBmMatrixTableWrap = document.getElementById("empBmMatrixTableWrap");
+  const empFundMatrixFundsWrap = document.getElementById("empFundMatrixFundsWrap");
   const empDisparityFilterUpper = document.getElementById("empDisparityFilterUpper");
   const empDisparityFilterLower = document.getElementById("empDisparityFilterLower");
   const empFuturesWrap = document.getElementById("empFuturesWrap");
@@ -7922,42 +7947,8 @@
     overviewSyncPersistAll({ manual: false });
   }
 
-  const EMP_BM_ETF_CODE = "273130";
-
-  function empFindBmEtfName() {
-    const names = Object.keys(empEtfMetaMap);
-    for (let i = 0; i < names.length; i++) {
-      const code = String((empEtfMetaMap[names[i]] && empEtfMetaMap[names[i]].code) || "").trim();
-      if (code === EMP_BM_ETF_CODE) return names[i];
-    }
-    for (let i = 0; i < names.length; i++) {
-      const name = names[i];
-      if (/종합채권/.test(name) && /액티브/.test(name) && !/장기/.test(name)) return name;
-    }
-    return null;
-  }
-
-  function empCalcBmDuration() {
-    const wt = empNum(empBmWeight);
-    if (wt === null) return null;
-    const etfName = empFindBmEtfName();
-    if (!etfName || !empDatasetRows.length) return null;
-    const { byEtf } = empGetSortedEtfGroups();
-    const rows = byEtf.get(etfName) || [];
-    const d = empEtfWeightedDuration(rows, etfName, empLoadFuturesDurations());
-    if (d === null) return null;
-    return (wt / 100) * d;
-  }
-
-  function empUpdateBmDurationLabel() {
-    if (!empBmDurationLabel) return;
-    const bm = empCalcBmDuration();
-    empBmDurationLabel.textContent = bm !== null ? "BM 듀레이션: " + bm.toFixed(2) + "년" : "BM 듀레이션: —";
-  }
-
   function empSyncBmWeightInput() {
     if (empBmWeightInput) empBmWeightInput.value = empBmWeight != null ? String(empBmWeight) : "";
-    empUpdateBmDurationLabel();
   }
 
   function empFmtQty(v) {
@@ -8290,7 +8281,6 @@
   function empRenderFundTableIfNotEditing() {
     if (empFundIsEditing()) {
       empUpdateAllFundComputedCells();
-      empUpdateBmDurationLabel();
       empRenderFundMatrices();
       return;
     }
@@ -8715,7 +8705,6 @@
     h += "</tbody></table>";
     empFundWrap.innerHTML = h;
     empFundSyncLockUi();
-    empUpdateBmDurationLabel();
     empRenderFundMatrices();
   }
 
@@ -9191,13 +9180,6 @@
     return wt !== null ? wt / 100 : 0;
   }
 
-  function empBmCellAvgDuration(bmCells, sector, bucket) {
-    const bw = bmCells.weight[sector][bucket] || 0;
-    const bd = bmCells.dur[sector][bucket] || 0;
-    if (bw <= 0) return 0;
-    return bd / (bw / 100);
-  }
-
   function empFmtMatrixWeight(v) {
     const n = empNum(v);
     if (n === null || Math.abs(n) < 1e-9) return "—";
@@ -9226,10 +9208,9 @@
       return bd * bmFactor;
     }
     if (mode === "bmDiff" && cells && bmCells) {
-      const fw = cells.weight[sector][bucket] || 0;
       const fd = cells.dur[sector][bucket] || 0;
-      const bmAvg = empBmCellAvgDuration(bmCells, sector, bucket);
-      return fd - (fw / 100) * bmAvg * bmFactor;
+      const bmDurScaled = (bmCells.dur[sector][bucket] || 0) * bmFactor;
+      return fd - bmDurScaled;
     }
     return 0;
   }
@@ -9306,45 +9287,38 @@
     return h;
   }
 
-  function empMatrixGrandWeight(cells) {
-    let total = 0;
-    EMP_MATRIX_SECTORS.forEach((sector) => {
-      EMP_MATRIX_BUCKETS.forEach((bucket) => {
-        total += cells.weight[sector][bucket] || 0;
-      });
-    });
-    return total;
+  function empUpdateBmMatrixTable(bmCells) {
+    if (!empBmMatrixTableWrap) return;
+    empBmMatrixTableWrap.innerHTML = empRenderMatrixTable(null, "bmDur", bmCells);
   }
 
-  function empMatrixPortfolioDuration(cells) {
-    const w = empMatrixGrandWeight(cells);
-    if (!w) return null;
-    let durSum = 0;
-    EMP_MATRIX_SECTORS.forEach((sector) => {
-      EMP_MATRIX_BUCKETS.forEach((bucket) => {
-        durSum += cells.dur[sector][bucket] || 0;
-      });
-    });
-    return (durSum / w) * 100;
-  }
-
-  function empRenderBmMatrixDebug(bmCells) {
-    const bmFactor = empGetBmWeightFactor();
-    const wad = empMatrixPortfolioDuration(bmCells);
-    const scaledWad = wad !== null && bmFactor ? wad * bmFactor : null;
-    const wadText = scaledWad !== null ? empFmtDisplay(scaledWad, 2) + "년" : "—";
-    const wtLabel = empBmWeight ? " · BM비중 " + empBmWeight + "%" : "";
-    let h = '<div class="emp-bm-matrix-debug">';
-    h +=
-      '<div class="emp-fund-matrix-fund__title">BM 듀레이션 (BM정보 · 비중치%)' +
-      escapeHtml(wtLabel) +
-      " · 포트폴리오 " +
-      escapeHtml(wadText) +
-      "</div>";
-    h += '<div class="emp-fund-matrix-panel">';
-    h += empRenderMatrixTable(null, "bmDur", bmCells);
-    h += "</div></div>";
-    return h;
+  function empRenderFundMatrices() {
+    if (!empFundMatrixWrap) return;
+    if (!empDatasetRows.length) {
+      if (empBmMatrixDebug) empBmMatrixDebug.hidden = true;
+      if (empBmMatrixTableWrap) empBmMatrixTableWrap.innerHTML = "";
+      if (empFundMatrixFundsWrap) empFundMatrixFundsWrap.innerHTML = "";
+      return;
+    }
+    const funds = empFundColumns.filter(empFundHasMatrixData);
+    if (!funds.length) {
+      if (empBmMatrixDebug) empBmMatrixDebug.hidden = true;
+      if (empBmMatrixTableWrap) empBmMatrixTableWrap.innerHTML = "";
+      if (empFundMatrixFundsWrap) empFundMatrixFundsWrap.innerHTML = "";
+      return;
+    }
+    const bmCells = empBuildBmMatrixCells();
+    if (empBmMatrixDebug) empBmMatrixDebug.hidden = false;
+    empUpdateBmMatrixTable(bmCells);
+    empSyncBmWeightInput();
+    let h = "";
+    for (let i = 0; i < funds.length; i += 2) {
+      h += '<div class="emp-fund-matrix-row">';
+      h += empRenderFundMatrixFundBlock(funds[i], bmCells);
+      if (funds[i + 1]) h += empRenderFundMatrixFundBlock(funds[i + 1], bmCells);
+      h += "</div>";
+    }
+    if (empFundMatrixFundsWrap) empFundMatrixFundsWrap.innerHTML = h;
   }
 
   function empFundHasMatrixData(fund) {
@@ -9373,28 +9347,6 @@
       "</div>";
     h += "</div></div>";
     return h;
-  }
-
-  function empRenderFundMatrices() {
-    if (!empFundMatrixWrap) return;
-    if (!empDatasetRows.length) {
-      empFundMatrixWrap.innerHTML = "";
-      return;
-    }
-    const funds = empFundColumns.filter(empFundHasMatrixData);
-    if (!funds.length) {
-      empFundMatrixWrap.innerHTML = "";
-      return;
-    }
-    const bmCells = empBuildBmMatrixCells();
-    let h = empRenderBmMatrixDebug(bmCells);
-    for (let i = 0; i < funds.length; i += 2) {
-      h += '<div class="emp-fund-matrix-row">';
-      h += empRenderFundMatrixFundBlock(funds[i], bmCells);
-      if (funds[i + 1]) h += empRenderFundMatrixFundBlock(funds[i + 1], bmCells);
-      h += "</div>";
-    }
-    empFundMatrixWrap.innerHTML = h;
   }
 
   function empDateKey(v) {
@@ -11248,7 +11200,6 @@
     empBmWeightInput.addEventListener("input", () => {
       if (empFundIsLocked()) return;
       empBmWeight = String(empBmWeightInput.value || "").trim();
-      empUpdateBmDurationLabel();
       empRenderFundMatrices();
       empSaveFundHoldingsLocal();
       empScheduleFundPersist();
@@ -11396,7 +11347,6 @@
       } catch (_) {}
       empRenderSummary();
       empRenderFundTableIfNotEditing();
-      empUpdateBmDurationLabel();
       empScheduleFuturesPersist();
     });
   }
