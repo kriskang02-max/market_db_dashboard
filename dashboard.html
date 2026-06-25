@@ -677,6 +677,7 @@
     #page-emp .emp-table col.emp-hold-col-name { width: 9.5rem; }
     #page-emp .emp-table col.emp-hold-col-mat { width: 5.5rem; }
     #page-emp .emp-table col.emp-hold-col-bucket { width: 4.25rem; }
+    #page-emp .emp-table col.emp-hold-col-sector { width: 4.75rem; }
     #page-emp .emp-table col.emp-hold-col-num { width: 4.85rem; }
     nav.page-nav {
       display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem;
@@ -4040,6 +4041,7 @@
     overviewFbSaveConfig.addEventListener("click", () => overviewFirebaseSaveConfigFromForm());
   }
   overviewTradeRenderFromState(overviewTradeLoadSaved());
+  overviewSyncHydrateTablesFromStorage();
   overviewSyncEnsureLoaded(false).then(() => {
     overviewMemoLoadFromStorage();
     overviewTradeRenderFromState(overviewTradeLoadSaved());
@@ -5062,7 +5064,7 @@
       return Promise.resolve(false);
     }
     return ref
-      .set({ version: 1, updatedAt: new Date().toISOString(), ping: true })
+      .update({ ping: true, updatedAt: new Date().toISOString() })
       .then(() => {
         if (overviewFbSetupStatus)
           overviewFbSetupStatus.textContent =
@@ -5253,27 +5255,94 @@
     } catch (_) {}
   }
 
-  function overviewSyncCollectSnapshot() {
-    let prevdayPayload = null;
+  let overviewTablesHydratedFromStorage = false;
+
+  function overviewSyncParseStorageSection(storageKey) {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      if (!o || !Array.isArray(o.rows) || !o.rows.length) return null;
+      return o;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function overviewSyncCollectPrevdayPayload() {
     try {
       if (overviewPrevDayTbody) {
-        overviewPrevDayRows = overviewPrevDayCollectRowsFromDom();
-        prevdayPayload = {
-          rows: overviewPrevDayRows.map((r) => ({
-            id: r.id,
-            breed: r.breed,
-            tenor: r.tenor,
-            abbrev: r.abbrev,
-            appliedU: r.appliedU,
-            diffU: r.diffU,
-            marked: !!r.marked,
-          })),
-        };
-      } else {
-        const raw = localStorage.getItem(OVERVIEW_PREVDAY_STORAGE_KEY);
-        if (raw) prevdayPayload = JSON.parse(raw);
+        const domRows = overviewPrevDayCollectRowsFromDom();
+        if (domRows.length) {
+          overviewPrevDayRows = domRows;
+          return {
+            rows: domRows.map((r) => ({
+              id: r.id,
+              breed: r.breed,
+              tenor: r.tenor,
+              abbrev: r.abbrev,
+              appliedU: r.appliedU,
+              diffU: r.diffU,
+              marked: !!r.marked,
+            })),
+          };
+        }
+        if (!overviewTablesHydratedFromStorage) {
+          return overviewSyncParseStorageSection(OVERVIEW_PREVDAY_STORAGE_KEY);
+        }
+        return { rows: [] };
       }
-    } catch (_) {}
+      return overviewSyncParseStorageSection(OVERVIEW_PREVDAY_STORAGE_KEY);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function overviewSyncCollectKeybondPayload() {
+    try {
+      if (overviewKeyBondTbody) {
+        const rows = overviewKeyBondCollectFromDom();
+        if (rows.length) {
+          return { rows: rows.map((r) => ({ id: r.id, issuer: r.issuer })) };
+        }
+        if (!overviewTablesHydratedFromStorage) {
+          return overviewSyncParseStorageSection(OVERVIEW_KEYBOND_STORAGE_KEY);
+        }
+        return { rows: [] };
+      }
+      return overviewSyncParseStorageSection(OVERVIEW_KEYBOND_STORAGE_KEY);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function overviewSyncHydrateTablesFromStorage() {
+    const prevStored = overviewSyncParseStorageSection(OVERVIEW_PREVDAY_STORAGE_KEY);
+    if (prevStored && overviewPrevDayTbody) {
+      overviewPrevDayRenderFromState(prevStored.rows);
+    }
+    return ensureTermData()
+      .then(() => {
+        overviewKeyBondRebuildLookup();
+        const kbStored = overviewSyncParseStorageSection(OVERVIEW_KEYBOND_STORAGE_KEY);
+        if (kbStored && overviewKeyBondTbody) {
+          overviewKeyBondRenderFromState(kbStored.rows);
+        }
+      })
+      .finally(() => {
+        overviewTablesHydratedFromStorage = true;
+      });
+  }
+
+  function overviewSyncShouldWriteSection(section, manual) {
+    if (!section) return false;
+    if (!Array.isArray(section.rows)) return true;
+    if (section.rows.length) return true;
+    return !!manual;
+  }
+
+  function overviewSyncCollectSnapshot() {
+    let prevdayPayload = overviewSyncCollectPrevdayPayload();
 
     let policyPayload = null;
     try {
@@ -5282,13 +5351,7 @@
         : JSON.parse(localStorage.getItem(OVERVIEW_POLICY_STORAGE_KEY) || "null");
     } catch (_) {}
 
-    let keybondPayload = null;
-    try {
-      const rows = overviewKeyBondTbody ? overviewKeyBondCollectFromDom() : null;
-      keybondPayload = rows
-        ? { rows: rows.map((r) => ({ id: r.id, issuer: r.issuer })) }
-        : JSON.parse(localStorage.getItem(OVERVIEW_KEYBOND_STORAGE_KEY) || "null");
-    } catch (_) {}
+    let keybondPayload = overviewSyncCollectKeybondPayload();
 
     let tradePayload = null;
     try {
@@ -5317,11 +5380,26 @@
     };
   }
 
-  function overviewSyncSaveToCloud(snapshot) {
+  function overviewSyncSaveToCloud(snapshot, opts) {
     const ref = overviewFirebaseRef();
     if (!ref) return Promise.resolve(false);
+    const manual = !!(opts && opts.manual);
+    if (manual) {
+      return ref
+        .set(snapshot)
+        .then(() => true)
+        .catch(() => false);
+    }
     return ref
-      .set(snapshot)
+      .once("value")
+      .then((snap) => {
+        const cur = snap.val();
+        if (!cur || cur.version !== 1) return ref.set(snapshot);
+        const merged = { ...snapshot };
+        if (!overviewSyncShouldWriteSection(snapshot.prevday, false) && cur.prevday) merged.prevday = cur.prevday;
+        if (!overviewSyncShouldWriteSection(snapshot.keybond, false) && cur.keybond) merged.keybond = cur.keybond;
+        return ref.set(merged);
+      })
       .then(() => true)
       .catch(() => false);
   }
@@ -5359,9 +5437,13 @@
     const snap = overviewSyncCollectSnapshot();
     try {
       if (snap.memo != null) localStorage.setItem(OVERVIEW_MEMO_STORAGE_KEY, String(snap.memo));
-      if (snap.prevday) localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(snap.prevday));
+      if (overviewSyncShouldWriteSection(snap.prevday, manual)) {
+        localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(snap.prevday));
+      }
       if (snap.policy) localStorage.setItem(OVERVIEW_POLICY_STORAGE_KEY, JSON.stringify(snap.policy));
-      if (snap.keybond) localStorage.setItem(OVERVIEW_KEYBOND_STORAGE_KEY, JSON.stringify(snap.keybond));
+      if (overviewSyncShouldWriteSection(snap.keybond, manual)) {
+        localStorage.setItem(OVERVIEW_KEYBOND_STORAGE_KEY, JSON.stringify(snap.keybond));
+      }
       if (snap.trade) localStorage.setItem(OVERVIEW_TRADE_STORAGE_KEY, JSON.stringify(snap.trade));
       if (snap.empFutures) {
         localStorage.setItem(EMP_FUTURES_DURATION_STORAGE_KEY, JSON.stringify(snap.empFutures));
@@ -5390,7 +5472,7 @@
       }
       localStorage.setItem(OVERVIEW_SYNC_META_KEY, JSON.stringify({ updatedAt: snap.updatedAt }));
     } catch (_) {}
-    return overviewSyncSaveToCloud(snap).then((cloudOk) => {
+    return overviewSyncSaveToCloud(snap, opts).then((cloudOk) => {
       if (cloudOk) {
         overviewSyncUpdateBanner(snap, true);
         return { fileOk: true, cloud: true, downloaded: false };
@@ -5436,6 +5518,7 @@
   }
 
   function overviewSyncRefreshOverviewUi() {
+    overviewTablesHydratedFromStorage = true;
     overviewMemoLoadFromStorage();
     overviewTradeRenderFromState(overviewTradeLoadSaved());
     overviewTradeSyncToolbarLockUi();
@@ -7523,8 +7606,9 @@
     { key: "종목명", label: "종목명", col: "emp-hold-col-name", decimals: null, title: true },
     { key: "만기", label: "만기", col: "emp-hold-col-mat", decimals: null, title: false },
     { key: "만기구분", label: "만기구분", col: "emp-hold-col-bucket", decimals: null, title: false },
+    { key: "섹터", label: "섹터", col: "emp-hold-col-sector", decimals: null, title: false },
     { key: "평가액", label: "평가액", col: "emp-hold-col-num", decimals: 0, title: false },
-    { key: "ETF비중", label: "ETF비중", col: "emp-hold-col-num", decimals: 2, title: false },
+    { key: "투자비중", label: "투자 비중", col: "emp-hold-col-num", decimals: 2, title: false },
     { key: "민평3사가격", label: "민평3사가격", col: "emp-hold-col-num", decimals: 2, title: false },
     { key: "민평3사듀레이션", label: "민평3사듀레이션", col: "emp-hold-col-num", decimals: 4, title: false },
     { key: "민평3사수익률", label: "평가수익률", col: "emp-hold-col-num", decimals: 4, title: false },
@@ -7973,6 +8057,8 @@
     const map = cuMap || empLoadCuMap();
     if (col.key === "평가액") return empAdjustedEvalAmt(row, map);
     if (col.key === "만기구분") return empFmtMaturityBucket(row.만기);
+    if (col.key === "섹터") return row.섹터 != null ? row.섹터 : "—";
+    if (col.key === "투자비중") return empCalcInvestWeight(row, map);
     return row[col.key];
   }
 
@@ -8874,6 +8960,26 @@
     return "50년";
   }
 
+  function empFmtSector(infomaxMajor, infomaxMinor) {
+    const major = String(infomaxMajor || "").trim();
+    const minor = String(infomaxMinor || "").trim();
+    if (!major && !minor) return "—";
+    if (major === "통안증권") return "통안채";
+    if (major === "공사공단채") return "특수채";
+    if (major === "금융채") {
+      if (minor === "카드" || minor === "기타금융채") return "여전채";
+      return minor || major;
+    }
+    return major || minor || "—";
+  }
+
+  function empCalcInvestWeight(row, cuMap) {
+    const evalAmt = empAdjustedEvalAmt(row, cuMap);
+    const nav = empNum(empEtfNavMap[row.ETF명]);
+    if (evalAmt === null || nav === null || nav === 0) return null;
+    return (evalAmt / nav) * 100;
+  }
+
   function empDateKey(v) {
     return empFormatYmd(v);
   }
@@ -9001,10 +9107,11 @@
         const rowDate = empCell(pdfWs, r, block.startCol);
         if (isin == null && rowDate == null) break;
         if (!isin) continue;
-        const weight = empNum(empCell(pdfWs, r, block.startCol + 5));
         const prevEval = empNum(empCell(pdfWs, r, block.startCol + 7));
         const evalAmt =
           prevEval != null && listedShares != null ? (prevEval * listedShares) / 1000 : null;
+        const infomaxMajor = empCell(pdfWs, r, block.startCol + 12);
+        const infomaxMinor = empCell(pdfWs, r, block.startCol + 13);
         const ymd = empFormatYmd(rowDate != null ? rowDate : block.dateVal);
         if (!dateTag && ymd) dateTag = ymd.replace(/-/g, "");
         out.push({
@@ -9018,8 +9125,8 @@
             empCell(pdfWs, r, block.startCol + 10) != null
               ? empFmtMaturityYmd(empCell(pdfWs, r, block.startCol + 10))
               : "",
+          섹터: empFmtSector(infomaxMajor, infomaxMinor),
           평가액: evalAmt,
-          "ETF비중": weight,
           민평3사가격: empNum(empCell(pdfWs, r, block.startCol + 8)),
           민평3사듀레이션: empNum(empCell(pdfWs, r, block.startCol + 9)),
           민평3사수익률: empNum(empCell(pdfWs, r, block.startCol + 11)),
