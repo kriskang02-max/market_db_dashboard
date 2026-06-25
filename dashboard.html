@@ -477,6 +477,22 @@
       padding-left: 0.28rem;
       width: 3.1rem;
     }
+    #page-emp .emp-matrix-table .emp-matrix-sum,
+    #page-emp .emp-matrix-table tr.emp-matrix-total-row th,
+    #page-emp .emp-matrix-table tr.emp-matrix-total-row td {
+      background: rgba(255, 255, 255, 0.06);
+      font-weight: 600;
+    }
+    #page-emp .emp-bm-matrix-debug {
+      margin-bottom: 0.35rem;
+      border-radius: 8px;
+      border: 1px solid rgba(251, 191, 36, 0.28);
+      background: rgba(14, 17, 23, 0.55);
+      padding: 0.45rem 0.5rem 0.55rem;
+    }
+    #page-emp .emp-bm-matrix-debug .emp-fund-matrix-panel {
+      max-width: 36rem;
+    }
     #page-emp .emp-summary-table,
     #page-emp .emp-fund-table,
     #page-emp .emp-futures-table {
@@ -9109,7 +9125,7 @@
     for (let r = 1; r < rows; r++) {
       const major = empCell(ws, r, 2);
       const minor = empCell(ws, r, 13);
-      const weight = empNum(empCell(ws, r, 10));
+      const weight = empNum(empCell(ws, r, 12));
       const duration = empNum(empCell(ws, r, 6));
       const maturity = empCell(ws, r, 9);
       if (weight === null || weight <= 0) continue;
@@ -9165,37 +9181,102 @@
   function empFmtMatrixDur(v) {
     const n = empNum(v);
     if (n === null || Math.abs(n) < 1e-9) return "—";
-    return empFmtDisplay(n, 4);
+    return empFmtDisplay(n, 2);
   }
 
   function empFmtMatrixBmDiff(v) {
     const n = empNum(v);
     if (n === null || Math.abs(n) < 1e-9) return "—";
     const sign = n > 0 ? "+" : "";
-    return sign + empFmtDisplay(n, 4);
+    return sign + empFmtDisplay(n, 2);
+  }
+
+  function empMatrixRawValue(cells, mode, bmCells, sector, bucket) {
+    if (mode === "weight") return cells && cells.weight[sector] ? cells.weight[sector][bucket] || 0 : 0;
+    if (mode === "dur") return cells && cells.dur[sector] ? cells.dur[sector][bucket] || 0 : 0;
+    if (mode === "bmDur") return bmCells && bmCells.dur[sector] ? bmCells.dur[sector][bucket] || 0 : 0;
+    if (mode === "bmDiff" && cells && bmCells) {
+      return (cells.dur[sector][bucket] || 0) - (bmCells.dur[sector][bucket] || 0);
+    }
+    return 0;
+  }
+
+  function empFmtMatrixCell(v, mode) {
+    if (mode === "weight") return empFmtMatrixWeight(v);
+    if (mode === "bmDiff") return empFmtMatrixBmDiff(v);
+    return empFmtMatrixDur(v);
   }
 
   function empRenderMatrixTable(cells, mode, bmCells) {
+    const rowSums = {};
+    const colSums = {};
+    EMP_MATRIX_SECTORS.forEach((sector) => {
+      rowSums[sector] = 0;
+    });
+    EMP_MATRIX_BUCKETS.forEach((bucket) => {
+      colSums[bucket] = 0;
+    });
+
     let h = '<table class="emp-matrix-table"><thead><tr><th></th>';
     EMP_MATRIX_BUCKETS.forEach((bucket) => {
       h += "<th>" + escapeHtml(bucket) + "</th>";
     });
-    h += "</tr></thead><tbody>";
+    h += "<th>합계</th></tr></thead><tbody>";
     EMP_MATRIX_SECTORS.forEach((sector) => {
       h += "<tr><th>" + escapeHtml(sector) + "</th>";
       EMP_MATRIX_BUCKETS.forEach((bucket) => {
-        let text = "—";
-        if (mode === "weight") text = empFmtMatrixWeight(cells.weight[sector][bucket]);
-        else if (mode === "dur") text = empFmtMatrixDur(cells.dur[sector][bucket]);
-        else if (bmCells) {
-          const diff = cells.dur[sector][bucket] - bmCells.dur[sector][bucket];
-          text = empFmtMatrixBmDiff(diff);
-        }
-        h += "<td>" + escapeHtml(text) + "</td>";
+        const raw = empMatrixRawValue(cells, mode, bmCells, sector, bucket);
+        rowSums[sector] += raw;
+        colSums[bucket] += raw;
+        h += "<td>" + escapeHtml(empFmtMatrixCell(raw, mode)) + "</td>";
       });
+      h += '<td class="emp-matrix-sum">' + escapeHtml(empFmtMatrixCell(rowSums[sector], mode)) + "</td>";
       h += "</tr>";
     });
-    h += "</tbody></table>";
+    let grand = 0;
+    h += '<tr class="emp-matrix-total-row"><th>합계</th>';
+    EMP_MATRIX_BUCKETS.forEach((bucket) => {
+      grand += colSums[bucket];
+      h += "<td>" + escapeHtml(empFmtMatrixCell(colSums[bucket], mode)) + "</td>";
+    });
+    h += "<td>" + escapeHtml(empFmtMatrixCell(grand, mode)) + "</td>";
+    h += "</tr></tbody></table>";
+    return h;
+  }
+
+  function empMatrixGrandWeight(cells) {
+    let total = 0;
+    EMP_MATRIX_SECTORS.forEach((sector) => {
+      EMP_MATRIX_BUCKETS.forEach((bucket) => {
+        total += cells.weight[sector][bucket] || 0;
+      });
+    });
+    return total;
+  }
+
+  function empMatrixPortfolioDuration(cells) {
+    const w = empMatrixGrandWeight(cells);
+    if (!w) return null;
+    let durSum = 0;
+    EMP_MATRIX_SECTORS.forEach((sector) => {
+      EMP_MATRIX_BUCKETS.forEach((bucket) => {
+        durSum += cells.dur[sector][bucket] || 0;
+      });
+    });
+    return (durSum / w) * 100;
+  }
+
+  function empRenderBmMatrixDebug(bmCells) {
+    const wad = empMatrixPortfolioDuration(bmCells);
+    const wadText = wad !== null ? empFmtDisplay(wad, 2) + "년" : "—";
+    let h = '<div class="emp-bm-matrix-debug">';
+    h +=
+      '<div class="emp-fund-matrix-fund__title">BM 듀레이션 (BM정보 · 비중치%) · 포트폴리오 ' +
+      escapeHtml(wadText) +
+      "</div>";
+    h += '<div class="emp-fund-matrix-panel">';
+    h += empRenderMatrixTable(null, "bmDur", bmCells);
+    h += "</div></div>";
     return h;
   }
 
@@ -9239,7 +9320,7 @@
       return;
     }
     const bmCells = empBuildBmMatrixCells();
-    let h = "";
+    let h = empRenderBmMatrixDebug(bmCells);
     for (let i = 0; i < funds.length; i += 2) {
       h += '<div class="emp-fund-matrix-row">';
       h += empRenderFundMatrixFundBlock(funds[i], bmCells);
