@@ -403,6 +403,80 @@
     #page-emp .emp-fund-wrap {
       overflow-y: visible;
     }
+    #page-emp .emp-fund-matrix-wrap {
+      margin-top: 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    #page-emp .emp-fund-matrix-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      #page-emp .emp-fund-matrix-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    #page-emp .emp-fund-matrix-fund {
+      min-width: 0;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.45);
+      padding: 0.45rem 0.5rem 0.55rem;
+    }
+    #page-emp .emp-fund-matrix-fund__title {
+      margin: 0 0 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.88);
+    }
+    #page-emp .emp-fund-matrix-tables {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.45rem;
+    }
+    @media (max-width: 900px) {
+      #page-emp .emp-fund-matrix-tables {
+        grid-template-columns: 1fr;
+      }
+    }
+    #page-emp .emp-fund-matrix-panel {
+      min-width: 0;
+      overflow-x: auto;
+    }
+    #page-emp .emp-fund-matrix-panel__label {
+      display: block;
+      margin: 0 0 0.25rem;
+      font-size: 0.68rem;
+      color: rgba(255, 255, 255, 0.55);
+      text-align: center;
+    }
+    #page-emp .emp-matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.62rem;
+      table-layout: fixed;
+    }
+    #page-emp .emp-matrix-table th,
+    #page-emp .emp-matrix-table td {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.18rem 0.12rem;
+      text-align: center;
+      white-space: nowrap;
+    }
+    #page-emp .emp-matrix-table th {
+      background: rgba(255, 255, 255, 0.04);
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.72);
+    }
+    #page-emp .emp-matrix-table tbody th {
+      text-align: left;
+      padding-left: 0.28rem;
+      width: 3.1rem;
+    }
     #page-emp .emp-summary-table,
     #page-emp .emp-fund-table,
     #page-emp .emp-futures-table {
@@ -2680,6 +2754,7 @@
           </div>
         </div>
         <div class="emp-fund-wrap" id="empFundWrap"></div>
+        <div class="emp-fund-matrix-wrap" id="empFundMatrixWrap"></div>
       </div>
       <div class="emp-holdings-block">
         <div class="overview-prevday-header-row">
@@ -3172,6 +3247,7 @@
   const empSummaryStatus = document.getElementById("empSummaryStatus");
   const empSummaryWrap = document.getElementById("empSummaryWrap");
   const empFundWrap = document.getElementById("empFundWrap");
+  const empFundMatrixWrap = document.getElementById("empFundMatrixWrap");
   const empDisparityFilterUpper = document.getElementById("empDisparityFilterUpper");
   const empDisparityFilterLower = document.getElementById("empDisparityFilterLower");
   const empFuturesWrap = document.getElementById("empFuturesWrap");
@@ -7622,6 +7698,9 @@
   let empFuturesMetaList = [];
   let empFuturesPersistTimer = null;
   let empCuPersistTimer = null;
+  let empBmSheetRows = [];
+  const EMP_MATRIX_SECTORS = ["국채", "지방채", "통안채", "특수채", "은행채", "여전채", "회사채"];
+  const EMP_MATRIX_BUCKETS = ["1년", "2년", "3년", "5년", "10년", "20년", "30년", "50년"];
   let empFundPersistTimer = null;
   let empFundQtyNavigating = false;
 
@@ -7920,6 +7999,7 @@
 
   function empRefreshEvalDependentViews(etfName) {
     empRenderTable();
+    empRenderFundMatrices();
     if (!etfName || !empSummaryWrap) return;
     const rows = empGetSortedEtfGroups().byEtf.get(etfName);
     if (!rows) return;
@@ -8181,6 +8261,7 @@
     if (empFundIsEditing()) {
       empUpdateAllFundComputedCells();
       empUpdateBmDurationLabel();
+      empRenderFundMatrices();
       return;
     }
     empRenderFundTable();
@@ -8605,6 +8686,7 @@
     empFundWrap.innerHTML = h;
     empFundSyncLockUi();
     empUpdateBmDurationLabel();
+    empRenderFundMatrices();
   }
 
   function empBuildSummaryCopyText() {
@@ -8832,6 +8914,7 @@
     empRenderFuturesInputs();
     empRenderHoldingsFilter();
     empRenderTable();
+    empRenderFundMatrices();
   }
 
   function empSetStatus(msg, isWarn) {
@@ -8980,6 +9063,192 @@
     return (evalAmt / nav) * 100;
   }
 
+  function empMatrixSectorKey(sector) {
+    const s = String(sector || "").trim();
+    if (EMP_MATRIX_SECTORS.indexOf(s) >= 0) return s;
+    if (s.indexOf("국채") >= 0 || s === "국고채권" || s === "국민주택채권") return "국채";
+    if (s.indexOf("지방") >= 0) return "지방채";
+    if (s.indexOf("통안") >= 0) return "통안채";
+    if (s.indexOf("특수") >= 0 || s.indexOf("공사") >= 0) return "특수채";
+    if (s.indexOf("은행") >= 0) return "은행채";
+    if (s.indexOf("여전") >= 0 || s === "카드" || s.indexOf("기타금융") >= 0) return "여전채";
+    if (s.indexOf("회사") >= 0) return "회사채";
+    return null;
+  }
+
+  function empEmptyMatrixCells() {
+    const weight = {};
+    const dur = {};
+    EMP_MATRIX_SECTORS.forEach((sector) => {
+      weight[sector] = {};
+      dur[sector] = {};
+      EMP_MATRIX_BUCKETS.forEach((bucket) => {
+        weight[sector][bucket] = 0;
+        dur[sector][bucket] = 0;
+      });
+    });
+    return { weight, dur };
+  }
+
+  function empMatrixAccumulate(cells, sectorKey, bucket, weightPct, duration) {
+    if (!cells || !sectorKey || EMP_MATRIX_BUCKETS.indexOf(bucket) < 0) return;
+    if (!cells.weight[sectorKey]) return;
+    const w = empNum(weightPct);
+    if (w === null || w <= 0) return;
+    cells.weight[sectorKey][bucket] += w;
+    const d = empNum(duration);
+    if (d !== null) {
+      const wd = empComputeWeightDur(w, d);
+      if (wd !== null) cells.dur[sectorKey][bucket] += wd;
+    }
+  }
+
+  function empParseBmSheet(ws) {
+    const out = [];
+    const { rows } = empSheetDims(ws);
+    for (let r = 1; r < rows; r++) {
+      const major = empCell(ws, r, 2);
+      const minor = empCell(ws, r, 13);
+      const weight = empNum(empCell(ws, r, 10));
+      const duration = empNum(empCell(ws, r, 6));
+      const maturity = empCell(ws, r, 9);
+      if (weight === null || weight <= 0) continue;
+      const sector = empFmtSector(major, minor);
+      const bucket = empFmtMaturityBucket(empFmtMaturityYmd(maturity));
+      if (bucket === "—") continue;
+      out.push({ sector, bucket, weight, duration });
+    }
+    return out;
+  }
+
+  function empBuildBmMatrixCells() {
+    const cells = empEmptyMatrixCells();
+    empBmSheetRows.forEach((row) => {
+      const sectorKey = empMatrixSectorKey(row.sector);
+      empMatrixAccumulate(cells, sectorKey, row.bucket, row.weight, row.duration);
+    });
+    return cells;
+  }
+
+  function empBuildFundMatrixCells(fund) {
+    const cells = empEmptyMatrixCells();
+    if (!fund || !empDatasetRows.length) return cells;
+    const { byEtf } = empGetSortedEtfGroups();
+    const cuMap = empLoadCuMap();
+    const durationOverrides = empLoadFuturesDurations();
+    Object.keys(fund.qty || {}).forEach((etfName) => {
+      const qty = fund.qty[etfName];
+      const meta = empEtfMetaMap[etfName] || {};
+      const fundEtfWt = empComputeFundEtfWeight(qty, meta.basePrice, fund.navEok);
+      if (fundEtfWt === null || fundEtfWt <= 0) return;
+      const holdings = byEtf.get(etfName) || [];
+      holdings.forEach((row) => {
+        const bondWt = empCalcInvestWeight(row, cuMap);
+        if (bondWt === null || bondWt <= 0) return;
+        const contrib = (fundEtfWt * bondWt) / 100;
+        const sectorKey = empMatrixSectorKey(row.섹터);
+        const bucket = empFmtMaturityBucket(row.만기);
+        if (bucket === "—") return;
+        const dur = empRowDuration(row, durationOverrides);
+        empMatrixAccumulate(cells, sectorKey, bucket, contrib, dur);
+      });
+    });
+    return cells;
+  }
+
+  function empFmtMatrixWeight(v) {
+    const n = empNum(v);
+    if (n === null || Math.abs(n) < 1e-9) return "—";
+    return empFmtPct2(n);
+  }
+
+  function empFmtMatrixDur(v) {
+    const n = empNum(v);
+    if (n === null || Math.abs(n) < 1e-9) return "—";
+    return empFmtDisplay(n, 4);
+  }
+
+  function empFmtMatrixBmDiff(v) {
+    const n = empNum(v);
+    if (n === null || Math.abs(n) < 1e-9) return "—";
+    const sign = n > 0 ? "+" : "";
+    return sign + empFmtDisplay(n, 4);
+  }
+
+  function empRenderMatrixTable(cells, mode, bmCells) {
+    let h = '<table class="emp-matrix-table"><thead><tr><th></th>';
+    EMP_MATRIX_BUCKETS.forEach((bucket) => {
+      h += "<th>" + escapeHtml(bucket) + "</th>";
+    });
+    h += "</tr></thead><tbody>";
+    EMP_MATRIX_SECTORS.forEach((sector) => {
+      h += "<tr><th>" + escapeHtml(sector) + "</th>";
+      EMP_MATRIX_BUCKETS.forEach((bucket) => {
+        let text = "—";
+        if (mode === "weight") text = empFmtMatrixWeight(cells.weight[sector][bucket]);
+        else if (mode === "dur") text = empFmtMatrixDur(cells.dur[sector][bucket]);
+        else if (bmCells) {
+          const diff = cells.dur[sector][bucket] - bmCells.dur[sector][bucket];
+          text = empFmtMatrixBmDiff(diff);
+        }
+        h += "<td>" + escapeHtml(text) + "</td>";
+      });
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    return h;
+  }
+
+  function empFundHasMatrixData(fund) {
+    if (!fund) return false;
+    if (String(fund.code || "").trim() || String(fund.navEok || "").trim()) return true;
+    return Object.keys(fund.qty || {}).some((k) => empNum(fund.qty[k]) !== null);
+  }
+
+  function empRenderFundMatrixFundBlock(fund, bmCells) {
+    const cells = empBuildFundMatrixCells(fund);
+    const title = fund.code ? String(fund.code).trim() : "펀드";
+    let h = '<div class="emp-fund-matrix-fund">';
+    h += '<div class="emp-fund-matrix-fund__title">' + escapeHtml(title) + " · 섹터×만기</div>";
+    h += '<div class="emp-fund-matrix-tables">';
+    h +=
+      '<div class="emp-fund-matrix-panel"><span class="emp-fund-matrix-panel__label">투자 비중</span>' +
+      empRenderMatrixTable(cells, "weight", bmCells) +
+      "</div>";
+    h +=
+      '<div class="emp-fund-matrix-panel"><span class="emp-fund-matrix-panel__label">듀레이션</span>' +
+      empRenderMatrixTable(cells, "dur", bmCells) +
+      "</div>";
+    h +=
+      '<div class="emp-fund-matrix-panel"><span class="emp-fund-matrix-panel__label">BM대비 듀레이션</span>' +
+      empRenderMatrixTable(cells, "bmDiff", bmCells) +
+      "</div>";
+    h += "</div></div>";
+    return h;
+  }
+
+  function empRenderFundMatrices() {
+    if (!empFundMatrixWrap) return;
+    if (!empDatasetRows.length) {
+      empFundMatrixWrap.innerHTML = "";
+      return;
+    }
+    const funds = empFundColumns.filter(empFundHasMatrixData);
+    if (!funds.length) {
+      empFundMatrixWrap.innerHTML = "";
+      return;
+    }
+    const bmCells = empBuildBmMatrixCells();
+    let h = "";
+    for (let i = 0; i < funds.length; i += 2) {
+      h += '<div class="emp-fund-matrix-row">';
+      h += empRenderFundMatrixFundBlock(funds[i], bmCells);
+      if (funds[i + 1]) h += empRenderFundMatrixFundBlock(funds[i + 1], bmCells);
+      h += "</div>";
+    }
+    empFundMatrixWrap.innerHTML = h;
+  }
+
   function empDateKey(v) {
     return empFormatYmd(v);
   }
@@ -9075,9 +9344,11 @@
   function empBuildDatasetFromWorkbook(wb) {
     const pdfWs = wb.Sheets["PDF정보"];
     const etfWs = wb.Sheets["ETF정보"];
+    const bmWs = wb.Sheets["BM정보"];
     if (!pdfWs || !etfWs) throw new Error("PDF정보 또는 ETF정보 시트를 찾을 수 없습니다.");
     const etfInfoMap = empParseEtfInfoMap(etfWs);
     const blocks = empParsePdfBlocks(pdfWs);
+    empBmSheetRows = bmWs ? empParseBmSheet(bmWs) : [];
     const out = [];
     const navMap = {};
     const metaMap = {};
@@ -9196,6 +9467,7 @@
       empDatasetDateTag = "";
       empEtfNavMap = {};
       empEtfMetaMap = {};
+      empBmSheetRows = [];
       empDatasetLoadedAt = null;
       empUpdateMetaLabel(false);
       empRefreshEmpViews();
@@ -10911,6 +11183,7 @@
           fund.qty[etf] = n;
         }
         empUpdateFundRowComputedCells(fundId, etf);
+        empRenderFundMatrices();
         empSaveFundHoldingsLocal();
         empScheduleFundPersist();
         return;
@@ -10928,6 +11201,7 @@
       }
       empSaveFundHoldingsLocal();
       empUpdateFundComputedCells(fundId);
+      empRenderFundMatrices();
       empScheduleFundPersist();
     });
     empFundWrap.addEventListener(
