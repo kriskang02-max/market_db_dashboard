@@ -553,15 +553,17 @@
       color: #60a5fa;
     }
     #page-emp .emp-summary-table,
-    #page-emp .emp-fund-table,
+    #page-emp .emp-fund-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 0.7rem;
+      line-height: 1.25;
+    }
     #page-emp .emp-futures-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.76rem;
-    }
-    #page-emp .emp-summary-table,
-    #page-emp .emp-fund-table {
-      table-layout: fixed;
     }
     #page-emp .emp-summary-table col.emp-col-name {
       width: 30%;
@@ -585,7 +587,14 @@
     #page-emp .emp-summary-table th,
     #page-emp .emp-summary-table td,
     #page-emp .emp-fund-table th,
-    #page-emp .emp-fund-table td,
+    #page-emp .emp-fund-table td {
+      padding: 0.2rem 0.36rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     #page-emp .emp-futures-table th,
     #page-emp .emp-futures-table td {
       padding: 0.3rem 0.45rem;
@@ -659,7 +668,7 @@
       color: rgba(255, 255, 255, 0.55);
     }
     #page-emp .emp-bm-weight__input {
-      width: 3.6rem;
+      width: 4rem;
       font-size: 0.72rem;
       padding: 0.12rem 0.28rem;
       border-radius: 5px;
@@ -674,8 +683,7 @@
       color: rgba(147, 197, 253, 0.95);
       white-space: nowrap;
     }
-    #page-emp .emp-futures-duration-input,
-    #page-emp .emp-cu-input {
+    #page-emp .emp-futures-duration-input {
       width: 100%;
       max-width: 5.5rem;
       font-size: 0.76rem;
@@ -685,11 +693,21 @@
       background: rgba(0, 0, 0, 0.35);
       color: rgba(255, 255, 255, 0.95);
       font-family: inherit;
-      text-align: center;
+      text-align: right;
       box-sizing: border-box;
     }
-    #page-emp .emp-futures-duration-input {
-      text-align: right;
+    #page-emp .emp-cu-input {
+      width: 100%;
+      max-width: 5.5rem;
+      font-size: 0.7rem;
+      padding: 0.14rem 0.3rem;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.95);
+      font-family: inherit;
+      text-align: center;
+      box-sizing: border-box;
     }
     #page-emp .emp-cu-plain {
       display: block;
@@ -701,8 +719,8 @@
     #page-emp .emp-fund-cash-input {
       width: 100%;
       max-width: 5rem;
-      font-size: 0.72rem;
-      padding: 0.15rem 0.28rem;
+      font-size: 0.66rem;
+      padding: 0.12rem 0.24rem;
       border-radius: 5px;
       border: 1px solid rgba(255, 255, 255, 0.18);
       background: rgba(0, 0, 0, 0.35);
@@ -720,12 +738,12 @@
     }
     #page-emp .emp-summary-table .emp-fund-group-head,
     #page-emp .emp-fund-table .emp-fund-group-head {
-      font-size: 0.72rem;
-      padding: 0.25rem 0.3rem;
+      font-size: 0.66rem;
+      padding: 0.18rem 0.26rem;
     }
     #page-emp .emp-summary-table .emp-fund-subhead,
     #page-emp .emp-fund-table .emp-fund-subhead {
-      font-size: 0.68rem;
+      font-size: 0.62rem;
       font-weight: 500;
       color: rgba(255, 255, 255, 0.72);
     }
@@ -2831,7 +2849,7 @@
               <div class="emp-fund-matrix-panel" id="empBmMatrixTableWrap"></div>
               <div class="emp-bm-weight" title="BM 듀레이션 매트릭스에 곱해지는 비중(%)">
                 <span class="emp-bm-weight__label">BM 비중</span>
-                <input type="number" id="empBmWeightInput" class="emp-bm-weight__input" placeholder="%" step="0.01" aria-label="BM 비중" />
+                <input type="number" id="empBmWeightInput" class="emp-bm-weight__input" placeholder="%" step="0.01" min="0" inputmode="decimal" aria-label="BM 비중" />
               </div>
               <div class="emp-etf-matrix-slot">
                 <span class="emp-etf-matrix-slot__label">ETF 듀레이션 1</span>
@@ -8006,8 +8024,17 @@
     overviewSyncPersistAll({ manual: false });
   }
 
+  function empFormatBmWeightValue(raw) {
+    const n = empNum(raw);
+    if (n === null) return "";
+    return n.toFixed(2);
+  }
+
   function empSyncBmWeightInput() {
-    if (empBmWeightInput) empBmWeightInput.value = empBmWeight != null ? String(empBmWeight) : "";
+    if (empBmWeightInput) {
+      empBmWeightInput.value =
+        empBmWeight != null && String(empBmWeight).trim() !== "" ? empFormatBmWeightValue(empBmWeight) : "";
+    }
   }
 
   function empFmtQty(v) {
@@ -11372,6 +11399,14 @@
       if (empFundIsLocked()) return;
       empBmWeight = String(empBmWeightInput.value || "").trim();
       empRenderFundMatrices();
+      empSaveFundHoldingsLocal();
+      empScheduleFundPersist();
+    });
+    empBmWeightInput.addEventListener("blur", () => {
+      if (empFundIsLocked()) return;
+      const formatted = empFormatBmWeightValue(empBmWeightInput.value);
+      empBmWeight = formatted !== "" ? formatted : "";
+      empBmWeightInput.value = empBmWeight;
       empSaveFundHoldingsLocal();
       empScheduleFundPersist();
     });
