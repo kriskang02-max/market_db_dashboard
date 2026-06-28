@@ -400,7 +400,22 @@
     #page-emp .emp-fund-block {
       margin-bottom: 0.75rem;
     }
+    #page-emp .emp-fund-layout {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      flex-wrap: nowrap;
+    }
+    #page-emp .emp-fund-meta-wrap {
+      flex: 0 0 auto;
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.45);
+    }
     #page-emp .emp-fund-wrap {
+      flex: 1 1 auto;
+      min-width: 0;
       overflow-y: visible;
     }
     #page-emp .emp-fund-matrix-wrap {
@@ -713,10 +728,9 @@
       display: block;
       text-align: center;
     }
-    #page-emp .emp-fund-code-input,
-    #page-emp .emp-fund-qty-input,
     #page-emp .emp-fund-nav-input,
-    #page-emp .emp-fund-cash-input {
+    #page-emp .emp-fund-cash-input,
+    #page-emp .emp-fund-meta-input {
       width: 100%;
       max-width: 5rem;
       font-size: 0.66rem;
@@ -729,8 +743,48 @@
       text-align: center;
       box-sizing: border-box;
     }
-    #page-emp .emp-fund-nav-input {
+    #page-emp .emp-fund-meta-table {
+      border-collapse: collapse;
+      font-size: 0.7rem;
+      line-height: 1.25;
+    }
+    #page-emp .emp-fund-meta-table th,
+    #page-emp .emp-fund-meta-table td {
+      padding: 0.2rem 0.36rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: center;
+      white-space: nowrap;
+    }
+    #page-emp .emp-fund-meta-table th {
+      background: rgba(22, 33, 62, 0.98);
+      color: rgba(255, 255, 255, 0.92);
+      font-weight: 600;
+    }
+    #page-emp .emp-fund-meta-table tbody th {
+      text-align: left;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    #page-emp .emp-fund-meta-code-input {
       max-width: 4.5rem;
+    }
+    #page-emp .emp-fund-meta-nav-input,
+    #page-emp .emp-fund-meta-setup-input {
+      max-width: 4.25rem;
+    }
+    #page-emp .emp-fund-qty-input {
+      width: 100%;
+      max-width: 5rem;
+      font-size: 0.66rem;
+      padding: 0.12rem 0.24rem;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.95);
+      font-family: inherit;
+      text-align: center;
+      box-sizing: border-box;
     }
     #page-emp .emp-fund-plain {
       display: block;
@@ -2838,10 +2892,12 @@
           <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
             <button type="button" id="empFundSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
             <button type="button" id="empFundLock" class="sidebar btn btn-secondary ovpd-toolbar-act" aria-pressed="false">잠금</button>
-            <button type="button" id="empSummaryAddFundBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">펀드 추가</button>
           </div>
         </div>
-        <div class="emp-fund-wrap" id="empFundWrap"></div>
+        <div class="emp-fund-layout">
+          <div class="emp-fund-meta-wrap" id="empFundMetaWrap"></div>
+          <div class="emp-fund-wrap" id="empFundWrap"></div>
+        </div>
         <div class="emp-fund-matrix-wrap" id="empFundMatrixWrap">
           <div class="emp-bm-matrix-debug" id="empBmMatrixDebug" hidden>
             <div class="emp-fund-matrix-fund__title">BM 듀레이션 (BM정보 · 비중치%)</div>
@@ -3184,6 +3240,7 @@
   const EMP_DISPARITY_FILTER_STORAGE_KEY = "market_db_dashboard_emp_disparity_filter_v1";
   const EMP_FUND_HOLDINGS_STORAGE_KEY = "market_db_dashboard_emp_fund_holdings_v1";
   const EMP_ETF_MATRIX_STORAGE_KEY = "market_db_dashboard_emp_etf_matrix_v1";
+  const EMP_FUND_MAX = 4;
   let empFuturesDurationMap = (function () {
     try {
       const raw = localStorage.getItem(EMP_FUTURES_DURATION_STORAGE_KEY);
@@ -3209,9 +3266,31 @@
       id: "emp_fund_" + (i + 1),
       code: "",
       navEok: "",
+      setupRedeemEok: "",
       cashWeight: "",
       qty: {},
     }));
+  }
+  function empNormalizeFundColumns() {
+    const mapped = empFundColumns.slice(0, EMP_FUND_MAX).map((f) => ({
+      id: f.id || empNewFundId(),
+      code: f.code != null ? String(f.code) : "",
+      navEok: f.navEok != null ? String(f.navEok) : "",
+      setupRedeemEok: f.setupRedeemEok != null ? String(f.setupRedeemEok) : "",
+      cashWeight: f.cashWeight != null ? String(f.cashWeight) : "",
+      qty: f.qty && typeof f.qty === "object" ? { ...f.qty } : {},
+    }));
+    empFundColumns = mapped;
+    while (empFundColumns.length < EMP_FUND_MAX) {
+      empFundColumns.push({
+        id: empNewFundId(),
+        code: "",
+        navEok: "",
+        setupRedeemEok: "",
+        cashWeight: "",
+        qty: {},
+      });
+    }
   }
   function empNewFundId() {
     return "emp_fund_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
@@ -3228,6 +3307,7 @@
         id: f.id || empNewFundId(),
         code: f.code != null ? String(f.code) : "",
         navEok: f.navEok != null ? String(f.navEok) : "",
+        setupRedeemEok: f.setupRedeemEok != null ? String(f.setupRedeemEok) : "",
         cashWeight: f.cashWeight != null ? String(f.cashWeight) : "",
         qty: f.qty && typeof f.qty === "object" ? { ...f.qty } : {},
       }));
@@ -3235,6 +3315,7 @@
       return empCreateDefaultFunds(4);
     }
   })();
+  empNormalizeFundColumns();
   const WEEKLY_STORAGE_KEY = "market_db_dashboard_weekly_reports_v1";
   const WEEKLY_END_DATE_OVERRIDE_KEY = "market_db_dashboard_weekly_end_date_override_v1";
   const OVERVIEW_MEMO_AUTOSAVE_MS = 30 * 60 * 1000;
@@ -3361,6 +3442,7 @@
   const empSummaryStatus = document.getElementById("empSummaryStatus");
   const empSummaryWrap = document.getElementById("empSummaryWrap");
   const empFundWrap = document.getElementById("empFundWrap");
+  const empFundMetaWrap = document.getElementById("empFundMetaWrap");
   const empFundMatrixWrap = document.getElementById("empFundMatrixWrap");
   const empBmMatrixDebug = document.getElementById("empBmMatrixDebug");
   const empBmMatrixTableWrap = document.getElementById("empBmMatrixTableWrap");
@@ -7893,7 +7975,7 @@
   function empFmtDisparity(v) {
     const n = empNum(v);
     if (n === null) return "—";
-    return empFmtDisplay(n * 100, 2) + "bp";
+    return empFmtDisplay(n * 100, 1) + "bp";
   }
 
   function empLoadDisparityFilter() {
@@ -7989,6 +8071,11 @@
     }
     if (empBmWeightInput) {
       empBmWeightInput.disabled = locked;
+    }
+    if (empFundMetaWrap) {
+      empFundMetaWrap.querySelectorAll("input").forEach((el) => {
+        el.disabled = locked;
+      });
     }
     empEmpSyncSaveButtonUi();
   }
@@ -8116,7 +8203,7 @@
     const tds = tr.querySelectorAll("td");
     const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
     const wYtm = empEtfWeightedYtm(rows, etfName);
-    if (tds[7]) tds[7].textContent = empFmtDisplay(wDur, 4);
+    if (tds[7]) tds[7].textContent = empFmtDisplay(wDur, 2);
     if (tds[8]) tds[8].textContent = empFmtDisplay(wYtm, 4);
     empRenderFundTableIfNotEditing();
   }
@@ -8159,6 +8246,7 @@
       id: fund.id,
       code: fund.code != null ? String(fund.code) : "",
       navEok: fund.navEok != null ? String(fund.navEok) : "",
+      setupRedeemEok: fund.setupRedeemEok != null ? String(fund.setupRedeemEok) : "",
       cashWeight: fund.cashWeight != null ? String(fund.cashWeight) : "",
       qty: fund.qty && typeof fund.qty === "object" ? { ...fund.qty } : {},
     };
@@ -8180,10 +8268,11 @@
       id: f.id || empNewFundId(),
       code: f.code != null ? String(f.code) : "",
       navEok: f.navEok != null ? String(f.navEok) : "",
+      setupRedeemEok: f.setupRedeemEok != null ? String(f.setupRedeemEok) : "",
       cashWeight: f.cashWeight != null ? String(f.cashWeight) : "",
       qty: f.qty && typeof f.qty === "object" ? { ...f.qty } : {},
     }));
-    if (!empFundColumns.length) empFundColumns = empCreateDefaultFunds(4);
+    empNormalizeFundColumns();
     empSaveFundHoldingsLocal();
     empSyncBmWeightInput();
   }
@@ -8285,10 +8374,88 @@
     empHoldingsFilterChips.innerHTML = h;
   }
 
-  function empComputeFundEtfWeight(qty, basePrice, navEok) {
+  function empFundEffectiveNavEok(fund) {
+    const nav = empNum(fund && fund.navEok);
+    const setup = empNum(fund && fund.setupRedeemEok);
+    if (nav === null && setup === null) return null;
+    return (nav || 0) + (setup || 0);
+  }
+
+  function empComputeFundHoldingsValueEok(fund, etfNames, byEtf) {
+    let sum = 0;
+    let has = false;
+    (etfNames || []).forEach((etfName) => {
+      const q = empNum(fund.qty && fund.qty[etfName]);
+      if (q === null) return;
+      const meta = empEtfMetaMap[etfName] || {};
+      const bp = empNum(meta.basePrice);
+      if (bp === null) return;
+      sum += q * bp;
+      has = true;
+    });
+    return has ? sum / 100000000 : null;
+  }
+
+  function empFundNavEokOnly(fund) {
+    return empNum(fund && fund.navEok);
+  }
+
+  function empComputeFundHoldingsNavPct(fund, etfNames, byEtf) {
+    const holdings = empComputeFundHoldingsValueEok(fund, etfNames, byEtf);
+    const nav = empFundNavEokOnly(fund);
+    if (holdings === null || nav === null || nav <= 0) return null;
+    return (holdings / nav) * 100;
+  }
+
+  function empFmtFundHoldingsNavPct(fund, etfNames, byEtf) {
+    const v = empComputeFundHoldingsNavPct(fund, etfNames, byEtf);
+    if (v === null) return "—";
+    return empFmtPct2(v);
+  }
+
+  function empComputeFundCashQtyDisplayEok(fund) {
+    const cashWt = empNum(fund.cashWeight);
+    const nav = empFundNavEokOnly(fund);
+    const setup = empNum(fund.setupRedeemEok);
+    let has = false;
+    let v = 0;
+    if (cashWt !== null && nav !== null) {
+      v += (cashWt / 100) * nav;
+      has = true;
+    }
+    if (setup !== null) {
+      v += setup;
+      has = true;
+    }
+    return has ? v : null;
+  }
+
+  function empFmtFundCashQtyDisplayEok(fund) {
+    const v = empComputeFundCashQtyDisplayEok(fund);
+    if (v === null) return "—";
+    return empFmtDisplay(v, 2);
+  }
+
+  function empUpdateFundCashQtyCell(fundId) {
+    if (!empFundWrap) return;
+    const fund = empFindFund(fundId);
+    if (!fund) return;
+    const cell = empFundWrap.querySelector('.emp-fund-cash-qty-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
+    if (cell) cell.textContent = empFmtFundCashQtyDisplayEok(fund);
+  }
+
+  function empFmtFundHoldingsEok(fund, etfNames, byEtf) {
+    const v = empComputeFundHoldingsValueEok(fund, etfNames, byEtf);
+    if (v === null) return "—";
+    return empFmtDisplay(v, 2);
+  }
+
+  function empComputeFundEtfWeight(qty, basePrice, fundOrNav) {
     const q = empNum(qty);
     const bp = empNum(basePrice);
-    const nav = empNum(navEok);
+    let nav = null;
+    if (fundOrNav && typeof fundOrNav === "object") nav = empFundEffectiveNavEok(fundOrNav);
+    else nav = empNum(fundOrNav);
     if (q === null || bp === null || nav === null || nav <= 0) return null;
     return ((q * bp) / (nav * 100000000)) * 100;
   }
@@ -8312,7 +8479,7 @@
       const meta = empEtfMetaMap[etfName] || {};
       const rows = byEtf.get(etfName) || [];
       const qty = fund.qty[etfName];
-      const wt = empComputeFundEtfWeight(qty, meta.basePrice, fund.navEok);
+      const wt = empComputeFundEtfWeight(qty, meta.basePrice, fund);
       const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
       if (wt !== null) {
         weightSum += wt;
@@ -8329,14 +8496,19 @@
     if (!empFundWrap) return { funds: empFundColumns.map(empSerializeFund), bmWeight: empBmWeight };
     if (empBmWeightInput) empBmWeight = String(empBmWeightInput.value || "").trim();
     empFundColumns.forEach((fund) => {
-      const codeEl = empFundWrap.querySelector('.emp-fund-code-input[data-fund-id="' + CSS.escape(fund.id) + '"]');
-      if (codeEl) fund.code = String(codeEl.value || "").trim();
-      const navEl = empFundWrap.querySelector('.emp-fund-nav-input[data-fund-id="' + CSS.escape(fund.id) + '"]');
-      if (navEl) fund.navEok = String(navEl.value || "").trim();
-      const cashEl = empFundWrap.querySelector('.emp-fund-cash-input[data-fund-id="' + CSS.escape(fund.id) + '"]');
+      const fid = CSS.escape(fund.id);
+      if (empFundMetaWrap) {
+        const codeEl = empFundMetaWrap.querySelector('.emp-fund-meta-code-input[data-fund-id="' + fid + '"]');
+        if (codeEl) fund.code = String(codeEl.value || "").trim();
+        const navEl = empFundMetaWrap.querySelector('.emp-fund-meta-nav-input[data-fund-id="' + fid + '"]');
+        if (navEl) fund.navEok = String(navEl.value || "").trim();
+        const setupEl = empFundMetaWrap.querySelector('.emp-fund-meta-setup-input[data-fund-id="' + fid + '"]');
+        if (setupEl) fund.setupRedeemEok = String(setupEl.value || "").trim();
+      }
+      const cashEl = empFundWrap.querySelector('.emp-fund-cash-input[data-fund-id="' + fid + '"]');
       if (cashEl) fund.cashWeight = String(cashEl.value || "").trim();
       fund.qty = {};
-      empFundWrap.querySelectorAll('.emp-fund-qty-input[data-fund-id="' + CSS.escape(fund.id) + '"]').forEach((el) => {
+      empFundWrap.querySelectorAll('.emp-fund-qty-input[data-fund-id="' + fid + '"]').forEach((el) => {
         const etf = el.getAttribute("data-emp-etf");
         if (!etf) return;
         const v = String(el.value || "").trim().replace(/,/g, "");
@@ -8344,7 +8516,7 @@
         const n = empNum(v);
         if (n !== null) fund.qty[etf] = n;
       });
-      empFundWrap.querySelectorAll('.emp-fund-qty-plain[data-fund-id="' + CSS.escape(fund.id) + '"]').forEach((el) => {
+      empFundWrap.querySelectorAll('.emp-fund-qty-plain[data-fund-id="' + fid + '"]').forEach((el) => {
         const etf = el.getAttribute("data-emp-etf");
         if (!etf) return;
         const v = String(el.textContent || "").trim().replace(/,/g, "");
@@ -8357,9 +8529,11 @@
   }
 
   function empFundIsEditing() {
-    if (!empFundWrap) return false;
     const active = document.activeElement;
-    if (!active || !empFundWrap.contains(active)) return false;
+    if (!active) return false;
+    const inFund = empFundWrap && empFundWrap.contains(active);
+    const inMeta = empFundMetaWrap && empFundMetaWrap.contains(active);
+    if (!inFund && !inMeta) return false;
     if (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT") return true;
     return false;
   }
@@ -8414,7 +8588,7 @@
     const { byEtf, etfNames } = empGetSortedEtfGroups();
     const durationOverrides = empLoadFuturesDurations();
     const qty = fund.qty[etfName];
-    const wt = empComputeFundEtfWeight(qty, meta.basePrice, fund.navEok);
+    const wt = empComputeFundEtfWeight(qty, meta.basePrice, fund);
     const wDur = empEtfWeightedDuration(byEtf.get(etfName) || [], etfName, durationOverrides);
     const wtCell = empFundWrap.querySelector(
       '.emp-fund-wt-cell[data-fund-id="' + CSS.escape(fundId) + '"][data-emp-etf="' + CSS.escape(etfName) + '"]'
@@ -8423,12 +8597,15 @@
     const wtdCell = empFundWrap.querySelector(
       '.emp-fund-wtd-cell[data-fund-id="' + CSS.escape(fundId) + '"][data-emp-etf="' + CSS.escape(etfName) + '"]'
     );
-    if (wtdCell) wtdCell.textContent = empFmtDisplay(empComputeWeightDur(wt, wDur), 4);
+    if (wtdCell) wtdCell.textContent = empFmtDisplay(empComputeWeightDur(wt, wDur), 2);
     const totals = empComputeFundTotals(fund, etfNames, byEtf, durationOverrides);
     const sumCell = empFundWrap.querySelector('.emp-fund-wt-sum-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
     if (sumCell) sumCell.textContent = empFmtPct2(totals.weightSum);
     const wadCell = empFundWrap.querySelector('.emp-fund-wad-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
-    if (wadCell) wadCell.textContent = empFmtDisplay(totals.wad, 4);
+    if (wadCell) wadCell.textContent = empFmtDisplay(totals.wad, 2);
+    const holdCell = empFundWrap.querySelector('.emp-fund-holdings-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
+    if (holdCell) holdCell.textContent = empFmtFundHoldingsNavPct(fund, etfNames, byEtf);
+    empUpdateFundCashQtyCell(fundId);
   }
 
   function empUpdateFundComputedCells(fundId) {
@@ -8442,41 +8619,42 @@
       if (!etf) return;
       const meta = empEtfMetaMap[etf] || {};
       const qty = fund.qty[etf];
-      const wt = empComputeFundEtfWeight(qty, meta.basePrice, fund.navEok);
+      const wt = empComputeFundEtfWeight(qty, meta.basePrice, fund);
       cell.textContent = empFmtPct2(wt);
       const wDur = empEtfWeightedDuration(byEtf.get(etf) || [], etf, durationOverrides);
       const wtdCell = empFundWrap.querySelector(
         '.emp-fund-wtd-cell[data-fund-id="' + CSS.escape(fundId) + '"][data-emp-etf="' + CSS.escape(etf) + '"]'
       );
-      if (wtdCell) wtdCell.textContent = empFmtDisplay(empComputeWeightDur(wt, wDur), 4);
+      if (wtdCell) wtdCell.textContent = empFmtDisplay(empComputeWeightDur(wt, wDur), 2);
     });
     const cashWt = empNum(fund.cashWeight);
     const cashWtdCell = empFundWrap.querySelector('.emp-fund-cash-wtd-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
-    if (cashWtdCell) cashWtdCell.textContent = empFmtDisplay(empComputeWeightDur(cashWt, 0), 4);
+    if (cashWtdCell) cashWtdCell.textContent = empFmtDisplay(empComputeWeightDur(cashWt, 0), 2);
     const totals = empComputeFundTotals(fund, etfNames, byEtf, durationOverrides);
     const sumCell = empFundWrap.querySelector('.emp-fund-wt-sum-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
     if (sumCell) sumCell.textContent = empFmtPct2(totals.weightSum);
     const wadCell = empFundWrap.querySelector('.emp-fund-wad-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
-    if (wadCell) wadCell.textContent = empFmtDisplay(totals.wad, 4);
+    if (wadCell) wadCell.textContent = empFmtDisplay(totals.wad, 2);
+    const holdCell = empFundWrap.querySelector('.emp-fund-holdings-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
+    if (holdCell) holdCell.textContent = empFmtFundHoldingsNavPct(fund, etfNames, byEtf);
+    empUpdateFundCashQtyCell(fundId);
   }
 
   function empUpdateAllFundComputedCells() {
     empFundColumns.forEach((f) => empUpdateFundComputedCells(f.id));
   }
 
-  function empAddFundColumn() {
-    if (empFundIsLocked()) return;
-    empCollectFundHoldingsFromDom();
-    empFundColumns.push({
-      id: empNewFundId(),
-      code: "",
-      navEok: "",
-      cashWeight: "",
-      qty: {},
-    });
-    empSaveFundHoldingsLocal();
-    empRenderFundTable();
-    empScheduleFundPersist();
+  function empUpdateFundGroupHeadLabel(fundId) {
+    if (!empFundWrap) return;
+    const fund = empFindFund(fundId);
+    if (!fund) return;
+    const idx = empFundColumns.findIndex((f) => f.id === fundId);
+    if (idx < 0) return;
+    const ths = empFundWrap.querySelectorAll("thead tr:first-child th.emp-fund-group-head");
+    const th = ths[idx];
+    if (!th) return;
+    const codeLabel = String(fund.code || "").trim();
+    th.textContent = codeLabel || "—";
   }
 
   function empScheduleFundPersist() {
@@ -8493,7 +8671,7 @@
   function empRenderFundEtfCells(fund, etfName, meta, wDur, locked) {
     const qtyRaw = fund.qty[etfName];
     const qtyVal = qtyRaw != null ? empFmtQty(qtyRaw) : "";
-    const wt = empComputeFundEtfWeight(qtyRaw, meta.basePrice, fund.navEok);
+    const wt = empComputeFundEtfWeight(qtyRaw, meta.basePrice, fund);
     const wtd = empComputeWeightDur(wt, wDur);
     let h = "";
     if (locked) {
@@ -8529,7 +8707,7 @@
       '" data-emp-etf="' +
       escapeHtml(etfName) +
       '">' +
-      empFmtDisplay(wtd, 4) +
+      empFmtDisplay(wtd, 2) +
       "</td>";
     return h;
   }
@@ -8537,7 +8715,12 @@
   function empRenderFundCashCells(fund, locked) {
     const cashVal = fund.cashWeight != null ? String(fund.cashWeight) : "";
     const cashWt = empNum(fund.cashWeight);
-    let h = '<td class="emp-fund-cash-qty-cell">—</td>';
+    let h =
+      '<td class="emp-fund-cash-qty-cell" data-fund-id="' +
+      escapeHtml(fund.id) +
+      '">' +
+      empFmtFundCashQtyDisplayEok(fund) +
+      "</td>";
     if (locked) {
       h +=
         '<td><span class="emp-fund-plain">' +
@@ -8555,27 +8738,18 @@
       '<td class="emp-fund-cash-wtd-cell" data-fund-id="' +
       escapeHtml(fund.id) +
       '">' +
-      empFmtDisplay(empComputeWeightDur(cashWt, 0), 4) +
+      empFmtDisplay(empComputeWeightDur(cashWt, 0), 2) +
       "</td>";
     return h;
   }
 
-  function empRenderFundSummaryCells(fund, totals, locked) {
-    const navVal = fund.navEok != null ? String(fund.navEok) : "";
-    let h = "";
-    if (locked) {
-      h +=
-        '<td><span class="emp-fund-plain">' +
-        (navVal ? escapeHtml(navVal) : "—") +
-        "</span></td>";
-    } else {
-      h +=
-        '<td><input type="number" class="emp-fund-nav-input" data-fund-id="' +
-        escapeHtml(fund.id) +
-        '" step="0.01" min="0" placeholder="억" value="' +
-        escapeHtml(navVal) +
-        '" /></td>';
-    }
+  function empRenderFundSummaryCells(fund, totals, etfNames, byEtf) {
+    let h =
+      '<td class="emp-fund-holdings-cell" data-fund-id="' +
+      escapeHtml(fund.id) +
+      '">' +
+      empFmtFundHoldingsNavPct(fund, etfNames, byEtf) +
+      "</td>";
     h +=
       '<td class="emp-fund-wt-sum-cell" data-fund-id="' +
       escapeHtml(fund.id) +
@@ -8586,9 +8760,58 @@
       '<td class="emp-fund-wad-cell" data-fund-id="' +
       escapeHtml(fund.id) +
       '">' +
-      empFmtDisplay(totals.wad, 4) +
+      empFmtDisplay(totals.wad, 2) +
       "</td>";
     return h;
+  }
+
+  function empRenderFundMetaTable() {
+    if (!empFundMetaWrap) return;
+    if (!empDatasetRows.length) {
+      empFundMetaWrap.innerHTML = "";
+      return;
+    }
+    const locked = empFundIsLocked();
+    const funds = empFundColumns;
+    let h = '<table class="emp-fund-meta-table"><thead><tr><th>항목</th>';
+    funds.forEach((_, i) => {
+      h += "<th>펀드" + (i + 1) + "</th>";
+    });
+    h += "</tr></thead><tbody>";
+    const metaRows = [
+      { label: "펀드코드", field: "code", cls: "emp-fund-meta-code-input", placeholder: "코드", step: null },
+      { label: "순자산(억)", field: "navEok", cls: "emp-fund-meta-nav-input", placeholder: "억", step: "0.01" },
+      { label: "설정해지(억)", field: "setupRedeemEok", cls: "emp-fund-meta-setup-input", placeholder: "억", step: "0.01" },
+    ];
+    metaRows.forEach((rowDef) => {
+      h += "<tr><th>" + escapeHtml(rowDef.label) + "</th>";
+      funds.forEach((fund) => {
+        const val = fund[rowDef.field] != null ? String(fund[rowDef.field]) : "";
+        h += "<td>";
+        if (locked) {
+          h += '<span class="emp-fund-plain">' + (val ? escapeHtml(val) : "—") + "</span>";
+        } else {
+          h +=
+            '<input type="' +
+            (rowDef.field === "code" ? "text" : "number") +
+            '" class="emp-fund-meta-input ' +
+            rowDef.cls +
+            '" data-fund-id="' +
+            escapeHtml(fund.id) +
+            '" data-meta-field="' +
+            escapeHtml(rowDef.field) +
+            '" placeholder="' +
+            escapeHtml(rowDef.placeholder) +
+            '"';
+          if (rowDef.step) h += ' step="' + rowDef.step + '"';
+          h += ' value="' + escapeHtml(val) + '" />';
+        }
+        h += "</td>";
+      });
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    empFundMetaWrap.innerHTML = h;
   }
 
   function empScheduleCuPersist() {
@@ -8716,7 +8939,7 @@
       }
       h += '<td class="emp-onecu-cell">' + empFmtDisplay(oneCu, 0) + "</td>";
       h += "<td>" + empFmtNavEok(nav) + "</td>";
-      h += "<td>" + empFmtDisplay(wDur, 4) + "</td>";
+      h += "<td>" + empFmtDisplay(wDur, 2) + "</td>";
       h += "<td>" + empFmtDisplay(wYtm, 4) + "</td>";
       h += "</tr>";
     });
@@ -8727,6 +8950,7 @@
 
   function empRenderFundTable() {
     if (!empFundWrap) return;
+    empRenderFundMetaTable();
     if (!empDatasetRows.length) {
       empFundWrap.innerHTML = '<p class="fund-summary__note" style="margin:0.5rem;padding:0.5rem;">—</p>';
       return;
@@ -8744,18 +8968,8 @@
     h += "<tr>";
     h += '<th rowspan="2">ETF명</th><th rowspan="2">기준가</th><th rowspan="2">듀레이션</th>';
     funds.forEach((fund) => {
-      h += '<th colspan="3" class="emp-fund-group-head">';
-      if (locked) {
-        h += '<span class="emp-fund-plain">' + (fund.code ? escapeHtml(fund.code) : "—") + "</span>";
-      } else {
-        h +=
-          '<input type="text" class="emp-fund-code-input" data-fund-id="' +
-          escapeHtml(fund.id) +
-          '" placeholder="펀드코드" value="' +
-          escapeHtml(fund.code || "") +
-          '" />';
-      }
-      h += "</th>";
+      const codeLabel = String(fund.code || "").trim();
+      h += '<th colspan="3" class="emp-fund-group-head">' + (codeLabel ? escapeHtml(codeLabel) : "—") + "</th>";
     });
     h += "</tr><tr>";
     funds.forEach(() => {
@@ -8769,7 +8983,7 @@
       h += '<tr data-emp-fund-etf="' + escapeHtml(etfName) + '">';
       h += "<td>" + escapeHtml(etfName) + "</td>";
       h += "<td>" + empFmtDisplay(meta.basePrice, 0) + "</td>";
-      h += "<td>" + empFmtDisplay(wDur, 4) + "</td>";
+      h += "<td>" + empFmtDisplay(wDur, 2) + "</td>";
       funds.forEach((fund) => {
         h += empRenderFundEtfCells(fund, etfName, meta, wDur, locked);
       });
@@ -8785,7 +8999,7 @@
     h += "<td>합계</td><td></td><td></td>";
     funds.forEach((fund) => {
       const totals = empComputeFundTotals(fund, etfNames, byEtf, durationOverrides);
-      h += empRenderFundSummaryCells(fund, totals, locked);
+      h += empRenderFundSummaryCells(fund, totals, etfNames, byEtf);
     });
     h += "</tr>";
     h += "</tbody></table>";
@@ -8817,7 +9031,7 @@
             cu != null ? String(cu) : "",
             empFmtDisplay(oneCu, 0),
             empFmtNavEok(nav),
-            empFmtDisplay(wDur, 4),
+            empFmtDisplay(wDur, 2),
             empFmtDisplay(wYtm, 4),
           ].join("\t")
         );
@@ -8870,7 +9084,7 @@
       h += '<td style="' + tdStyle + '">' + escapeHtml(cu != null ? empFmtDisplay(cu, 0) : "—") + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(oneCu, 0)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtNavEok(nav)) + "</td>";
-      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wDur, 4)) + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wDur, 2)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wYtm, 4)) + "</td>";
       h += "</tr>";
     });
@@ -9324,7 +9538,7 @@
     Object.keys(fund.qty || {}).forEach((etfName) => {
       const qty = fund.qty[etfName];
       const meta = empEtfMetaMap[etfName] || {};
-      const fundEtfWt = empComputeFundEtfWeight(qty, meta.basePrice, fund.navEok);
+      const fundEtfWt = empComputeFundEtfWeight(qty, meta.basePrice, fund);
       if (fundEtfWt === null || fundEtfWt <= 0) return;
       const holdings = byEtf.get(etfName) || [];
       holdings.forEach((row) => {
@@ -9521,7 +9735,12 @@
 
   function empFundHasMatrixData(fund) {
     if (!fund) return false;
-    if (String(fund.code || "").trim() || String(fund.navEok || "").trim()) return true;
+    if (
+      String(fund.code || "").trim() ||
+      String(fund.navEok || "").trim() ||
+      String(fund.setupRedeemEok || "").trim()
+    )
+      return true;
     return Object.keys(fund.qty || {}).some((k) => empNum(fund.qty[k]) !== null);
   }
 
@@ -9573,7 +9792,7 @@
   function empFmtNavEok(nav) {
     const n = empNum(nav);
     if (n === null) return "—";
-    return empFmtDisplay(n / 100000000, 2);
+    return empFmtDisplay(n / 100000000, 0);
   }
 
   function empParseEtfInfoMap(ws) {
@@ -11387,7 +11606,6 @@
   }
   if (empSummarySave) empSummarySave.addEventListener("click", () => empSummarySaveToStorage());
   if (empFundSave) empFundSave.addEventListener("click", () => empFundSaveToStorage());
-  if (empSummaryAddFundBtn) empSummaryAddFundBtn.addEventListener("click", () => empAddFundColumn());
   if (empSummaryLock) {
     empSummaryLock.addEventListener("click", () => empSummarySetLocked(!empSummaryIsLocked()));
   }
@@ -11501,15 +11719,8 @@
         empSaveFundHoldingsLocal();
         empScheduleFundPersist();
         return;
-      } else if (el.classList.contains("emp-fund-nav-input")) {
-        fund.navEok = String(el.value || "").trim();
       } else if (el.classList.contains("emp-fund-cash-input")) {
         fund.cashWeight = String(el.value || "").trim();
-      } else if (el.classList.contains("emp-fund-code-input")) {
-        fund.code = String(el.value || "").trim();
-        empSaveFundHoldingsLocal();
-        empScheduleFundPersist();
-        return;
       } else {
         return;
       }
@@ -11539,6 +11750,26 @@
       },
       true
     );
+  }
+  if (empFundMetaWrap) {
+    empFundMetaWrap.addEventListener("input", (e) => {
+      const el = e.target;
+      if (!el || !el.classList || !el.classList.contains("emp-fund-meta-input")) return;
+      if (empFundIsLocked()) return;
+      const fundId = el.getAttribute("data-fund-id");
+      const field = el.getAttribute("data-meta-field");
+      if (!fundId || !field) return;
+      const fund = empFindFund(fundId);
+      if (!fund) return;
+      fund[field] = String(el.value || "").trim();
+      if (field === "code") empUpdateFundGroupHeadLabel(fundId);
+      if (field === "navEok" || field === "setupRedeemEok") {
+        empUpdateFundComputedCells(fundId);
+        empRenderFundMatrices();
+      }
+      empSaveFundHoldingsLocal();
+      empScheduleFundPersist();
+    });
   }
   empSummarySyncLockUi();
   empFundSyncLockUi();
@@ -11618,6 +11849,8 @@
     if (slug === "spread") return "spread";
     if (slug === "overview") return "overview";
     if (slug === "report") return "report";
+    if (slug === "weekly") return "weekly";
+    if (slug === "emp") return "emp";
     return null;
   }
   document.addEventListener("click", (e) => {
