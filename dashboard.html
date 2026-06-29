@@ -2514,7 +2514,7 @@
 
     <aside class="sidebar">
       <p class="panel-head">설정</p>
-      <label class="spread-legend-toggle" for="spreadShowLegend" title="마우스를 올리면 시리즈명을 볼 수 있습니다">
+      <label class="spread-legend-toggle" for="spreadShowLegend" title="스프레드 이평선은 기본 표시 · 금리 이평선은 범례 클릭으로 켜기">
         <input type="checkbox" id="spreadShowLegend" />
         <span>범례 표시</span>
       </label>
@@ -10378,9 +10378,18 @@
     if (!points || points.length < 2) return;
     const baseName = opts.baseName;
     const yaxis = opts.yaxis || "y";
-    const lineColor = opts.lineColor;
     const customDataFn = opts.customDataFn;
-    [20, 60].forEach((win) => {
+    const defaultVisible = opts.defaultVisible !== false;
+    const styleSets = opts.spreadMa
+      ? [
+          { win: 20, color: "#fde047", width: 2.5, dash: "solid" },
+          { win: 60, color: "#fb7185", width: 2.5, dash: "dash" },
+        ]
+      : [
+          { win: 20, color: opts.ma20Color || opts.lineColor || "#e2e8f0", width: 1.75, dash: "dot" },
+          { win: 60, color: opts.ma60Color || opts.lineColor || "#94a3b8", width: 1.75, dash: "longdash" },
+        ];
+    styleSets.forEach(({ win, color, width, dash }) => {
       const ma = spreadMovingAvgSeries(points, win);
       const xs = ma.map((p) => p.d);
       traces.push({
@@ -10390,7 +10399,8 @@
         mode: "lines",
         name: baseName + " MA" + win,
         yaxis,
-        line: { color: lineColor, width: 1, dash: win === 20 ? "dot" : "dash" },
+        visible: defaultVisible ? true : "legendonly",
+        line: { color, width, dash },
         connectgaps: false,
         customdata: customDataFn ? customDataFn(xs) : undefined,
         hovertemplate:
@@ -11525,7 +11535,9 @@
       });
       spreadAppendMaTraces(traces, f1, {
         baseName: l1Name,
-        lineColor: "rgba(255,255,255,0.55)",
+        defaultVisible: false,
+        ma20Color: "#f8fafc",
+        ma60Color: "#cbd5e1",
         customDataFn: traceCustomData,
       });
     }
@@ -11544,7 +11556,9 @@
       });
       spreadAppendMaTraces(traces, f2, {
         baseName: l2Name,
-        lineColor: "rgba(34,197,94,0.55)",
+        defaultVisible: false,
+        ma20Color: "#86efac",
+        ma60Color: "#4ade80",
         customDataFn: traceCustomData,
       });
     }
@@ -11563,7 +11577,9 @@
       });
       spreadAppendMaTraces(traces, f3, {
         baseName: l3Name,
-        lineColor: "rgba(234,179,8,0.55)",
+        defaultVisible: false,
+        ma20Color: "#fde047",
+        ma60Color: "#facc15",
         customDataFn: traceCustomData,
       });
     }
@@ -11572,7 +11588,8 @@
       spreadAppendMaTraces(traces, spreadPoints, {
         baseName: spreadTrace.name,
         yaxis: "y2",
-        lineColor: "rgba(147,197,253,0.75)",
+        spreadMa: true,
+        defaultVisible: true,
       });
     }
 
@@ -11690,23 +11707,23 @@
       const x1 = f1.map(p => p.d);
       const l1Name = `기준금리 ${tenorLabel(s1.ten.value, s1.inst.value)}`;
       traces.push({ x: x1, y: f1.map(p => p.y), type: "scatter", mode: "lines", name: l1Name, line: { color: "#ffffff", width: 2, shape: "hv" }, customdata: traceCustomData(x1), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
-      spreadAppendMaTraces(traces, f1, { baseName: l1Name, lineColor: "rgba(255,255,255,0.55)", customDataFn: traceCustomData });
+      spreadAppendMaTraces(traces, f1, { baseName: l1Name, defaultVisible: false, ma20Color: "#f8fafc", ma60Color: "#cbd5e1", customDataFn: traceCustomData });
     }
     if (f2.length) {
       const x2 = f2.map(p => p.d);
       const l2Name = s2.inst.value + " " + tenorLabel(s2.ten.value, s2.inst.value);
       traces.push({ x: x2, y: f2.map(p => p.y), type: "scatter", mode: "lines", name: l2Name, line: { color: "#22c55e", width: 1 }, customdata: traceCustomData(x2), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
-      spreadAppendMaTraces(traces, f2, { baseName: l2Name, lineColor: "rgba(34,197,94,0.55)", customDataFn: traceCustomData });
+      spreadAppendMaTraces(traces, f2, { baseName: l2Name, defaultVisible: false, ma20Color: "#86efac", ma60Color: "#4ade80", customDataFn: traceCustomData });
     }
     if (f3.length) {
       const x3 = f3.map(p => p.d);
       const l3Name = s3.inst.value + " " + tenorLabel(s3.ten.value, s3.inst.value);
       traces.push({ x: x3, y: f3.map(p => p.y), type: "scatter", mode: "lines", name: l3Name, line: { color: "#eab308", width: 1 }, customdata: traceCustomData(x3), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
-      spreadAppendMaTraces(traces, f3, { baseName: l3Name, lineColor: "rgba(234,179,8,0.55)", customDataFn: traceCustomData });
+      spreadAppendMaTraces(traces, f3, { baseName: l3Name, defaultVisible: false, ma20Color: "#fde047", ma60Color: "#facc15", customDataFn: traceCustomData });
     }
     if (spreadTrace) {
       traces.push(spreadTrace);
-      spreadAppendMaTraces(traces, spreadPoints, { baseName: spreadTrace.name, yaxis: "y2", lineColor: "rgba(147,197,253,0.75)" });
+      spreadAppendMaTraces(traces, spreadPoints, { baseName: spreadTrace.name, yaxis: "y2", spreadMa: true, defaultVisible: true });
     }
     const legendLayout = spreadChartLegendLayout();
     const layout = {
