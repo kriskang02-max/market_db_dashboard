@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import smtplib
 import ssl
+import tempfile
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -14,6 +17,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = "overview_state.json"
 EMP_EMAIL_TO = "chanhong.kang@shinhanamc.com"
 EMP_EMAIL_API = "/api/emp_summary_email"
+WEEKLY_EMAIL_API = "/api/weekly_report_email"
 
 
 def _truthy(val: str | None) -> bool:
@@ -38,20 +42,23 @@ def _use_outlook_email() -> bool:
     return _outlook_available()
 
 
-def send_emp_summary_email(*, html: str, subject: str) -> None:
-    if not html or not html.strip():
-        raise ValueError("Empty email body")
-    subject = (subject or "ETF 개요").strip() or "ETF 개요"
-    body_html = html if "<html" in html.lower() else (
-        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body>"
+def _wrap_html_body(html: str) -> str:
+    if "<html" in html.lower():
+        return html
+    return (
+        '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>'
         + html
         + "</body></html>"
     )
 
-    if _use_outlook_email():
-        _send_via_outlook(body_html, subject, EMP_EMAIL_TO)
-        return
 
+def _send_via_smtp(
+    *,
+    html: str,
+    subject: str,
+    to_addr: str,
+    attachments: list[tuple[str, bytes]] | None = None,
+) -> None:
     host = os.environ.get("EMP_SMTP_HOST", "").strip()
     user = os.environ.get("EMP_SMTP_USER", "").strip()
     password = os.environ.get("EMP_SMTP_PASS", "")
@@ -65,11 +72,17 @@ def send_emp_summary_email(*, html: str, subject: str) -> None:
     use_tls = not _truthy(os.environ.get("EMP_SMTP_SSL"))
     from_addr = os.environ.get("EMP_SMTP_FROM", user).strip() or user
 
-    msg = MIMEMultipart("alternative")
+    msg = MIMEMultipart("mixed")
     msg["Subject"] = subject
     msg["From"] = from_addr
-    msg["To"] = EMP_EMAIL_TO
-    msg.attach(MIMEText(body_html, "html", "utf-8"))
+    msg["To"] = to_addr
+    alt = MIMEMultipart("alternative")
+    alt.attach(MIMEText(_wrap_html_body(html), "html", "utf-8"))
+    msg.attach(alt)
+    for filename, data in attachments or []:
+        part = MIMEApplication(data, Name=filename)
+        part.add_header("Content-Disposition", "attachment", filename=("utf-8", "", filename))
+        msg.attach(part)
 
     if use_tls:
         with smtplib.SMTP(host, port, timeout=60) as smtp:
@@ -77,14 +90,65 @@ def send_emp_summary_email(*, html: str, subject: str) -> None:
             smtp.starttls(context=ssl.create_default_context())
             smtp.ehlo()
             smtp.login(user, password)
-            smtp.sendmail(from_addr, [EMP_EMAIL_TO], msg.as_string())
+            smtp.sendmail(from_addr, [to_addr], msg.as_string())
     else:
         with smtplib.SMTP_SSL(host, port, timeout=60, context=ssl.create_default_context()) as smtp:
             smtp.login(user, password)
-            smtp.sendmail(from_addr, [EMP_EMAIL_TO], msg.as_string())
+            smtp.sendmail(from_addr, [to_addr], msg.as_string())
 
 
-def _send_via_outlook(html: str, subject: str, to_addr: str) -> None:
+def send_emp_summary_email(*, html: str, subject: str) -> None:
+    if not html or not html.strip():
+        raise ValueError("Empty email body")
+    subject = (subject or "ETF 개요").strip() or "ETF 개요"
+    body_html = _wrap_html_body(html)
+
+    if _use_outlook_email():
+        _send_via_outlook(body_html, subject, EMP_EMAIL_TO)
+        return
+    _send_via_smtp(html=body_html, subject=subject, to_addr=EMP_EMAIL_TO)
+
+
+def send_weekly_report_email(*, html: str, subject: str, filename: str) -> None:
+    if not html or not html.strip():
+        raise ValueError("Empty Word document body")
+    subject = (subject or "시장 동향 및 전망").strip() or "시장 동향 및 전망"
+    filename = os.path.basename((filename or "weekly_report.doc").strip()) or "weekly_report.doc"
+    if not filename.lower().endswith(".doc"):
+        filename += ".doc"
+
+    doc_bytes = "\ufeff".encode("utf-8") + html.encode("utf-8")
+    body_html = (
+        "<p>시장 동향 및 전망 Word 파일(<strong>"
+        + filename
+        + "</strong>)을 첨부합니다.</p>"
+    )
+
+    temp_dir = tempfile.mkdtemp(prefix="weekly_report_")
+    temp_path = os.path.join(temp_dir, filename)
+    try:
+        with open(temp_path, "wb") as tmp:
+            tmp.write(doc_bytes)
+
+        if _use_outlook_email():
+            _send_via_outlook(body_html, subject, EMP_EMAIL_TO, attachment_paths=[temp_path])
+            return
+        _send_via_smtp(
+            html=body_html,
+            subject=subject,
+            to_addr=EMP_EMAIL_TO,
+            attachments=[(filename, doc_bytes)],
+        )
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def _send_via_outlook(
+    html: str,
+    subject: str,
+    to_addr: str,
+    attachment_paths: list[str] | None = None,
+) -> None:
     try:
         import pythoncom
         import win32com.client  # type: ignore
@@ -103,6 +167,8 @@ def _send_via_outlook(html: str, subject: str, to_addr: str) -> None:
         mail.To = to_addr
         mail.Subject = subject
         mail.HTMLBody = html
+        for path in attachment_paths or []:
+            mail.Attachments.Add(os.path.abspath(path))
         mail.Send()
 
         # Send()는 보낼편지함에 넣기만 함. Send/Receive로 서버 전송을 즉시 트리거.
@@ -128,6 +194,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if path == EMP_EMAIL_API:
             self._handle_emp_summary_email()
+            return
+        if path == WEEKLY_EMAIL_API:
+            self._handle_weekly_report_email()
             return
         self.send_error(404)
 
@@ -183,10 +252,40 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         self._send_json(200, {"ok": True, "to": EMP_EMAIL_TO})
 
+    def _handle_weekly_report_email(self) -> None:
+        try:
+            parsed = self._read_json_body()
+        except ValueError:
+            self.send_error(400, "Invalid JSON")
+            return
+        html = parsed.get("html")
+        if not isinstance(html, str) or not html.strip():
+            self.send_error(400, "html required")
+            return
+        subject = parsed.get("subject")
+        if subject is not None and not isinstance(subject, str):
+            self.send_error(400, "subject must be string")
+            return
+        filename = parsed.get("filename")
+        if filename is not None and not isinstance(filename, str):
+            self.send_error(400, "filename must be string")
+            return
+        try:
+            send_weekly_report_email(
+                html=html,
+                subject=subject or "시장 동향 및 전망",
+                filename=filename or "weekly_report.doc",
+            )
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+            return
+        self._send_json(200, {"ok": True, "to": EMP_EMAIL_TO})
+
     def log_message(self, fmt: str, *args) -> None:
         if args and (
             args[0].startswith("POST /overview_state")
             or args[0].startswith(f"POST {EMP_EMAIL_API}")
+            or args[0].startswith(f"POST {WEEKLY_EMAIL_API}")
         ):
             return
         super().log_message(fmt, *args)
@@ -199,13 +298,14 @@ def main() -> None:
     print(f"Dashboard: http://{host}:{port}/dashboard.html")
     print(f"Overview 저장 파일: {os.path.join(ROOT, STATE_FILE)}")
     print(f"ETF 개요 메일 API: http://{host}:{port}{EMP_EMAIL_API}")
+    print(f"Weekly Word 메일 API: http://{host}:{port}{WEEKLY_EMAIL_API}")
     if _use_outlook_email():
-        print("ETF 개요 메일: Outlook")
+        print(f"메일 발송: Outlook → {EMP_EMAIL_TO}")
     elif os.environ.get("EMP_SMTP_HOST"):
-        print(f"ETF 개요 메일: SMTP → {EMP_EMAIL_TO}")
+        print(f"메일 발송: SMTP → {EMP_EMAIL_TO}")
     else:
         print(
-            "ETF 개요 메일: 미설정 (Outlook: EMP_EMAIL_USE_OUTLOOK=1 또는 SMTP 환경 변수)"
+            "메일 발송: 미설정 (Outlook: EMP_EMAIL_USE_OUTLOOK=1 또는 SMTP 환경 변수)"
         )
     try:
         server.serve_forever()

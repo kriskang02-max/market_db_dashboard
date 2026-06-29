@@ -33,6 +33,20 @@
       min-height: 480px;
       flex: 0 0 auto;
     }
+    #page-spread .spread-legend-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin: 0 0 0.65rem;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.72);
+      cursor: pointer;
+      user-select: none;
+    }
+    #page-spread .spread-legend-toggle input {
+      margin: 0;
+      accent-color: #3b82f6;
+    }
     /* display:none 이었다가 복귀할 때 Plotly가 남긴 고정 폭으로 절반만 그려지는 현상 완화 */
     #page-spread .chart-wrap .js-plotly-plot,
     #page-spread .chart-wrap .plotly,
@@ -2500,6 +2514,10 @@
 
     <aside class="sidebar">
       <p class="panel-head">설정</p>
+      <label class="spread-legend-toggle" for="spreadShowLegend" title="마우스를 올리면 시리즈명을 볼 수 있습니다">
+        <input type="checkbox" id="spreadShowLegend" />
+        <span>범례 표시</span>
+      </label>
       <h2 class="group-title">그룹1</h2>
 
       <h2>라인 1</h2>
@@ -3398,6 +3416,16 @@
   const endDate_2 = document.getElementById("endDate_2");
   const chartDiv2 = document.getElementById("chartDiv2");
   const chartError2 = document.getElementById("chartError2");
+  const spreadShowLegend = document.getElementById("spreadShowLegend");
+  const SPREAD_LEGEND_VISIBLE_KEY = "market_db_dashboard_spread_legend_visible_v1";
+  let spreadLegendVisible = (function () {
+    try {
+      const raw = localStorage.getItem(SPREAD_LEGEND_VISIBLE_KEY);
+      if (raw != null) return raw === "1";
+    } catch (_) {}
+    return false;
+  })();
+  if (spreadShowLegend) spreadShowLegend.checked = spreadLegendVisible;
   const spreadHeaderMeta = document.getElementById("spreadHeaderMeta");
   const navSpread = document.getElementById("navSpread");
   const navRates = document.getElementById("navRates");
@@ -11405,6 +11433,25 @@
       });
   }
 
+  function spreadChartLegendLayout() {
+    if (!spreadLegendVisible) {
+      return { showlegend: false, margin: { l: 55, r: 50, t: 18, b: 45 } };
+    }
+    return {
+      showlegend: true,
+      margin: { l: 55, r: 50, t: 58, b: 45 },
+      legend: {
+        orientation: "h",
+        yanchor: "bottom",
+        y: 1.02,
+        x: 0,
+        xanchor: "left",
+        bgcolor: "rgba(0,0,0,0.5)",
+        font: { color: "#fff", size: 9 },
+      },
+    };
+  }
+
   function render() {
     const start = (startDate.value || "").trim() || dates[0];
     const end = (endDate.value || "").trim() || dates[dates.length - 1];
@@ -11529,9 +11576,11 @@
       });
     }
 
+    const legendLayout = spreadChartLegendLayout();
     const layout = {
       autosize: true,
-      margin: { l: 55, r: 50, t: 18, b: 45 },
+      margin: legendLayout.margin,
+      showlegend: legendLayout.showlegend,
       paper_bgcolor: "#0e1117",
       plot_bgcolor: "#0e1117",
       bargap: 0.05,
@@ -11568,12 +11617,8 @@
         rangemode: "normal",
         tickfont: { color: "#93c5fd" },
       },
-      legend: {
-        x: 1, y: 1, xanchor: "right",
-        bgcolor: "rgba(0,0,0,0.5)",
-        font: { color: "#fff" },
-      },
     };
+    if (legendLayout.legend) layout.legend = legendLayout.legend;
 
     const yMinVal = parseFloat(yMin.value, 10);
     const yMaxVal = parseFloat(yMax.value, 10);
@@ -11663,17 +11708,19 @@
       traces.push(spreadTrace);
       spreadAppendMaTraces(traces, spreadPoints, { baseName: spreadTrace.name, yaxis: "y2", lineColor: "rgba(147,197,253,0.75)" });
     }
+    const legendLayout = spreadChartLegendLayout();
     const layout = {
       autosize: true,
-      margin: { l: 55, r: 50, t: 18, b: 45 },
+      margin: legendLayout.margin,
+      showlegend: legendLayout.showlegend,
       paper_bgcolor: "#0e1117", plot_bgcolor: "#0e1117", bargap: 0.05,
       font: { color: "#fff", family: "Malgun Gothic, Segoe UI, sans-serif" },
       hoverlabel: { align: "left" },
       xaxis: { title: "Date", type: "date", hoverformat: "%Y-%m-%d", gridcolor: "rgba(255,255,255,0.08)", zeroline: false, linecolor: "rgba(255,255,255,0.15)", tickfont: { color: "#fff" } },
       yaxis: { title: "Yield", gridcolor: "rgba(255,255,255,0.14)", zerolinecolor: "rgba(255,255,255,0.3)", linecolor: "rgba(255,255,255,0.6)", linewidth: 1.5, rangemode: "normal", tickfont: { color: "#fff" } },
       yaxis2: { title: "Spread", overlaying: "y", side: "right", gridcolor: "rgba(59,130,246,0.25)", zeroline: true, zerolinecolor: "rgba(59,130,246,0.7)", zerolinewidth: 1, linecolor: "rgba(59,130,246,0.9)", linewidth: 1, rangemode: "normal", tickfont: { color: "#93c5fd" } },
-      legend: { x: 1, y: 1, xanchor: "right", bgcolor: "rgba(0,0,0,0.5)", font: { color: "#fff" } },
     };
+    if (legendLayout.legend) layout.legend = legendLayout.legend;
     const yMinVal = parseFloat(yMin_2.value, 10);
     const yMaxVal = parseFloat(yMax_2.value, 10);
     if (!Number.isNaN(yMinVal) || !Number.isNaN(yMaxVal)) layout.yaxis.range = [Number.isNaN(yMinVal) ? undefined : yMinVal, Number.isNaN(yMaxVal) ? undefined : yMaxVal];
@@ -11687,6 +11734,16 @@
   }
 
   document.getElementById("btnDraw").addEventListener("click", render);
+  if (spreadShowLegend) {
+    spreadShowLegend.addEventListener("change", () => {
+      spreadLegendVisible = !!spreadShowLegend.checked;
+      try {
+        localStorage.setItem(SPREAD_LEGEND_VISIBLE_KEY, spreadLegendVisible ? "1" : "0");
+      } catch (_) {}
+      render();
+      render2();
+    });
+  }
   document.getElementById("btnAutoAxis").addEventListener("click", () => {
     yMin.value = yMax.value = y2Min.value = y2Max.value = "";
     render();
