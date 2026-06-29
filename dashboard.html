@@ -2792,6 +2792,7 @@
         <div class="weekly-toolbar-actions">
           <button type="button" id="weeklySaveBtn" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
           <button type="button" id="weeklyDownloadBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">Word 다운로드</button>
+          <button type="button" id="weeklySendBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">발송</button>
         </div>
       </div>
       <div class="weekly-date-row">
@@ -3218,6 +3219,12 @@
     }
     return "";
   })();
+  const WEEKLY_EMAIL_API = (function () {
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      return new URL("api/weekly_report_email", location.href).href;
+    }
+    return "";
+  })();
   const EMP_SUMMARY_EMAIL_TO = "chanhong.kang@shinhanamc.com";
 
   const OVERVIEW_PREVDAY_STORAGE_KEY = "market_db_dashboard_overview_prevday_v1";
@@ -3408,6 +3415,7 @@
   const weeklySpreadTableWrap = document.getElementById("weeklySpreadTableWrap");
   const weeklySaveBtn = document.getElementById("weeklySaveBtn");
   const weeklyDownloadBtn = document.getElementById("weeklyDownloadBtn");
+  const weeklySendBtn = document.getElementById("weeklySendBtn");
   const weeklyTrendInput = document.getElementById("weeklyTrendInput");
   const weeklyOutlookInput = document.getElementById("weeklyOutlookInput");
   const weeklyDurationInput = document.getElementById("weeklyDurationInput");
@@ -7795,6 +7803,17 @@
     );
   }
 
+  function weeklyGetDocFilename(endDate) {
+    const end = endDate || weeklyReportDates().end;
+    if (!end) return "";
+    return "신한자산_시장동향및전망_" + end.replace(/-/g, "") + ".doc";
+  }
+
+  function weeklyBuildEmailSubject() {
+    const { end } = weeklyReportDates();
+    return end ? "시장 동향 및 전망 " + end : "시장 동향 및 전망";
+  }
+
   function weeklyDownloadDoc() {
     const { end } = weeklyReportDates();
     if (!end) {
@@ -7805,16 +7824,99 @@
       return;
     }
     const html = weeklyBuildDocHtml();
+    const filename = weeklyGetDocFilename(end);
     const blob = new Blob(["\ufeff", html], { type: "application/msword" });
-    const tag = end.replace(/-/g, "");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "신한자산_시장동향및전망_" + tag + ".doc";
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    if (weeklyStatus) weeklyStatus.textContent = "Word 파일 다운로드: 신한자산_시장동향및전망_" + tag + ".doc";
+    if (weeklyStatus) weeklyStatus.textContent = "Word 파일 다운로드: " + filename;
+  }
+
+  function weeklySendEmail() {
+    const { end } = weeklyReportDates();
+    if (!end) {
+      if (weeklyStatus) {
+        weeklyStatus.textContent = "발송할 Weekly 데이터가 없습니다. market_db.csv를 먼저 불러오세요.";
+        weeklyStatus.classList.add("is-warn");
+      }
+      return;
+    }
+    if (!WEEKLY_EMAIL_API) {
+      if (weeklyStatus) {
+        weeklyStatus.textContent = "발송은 python serve_dashboard.py 로 http 접속 시에만 가능합니다.";
+        weeklyStatus.classList.add("is-warn");
+      }
+      return;
+    }
+    const html = weeklyBuildDocHtml();
+    const subject = weeklyBuildEmailSubject();
+    const filename = weeklyGetDocFilename(end);
+    const btn = weeklySendBtn;
+    const prevLabel = btn ? btn.textContent : "";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "발송 중…";
+    }
+    if (weeklyStatus) {
+      weeklyStatus.textContent = "Word 파일 생성 및 메일 발송 중…";
+      weeklyStatus.classList.remove("is-warn");
+    }
+    fetch(WEEKLY_EMAIL_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ html: html, subject: subject, filename: filename }),
+      cache: "no-store",
+    })
+      .then((r) =>
+        r.text().then((text) => {
+          let data = {};
+          try {
+            data = text ? JSON.parse(text) : {};
+          } catch (_) {}
+          return { ok: r.ok, status: r.status, data, text };
+        })
+      )
+      .then(({ ok, status, data }) => {
+        if (ok && data && data.ok) {
+          const msg = "발송 완료 · " + (data.to || EMP_SUMMARY_EMAIL_TO) + " · " + filename;
+          if (weeklyStatus) {
+            weeklyStatus.textContent = msg;
+            weeklyStatus.classList.remove("is-warn");
+          }
+          if (btn) btn.textContent = "발송됨";
+          setTimeout(() => {
+            if (btn) btn.textContent = prevLabel;
+          }, 2000);
+          return;
+        }
+        let err = data && data.error ? String(data.error) : "";
+        if (!err && status === 404) {
+          err =
+            "메일 API를 찾을 수 없습니다. python serve_dashboard.py 실행 후 http://127.0.0.1:8000/dashboard.html 로 접속하세요.";
+        } else if (!err) {
+          err = "메일 발송에 실패했습니다." + (status ? " (HTTP " + status + ")" : "");
+        }
+        if (weeklyStatus) {
+          weeklyStatus.textContent = err;
+          weeklyStatus.classList.add("is-warn");
+        }
+        if (btn) btn.textContent = prevLabel;
+      })
+      .catch((e) => {
+        const err = "발송 실패: " + (e && e.message ? e.message : String(e));
+        if (weeklyStatus) {
+          weeklyStatus.textContent = err;
+          weeklyStatus.classList.add("is-warn");
+        }
+        if (btn) btn.textContent = prevLabel;
+      })
+      .finally(() => {
+        if (btn) btn.disabled = false;
+      });
   }
 
   function renderWeeklyPage() {
@@ -10234,6 +10336,43 @@
     });
   }
 
+  function spreadMovingAvgSeries(points, window) {
+    const sorted = points.slice().sort((a, b) => a.d.localeCompare(b.d));
+    return sorted.map((p, i) => {
+      if (i + 1 < window) return { d: p.d, y: null };
+      let sum = 0;
+      for (let j = i - window + 1; j <= i; j++) sum += sorted[j].y;
+      return { d: p.d, y: sum / window };
+    });
+  }
+
+  function spreadAppendMaTraces(traces, points, opts) {
+    if (!points || points.length < 2) return;
+    const baseName = opts.baseName;
+    const yaxis = opts.yaxis || "y";
+    const lineColor = opts.lineColor;
+    const customDataFn = opts.customDataFn;
+    [20, 60].forEach((win) => {
+      const ma = spreadMovingAvgSeries(points, win);
+      const xs = ma.map((p) => p.d);
+      traces.push({
+        x: xs,
+        y: ma.map((p) => p.y),
+        type: "scatter",
+        mode: "lines",
+        name: baseName + " MA" + win,
+        yaxis,
+        line: { color: lineColor, width: 1, dash: win === 20 ? "dot" : "dash" },
+        connectgaps: false,
+        customdata: customDataFn ? customDataFn(xs) : undefined,
+        hovertemplate:
+          "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}" +
+          (customDataFn ? "%{customdata}" : "") +
+          "<extra></extra>",
+      });
+    });
+  }
+
   function maxDateInSeries(points) {
     if (!points.length) return null;
     return points.reduce((m, p) => (p.d > m ? p.d : m), points[0].d);
@@ -11298,6 +11437,7 @@
 
     const traces = [];
     let spreadTrace = null;
+    let spreadPoints = [];
     if (f2.length && f3.length) {
       const map3 = new Map(f3.map(p => [p.d, p.y]));
       const spread = [];
@@ -11306,6 +11446,7 @@
           spread.push({ d: p2.d, y: map3.get(p2.d) - p2.y });
         }
       });
+      spreadPoints = spread;
       const label2 = `${s2.inst.value} ${tenorLabel(s2.ten.value, s2.inst.value)}`;
       const label3 = `${s3.inst.value} ${tenorLabel(s3.ten.value, s3.inst.value)}`;
       spreadTrace = {
@@ -11324,44 +11465,69 @@
 
     if (f1.length) {
       const x1 = f1.map(p => p.d);
+      const l1Name = `기준금리 ${tenorLabel(s1.ten.value, s1.inst.value)}`;
       traces.push({
         x: x1,
         y: f1.map(p => p.y),
         type: "scatter",
         mode: "lines",
-        name: `기준금리 ${tenorLabel(s1.ten.value, s1.inst.value)}`,
+        name: l1Name,
         line: { color: "#ffffff", width: 2, shape: "hv" },
         customdata: traceCustomData(x1),
         hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>",
       });
+      spreadAppendMaTraces(traces, f1, {
+        baseName: l1Name,
+        lineColor: "rgba(255,255,255,0.55)",
+        customDataFn: traceCustomData,
+      });
     }
     if (f2.length) {
       const x2 = f2.map(p => p.d);
+      const l2Name = s2.inst.value + " " + tenorLabel(s2.ten.value, s2.inst.value);
       traces.push({
         x: x2,
         y: f2.map(p => p.y),
         type: "scatter",
         mode: "lines",
-        name: s2.inst.value + " " + tenorLabel(s2.ten.value, s2.inst.value),
+        name: l2Name,
         line: { color: "#22c55e", width: 1 },
         customdata: traceCustomData(x2),
         hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>",
       });
+      spreadAppendMaTraces(traces, f2, {
+        baseName: l2Name,
+        lineColor: "rgba(34,197,94,0.55)",
+        customDataFn: traceCustomData,
+      });
     }
     if (f3.length) {
       const x3 = f3.map(p => p.d);
+      const l3Name = s3.inst.value + " " + tenorLabel(s3.ten.value, s3.inst.value);
       traces.push({
         x: x3,
         y: f3.map(p => p.y),
         type: "scatter",
         mode: "lines",
-        name: s3.inst.value + " " + tenorLabel(s3.ten.value, s3.inst.value),
+        name: l3Name,
         line: { color: "#eab308", width: 1 },
         customdata: traceCustomData(x3),
         hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>",
       });
+      spreadAppendMaTraces(traces, f3, {
+        baseName: l3Name,
+        lineColor: "rgba(234,179,8,0.55)",
+        customDataFn: traceCustomData,
+      });
     }
-    if (spreadTrace) traces.push(spreadTrace);
+    if (spreadTrace) {
+      traces.push(spreadTrace);
+      spreadAppendMaTraces(traces, spreadPoints, {
+        baseName: spreadTrace.name,
+        yaxis: "y2",
+        lineColor: "rgba(147,197,253,0.75)",
+      });
+    }
 
     const layout = {
       autosize: true,
@@ -11458,12 +11624,14 @@
     f3 = filterPointsByRange(f3, start, end);
     const traces = [];
     let spreadTrace = null;
+    let spreadPoints = [];
     if (f2.length && f3.length) {
       const map3 = new Map(f3.map(p => [p.d, p.y]));
       const spread = [];
       f2.forEach(p2 => {
         if (map3.has(p2.d)) spread.push({ d: p2.d, y: map3.get(p2.d) - p2.y });
       });
+      spreadPoints = spread;
       const label2 = `${s2.inst.value} ${tenorLabel(s2.ten.value, s2.inst.value)}`;
       const label3 = `${s3.inst.value} ${tenorLabel(s3.ten.value, s3.inst.value)}`;
       spreadTrace = {
@@ -11475,17 +11643,26 @@
     }
     if (f1.length) {
       const x1 = f1.map(p => p.d);
-      traces.push({ x: x1, y: f1.map(p => p.y), type: "scatter", mode: "lines", name: `기준금리 ${tenorLabel(s1.ten.value, s1.inst.value)}`, line: { color: "#ffffff", width: 2, shape: "hv" }, customdata: traceCustomData(x1), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
+      const l1Name = `기준금리 ${tenorLabel(s1.ten.value, s1.inst.value)}`;
+      traces.push({ x: x1, y: f1.map(p => p.y), type: "scatter", mode: "lines", name: l1Name, line: { color: "#ffffff", width: 2, shape: "hv" }, customdata: traceCustomData(x1), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
+      spreadAppendMaTraces(traces, f1, { baseName: l1Name, lineColor: "rgba(255,255,255,0.55)", customDataFn: traceCustomData });
     }
     if (f2.length) {
       const x2 = f2.map(p => p.d);
-      traces.push({ x: x2, y: f2.map(p => p.y), type: "scatter", mode: "lines", name: s2.inst.value + " " + tenorLabel(s2.ten.value, s2.inst.value), line: { color: "#22c55e", width: 1 }, customdata: traceCustomData(x2), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
+      const l2Name = s2.inst.value + " " + tenorLabel(s2.ten.value, s2.inst.value);
+      traces.push({ x: x2, y: f2.map(p => p.y), type: "scatter", mode: "lines", name: l2Name, line: { color: "#22c55e", width: 1 }, customdata: traceCustomData(x2), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
+      spreadAppendMaTraces(traces, f2, { baseName: l2Name, lineColor: "rgba(34,197,94,0.55)", customDataFn: traceCustomData });
     }
     if (f3.length) {
       const x3 = f3.map(p => p.d);
-      traces.push({ x: x3, y: f3.map(p => p.y), type: "scatter", mode: "lines", name: s3.inst.value + " " + tenorLabel(s3.ten.value, s3.inst.value), line: { color: "#eab308", width: 1 }, customdata: traceCustomData(x3), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
+      const l3Name = s3.inst.value + " " + tenorLabel(s3.ten.value, s3.inst.value);
+      traces.push({ x: x3, y: f3.map(p => p.y), type: "scatter", mode: "lines", name: l3Name, line: { color: "#eab308", width: 1 }, customdata: traceCustomData(x3), hovertemplate: "%{x|%Y-%m-%d}<br>%{fullData.name}: %{y:.3f}%{customdata}<extra></extra>" });
+      spreadAppendMaTraces(traces, f3, { baseName: l3Name, lineColor: "rgba(234,179,8,0.55)", customDataFn: traceCustomData });
     }
-    if (spreadTrace) traces.push(spreadTrace);
+    if (spreadTrace) {
+      traces.push(spreadTrace);
+      spreadAppendMaTraces(traces, spreadPoints, { baseName: spreadTrace.name, yaxis: "y2", lineColor: "rgba(147,197,253,0.75)" });
+    }
     const layout = {
       autosize: true,
       margin: { l: 55, r: 50, t: 18, b: 45 },
@@ -11554,6 +11731,7 @@
     });
   }
   if (weeklyDownloadBtn) weeklyDownloadBtn.addEventListener("click", () => weeklyDownloadDoc());
+  if (weeklySendBtn) weeklySendBtn.addEventListener("click", () => weeklySendEmail());
   if (weeklyEndDateInput) {
     const onWeeklyEndDateInput = () => {
       const v = (weeklyEndDateInput.value || "").trim();
