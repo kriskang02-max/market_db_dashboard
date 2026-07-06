@@ -690,11 +690,17 @@
     #page-emp .emp-bm-weight {
       display: inline-flex;
       flex: 0 0 auto;
-      align-items: center;
-      gap: 0.28rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.22rem;
       margin-left: 0.35rem;
       font-size: 0.72rem;
       color: rgba(255, 255, 255, 0.55);
+    }
+    #page-emp .emp-bm-weight__row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
     }
     #page-emp .emp-bm-weight__input {
       width: 4rem;
@@ -710,6 +716,18 @@
     #page-emp .emp-bm-weight__label {
       font-size: 0.72rem;
       color: rgba(147, 197, 253, 0.95);
+      white-space: nowrap;
+    }
+    #page-emp .emp-bm-duration__value {
+      font-size: 0.68rem;
+      color: rgba(255, 255, 255, 0.82);
+      font-variant-numeric: tabular-nums;
+      padding-left: 0.1rem;
+    }
+    #page-emp .emp-summary-save-notice {
+      margin-left: 0.35rem;
+      font-size: 0.72rem;
+      color: rgba(134, 239, 172, 0.95);
       white-space: nowrap;
     }
     #page-emp .emp-futures-duration-input {
@@ -2890,6 +2908,7 @@
               <input type="number" id="empDisparityFilterUpper" class="emp-disparity-filter__input" placeholder="상한" step="any" aria-label="괴리율 상한" />
               <span class="emp-disparity-filter__sep">/</span>
               <input type="number" id="empDisparityFilterLower" class="emp-disparity-filter__input" placeholder="하한" step="any" aria-label="괴리율 하한" />
+              <span id="empSummarySaveNotice" class="emp-summary-save-notice" role="status" aria-live="polite"></span>
             </div>
             <span id="empSummaryStatus" class="overview-prevday-status" role="status"></span>
             <span class="overview-prevday-header-spacer" aria-hidden="true"></span>
@@ -2923,8 +2942,14 @@
             <div class="emp-bm-matrix-debug__body">
               <div class="emp-fund-matrix-panel" id="empBmMatrixTableWrap"></div>
               <div class="emp-bm-weight" title="BM 듀레이션 매트릭스에 곱해지는 비중(%)">
-                <span class="emp-bm-weight__label">BM 비중</span>
-                <input type="number" id="empBmWeightInput" class="emp-bm-weight__input" placeholder="%" step="0.01" min="0" inputmode="decimal" aria-label="BM 비중" />
+                <div class="emp-bm-weight__row">
+                  <span class="emp-bm-weight__label">BM 비중</span>
+                  <input type="number" id="empBmWeightInput" class="emp-bm-weight__input" placeholder="%" step="0.01" min="0" inputmode="decimal" aria-label="BM 비중" />
+                </div>
+                <div class="emp-bm-weight__row">
+                  <span class="emp-bm-weight__label">BM 듀레이션</span>
+                  <span id="empBmDurationValue" class="emp-bm-duration__value">—</span>
+                </div>
               </div>
               <div class="emp-etf-matrix-slot">
                 <span class="emp-etf-matrix-slot__label">ETF 듀레이션 1</span>
@@ -3475,6 +3500,7 @@
   const empFundSave = document.getElementById("empFundSave");
   const empFundStatus = document.getElementById("empFundStatus");
   const empBmWeightInput = document.getElementById("empBmWeightInput");
+  const empBmDurationValue = document.getElementById("empBmDurationValue");
   const empSummaryStatus = document.getElementById("empSummaryStatus");
   const empSummaryWrap = document.getElementById("empSummaryWrap");
   const empFundWrap = document.getElementById("empFundWrap");
@@ -3489,6 +3515,7 @@
   const empEtfMatrixTableWrap1 = document.getElementById("empEtfMatrixTableWrap1");
   const empDisparityFilterUpper = document.getElementById("empDisparityFilterUpper");
   const empDisparityFilterLower = document.getElementById("empDisparityFilterLower");
+  const empSummarySaveNotice = document.getElementById("empSummarySaveNotice");
   const empFuturesWrap = document.getElementById("empFuturesWrap");
   const empFuturesBlock = document.getElementById("empFuturesBlock");
   const reportDateLabel = document.getElementById("reportDateLabel");
@@ -8260,10 +8287,20 @@
     return empFmtDisplay(n, 0);
   }
 
+  function empQtyToEdit(stored) {
+    const n = empNum(stored);
+    if (n === null) return "";
+    return String(n / 1000);
+  }
+
+  function empQtyFromEdit(raw) {
+    const n = empNum(String(raw == null ? "" : raw).trim().replace(/,/g, ""));
+    if (n === null) return null;
+    return n * 1000;
+  }
+
   function empParseQtyInput(raw) {
-    const v = String(raw == null ? "" : raw).trim().replace(/,/g, "");
-    if (!v) return null;
-    return empNum(v);
+    return empQtyFromEdit(raw);
   }
 
   function empReadCuFromCell(etf) {
@@ -8344,9 +8381,11 @@
     try {
       localStorage.setItem(EMP_CU_STORAGE_KEY, JSON.stringify(empCuMap));
       overviewSyncPersistAll({ manual: true }).then((res) => {
+        if (empSummarySaveNotice) empSummarySaveNotice.textContent = "저장되었습니다";
         if (empSummaryStatus) empSummaryStatus.textContent = overviewSyncManualSaveStatus(res);
       });
     } catch (e) {
+      if (empSummarySaveNotice) empSummarySaveNotice.textContent = "";
       if (empSummaryStatus) {
         empSummaryStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
       }
@@ -8543,35 +8582,61 @@
     return empFmtPct2(v);
   }
 
-  function empComputeFundCashQtyDisplayEok(fund) {
-    const cashWt = empNum(fund.cashWeight);
+  function empComputeFundCashQtyDisplayEok(fund, etfNames, byEtf) {
     const nav = empFundNavEokOnly(fund);
-    const setup = empNum(fund.setupRedeemEok);
-    let has = false;
-    let v = 0;
-    if (cashWt !== null && nav !== null) {
-      v += (cashWt / 100) * nav;
-      has = true;
-    }
-    if (setup !== null) {
-      v += setup;
-      has = true;
-    }
-    return has ? v : null;
+    const holdings = empComputeFundHoldingsValueEok(fund, etfNames, byEtf);
+    if (nav === null) return null;
+    if (holdings === null) return nav;
+    return nav - holdings;
   }
 
-  function empFmtFundCashQtyDisplayEok(fund) {
-    const v = empComputeFundCashQtyDisplayEok(fund);
+  function empFmtFundCashQtyDisplayEok(fund, etfNames, byEtf) {
+    const v = empComputeFundCashQtyDisplayEok(fund, etfNames, byEtf);
     if (v === null) return "—";
     return empFmtDisplay(v, 2);
+  }
+
+  function empComputeFundEtfWeightSum(fund, etfNames, byEtf) {
+    let sum = 0;
+    let has = false;
+    (etfNames || []).forEach((etfName) => {
+      const meta = empEtfMetaMap[etfName] || {};
+      const qty = fund.qty && fund.qty[etfName];
+      const wt = empComputeFundEtfWeight(qty, meta.basePrice, fund);
+      if (wt !== null) {
+        sum += wt;
+        has = true;
+      }
+    });
+    return has ? sum : null;
+  }
+
+  function empComputeFundCashWeightPct(fund, etfNames, byEtf) {
+    const etfSum = empComputeFundEtfWeightSum(fund, etfNames, byEtf);
+    if (etfSum === null) return null;
+    return 100 - etfSum;
+  }
+
+  function empFmtFundCashWeightPct(fund, etfNames, byEtf) {
+    const v = empComputeFundCashWeightPct(fund, etfNames, byEtf);
+    if (v === null) return "—";
+    return empFmtPct2(v);
   }
 
   function empUpdateFundCashQtyCell(fundId) {
     if (!empFundWrap) return;
     const fund = empFindFund(fundId);
     if (!fund) return;
+    const { byEtf, etfNames } = empGetSortedEtfGroups();
     const cell = empFundWrap.querySelector('.emp-fund-cash-qty-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
-    if (cell) cell.textContent = empFmtFundCashQtyDisplayEok(fund);
+    if (cell) cell.textContent = empFmtFundCashQtyDisplayEok(fund, etfNames, byEtf);
+    const wtCell = empFundWrap.querySelector('.emp-fund-cash-wt-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
+    if (wtCell) wtCell.textContent = empFmtFundCashWeightPct(fund, etfNames, byEtf);
+    const cashWtdCell = empFundWrap.querySelector('.emp-fund-cash-wtd-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
+    if (cashWtdCell) {
+      const cashWt = empComputeFundCashWeightPct(fund, etfNames, byEtf);
+      cashWtdCell.textContent = empFmtDisplay(empComputeWeightDur(cashWt, 0), 2);
+    }
   }
 
   function empFmtFundHoldingsEok(fund, etfNames, byEtf) {
@@ -8616,7 +8681,7 @@
         if (wDur !== null) durNumerator += wt * wDur;
       }
     });
-    const cash = empNum(fund.cashWeight);
+    const cash = empComputeFundCashWeightPct(fund, etfNames, byEtf);
     if (cash !== null) weightSum += cash;
     const wad = weightSum > 0 ? durNumerator / weightSum : null;
     return { weightSum, wad };
@@ -8635,15 +8700,14 @@
         const setupEl = empFundMetaWrap.querySelector('.emp-fund-meta-setup-input[data-fund-id="' + fid + '"]');
         if (setupEl) fund.setupRedeemEok = String(setupEl.value || "").trim();
       }
-      const cashEl = empFundWrap.querySelector('.emp-fund-cash-input[data-fund-id="' + fid + '"]');
-      if (cashEl) fund.cashWeight = String(cashEl.value || "").trim();
+      fund.cashWeight = "";
       fund.qty = {};
       empFundWrap.querySelectorAll('.emp-fund-qty-input[data-fund-id="' + fid + '"]').forEach((el) => {
         const etf = el.getAttribute("data-emp-etf");
         if (!etf) return;
         const v = String(el.value || "").trim().replace(/,/g, "");
         if (v === "") return;
-        const n = empNum(v);
+        const n = empQtyFromEdit(v);
         if (n !== null) fund.qty[etf] = n;
       });
       empFundWrap.querySelectorAll('.emp-fund-qty-plain[data-fund-id="' + fid + '"]').forEach((el) => {
@@ -8757,9 +8821,6 @@
       );
       if (wtdCell) wtdCell.textContent = empFmtDisplay(empComputeWeightDur(wt, wDur), 2);
     });
-    const cashWt = empNum(fund.cashWeight);
-    const cashWtdCell = empFundWrap.querySelector('.emp-fund-cash-wtd-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
-    if (cashWtdCell) cashWtdCell.textContent = empFmtDisplay(empComputeWeightDur(cashWt, 0), 2);
     const totals = empComputeFundTotals(fund, etfNames, byEtf, durationOverrides);
     const sumCell = empFundWrap.querySelector('.emp-fund-wt-sum-cell[data-fund-id="' + CSS.escape(fundId) + '"]');
     if (sumCell) sumCell.textContent = empFmtPct2(totals.weightSum);
@@ -8801,6 +8862,7 @@
   function empRenderFundEtfCells(fund, etfName, meta, wDur, locked) {
     const qtyRaw = fund.qty[etfName];
     const qtyVal = qtyRaw != null ? empFmtQty(qtyRaw) : "";
+    const qtyEditVal = qtyRaw != null ? empQtyToEdit(qtyRaw) : "";
     const wt = empComputeFundEtfWeight(qtyRaw, meta.basePrice, fund);
     const wtd = empComputeWeightDur(wt, wDur);
     let h = "";
@@ -8815,13 +8877,13 @@
         "</span></td>";
     } else {
       h +=
-        '<td><input type="text" inputmode="numeric" class="emp-fund-qty-input" data-fund-id="' +
+        '<td><input type="text" inputmode="decimal" class="emp-fund-qty-input" data-fund-id="' +
         escapeHtml(fund.id) +
         '" data-emp-etf="' +
         escapeHtml(etfName) +
-        '" placeholder="수량" value="' +
-        escapeHtml(qtyVal) +
-        '" /></td>';
+        '" placeholder="천" value="' +
+        escapeHtml(qtyEditVal) +
+        '" title="천 단위 입력 (4 → 4,000)" /></td>';
     }
     h +=
       '<td class="emp-fund-wt-cell" data-fund-id="' +
@@ -8842,28 +8904,20 @@
     return h;
   }
 
-  function empRenderFundCashCells(fund, locked) {
-    const cashVal = fund.cashWeight != null ? String(fund.cashWeight) : "";
-    const cashWt = empNum(fund.cashWeight);
+  function empRenderFundCashCells(fund, etfNames, byEtf) {
+    const cashWt = empComputeFundCashWeightPct(fund, etfNames, byEtf);
     let h =
       '<td class="emp-fund-cash-qty-cell" data-fund-id="' +
       escapeHtml(fund.id) +
       '">' +
-      empFmtFundCashQtyDisplayEok(fund) +
+      empFmtFundCashQtyDisplayEok(fund, etfNames, byEtf) +
       "</td>";
-    if (locked) {
-      h +=
-        '<td><span class="emp-fund-plain">' +
-        (cashVal ? escapeHtml(empFmtPct2(cashWt)) : "—") +
-        "</span></td>";
-    } else {
-      h +=
-        '<td><input type="number" class="emp-fund-cash-input" data-fund-id="' +
-        escapeHtml(fund.id) +
-        '" step="0.01" placeholder="%" value="' +
-        escapeHtml(cashVal) +
-        '" /></td>';
-    }
+    h +=
+      '<td class="emp-fund-cash-wt-cell" data-fund-id="' +
+      escapeHtml(fund.id) +
+      '">' +
+      empFmtFundCashWeightPct(fund, etfNames, byEtf) +
+      "</td>";
     h +=
       '<td class="emp-fund-cash-wtd-cell" data-fund-id="' +
       escapeHtml(fund.id) +
@@ -9122,7 +9176,7 @@
     h += '<tr class="emp-row-cash">';
     h += "<td>현금</td><td></td><td></td>";
     funds.forEach((fund) => {
-      h += empRenderFundCashCells(fund, locked);
+      h += empRenderFundCashCells(fund, etfNames, byEtf);
     });
     h += "</tr>";
     h += '<tr class="emp-row-summary">';
@@ -9647,6 +9701,7 @@
 
   function empUpdateBmMatrixSection(bmCells) {
     empUpdateBmMatrixTable(bmCells);
+    empUpdateBmDurationDisplay(bmCells);
     empSyncBmWeightInput();
     empSyncEtfMatrixSelects();
     empUpdateEtfMatrixTables();
@@ -9688,6 +9743,20 @@
   function empGetBmWeightFactor() {
     const wt = empNum(empBmWeight);
     return wt !== null ? wt / 100 : 0;
+  }
+
+  function empComputeBmPortfolioWad(bmCells) {
+    if (!bmCells) return null;
+    const durSums = empMatrixComputeSums(bmCells, "dur", null);
+    const wtSums = empMatrixComputeSums(bmCells, "weight", null);
+    if (!wtSums.grand || Math.abs(wtSums.grand) < 1e-9) return null;
+    return (durSums.grand / wtSums.grand) * 100;
+  }
+
+  function empUpdateBmDurationDisplay(bmCells) {
+    if (!empBmDurationValue) return;
+    const wad = empComputeBmPortfolioWad(bmCells);
+    empBmDurationValue.textContent = wad !== null ? empFmtDisplay(wad, 4) : "—";
   }
 
   function empFmtMatrixWeight(v) {
@@ -11877,6 +11946,7 @@
       const formatted = empFormatBmWeightValue(empBmWeightInput.value);
       empBmWeight = formatted !== "" ? formatted : "";
       empBmWeightInput.value = empBmWeight;
+      empRenderFundMatrices();
       empSaveFundHoldingsLocal();
       empScheduleFundPersist();
     });
@@ -11942,8 +12012,15 @@
       (e) => {
         const el = e.target;
         if (!el || !el.classList || !el.classList.contains("emp-fund-qty-input")) return;
-        const n = empParseQtyInput(el.value);
-        if (n !== null) el.value = String(n);
+        const fundId = el.getAttribute("data-fund-id");
+        const etf = el.getAttribute("data-emp-etf");
+        const fund = fundId ? empFindFund(fundId) : null;
+        if (fund && etf && fund.qty[etf] != null) {
+          el.value = empQtyToEdit(fund.qty[etf]);
+          return;
+        }
+        const n = empQtyFromEdit(el.value);
+        if (n !== null) el.value = empQtyToEdit(n);
       },
       true
     );
@@ -11971,15 +12048,8 @@
         empSaveFundHoldingsLocal();
         empScheduleFundPersist();
         return;
-      } else if (el.classList.contains("emp-fund-cash-input")) {
-        fund.cashWeight = String(el.value || "").trim();
-      } else {
-        return;
       }
-      empSaveFundHoldingsLocal();
-      empUpdateFundComputedCells(fundId);
-      empRenderFundMatrices();
-      empScheduleFundPersist();
+      return;
     });
     empFundWrap.addEventListener(
       "blur",
@@ -11990,12 +12060,12 @@
         const fundId = el.getAttribute("data-fund-id");
         const etf = el.getAttribute("data-emp-etf");
         const fund = fundId ? empFindFund(fundId) : null;
-        const n = empParseQtyInput(el.value);
+        const n = empQtyFromEdit(el.value);
         if (fund && etf) {
           if (n === null) delete fund.qty[etf];
           else fund.qty[etf] = n;
         }
-        el.value = n !== null ? empFmtQty(n) : "";
+        el.value = fund && etf && fund.qty[etf] != null ? empFmtQty(fund.qty[etf]) : "";
         if (fundId && etf) empUpdateFundRowComputedCells(fundId, etf);
         empSaveFundHoldingsLocal();
         if (!empFundIsEditing()) empScheduleFundPersist();
