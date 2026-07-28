@@ -2835,6 +2835,9 @@
         <label for="weeklyEndDateInput" class="weekly-end-date-label">최신일</label>
         <input type="date" id="weeklyEndDateInput" class="weekly-end-date-input" title="비우면 금리 분석 국고채 금리 테이블 최신일을 사용합니다" />
         <span id="weeklyEndDateAutoHint" class="weekly-end-date-hint">—</span>
+        <label for="weeklyStartDateInput" class="weekly-end-date-label">비교일</label>
+        <input type="date" id="weeklyStartDateInput" class="weekly-end-date-input" title="비우면 최신일 기준 7일 전(영업일)을 사용합니다. 휴일 등으로 데이터가 없으면 직접 지정하세요." />
+        <span id="weeklyStartDateAutoHint" class="weekly-end-date-hint">—</span>
       </div>
       <p id="weeklyStatus" class="weekly-status" role="status">데이터를 불러오는 중…</p>
       <div class="weekly-block" id="weeklyTrendBlock">
@@ -3368,6 +3371,7 @@
   empNormalizeFundColumns();
   const WEEKLY_STORAGE_KEY = "market_db_dashboard_weekly_reports_v1";
   const WEEKLY_END_DATE_OVERRIDE_KEY = "market_db_dashboard_weekly_end_date_override_v1";
+  const WEEKLY_START_DATE_OVERRIDE_KEY = "market_db_dashboard_weekly_start_date_override_v1";
   const OVERVIEW_MEMO_AUTOSAVE_MS = 30 * 60 * 1000;
   const OVERVIEW_KEYBOND_TENORS = [
     { col: "1Y", csv: "1년" },
@@ -3463,6 +3467,8 @@
   const weeklyDateLabel = document.getElementById("weeklyDateLabel");
   const weeklyEndDateInput = document.getElementById("weeklyEndDateInput");
   const weeklyEndDateAutoHint = document.getElementById("weeklyEndDateAutoHint");
+  const weeklyStartDateInput = document.getElementById("weeklyStartDateInput");
+  const weeklyStartDateAutoHint = document.getElementById("weeklyStartDateAutoHint");
   const weeklyStatus = document.getElementById("weeklyStatus");
   const weeklyYieldTableWrap = document.getElementById("weeklyYieldTableWrap");
   const weeklySpreadTableWrap = document.getElementById("weeklySpreadTableWrap");
@@ -7587,6 +7593,23 @@
     } catch (_) {}
   }
 
+  function weeklyGetStartDateOverride() {
+    try {
+      const raw = localStorage.getItem(WEEKLY_START_DATE_OVERRIDE_KEY);
+      const v = raw ? String(raw).trim() : "";
+      return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function weeklySetStartDateOverride(ymd) {
+    try {
+      if (ymd && /^\d{4}-\d{2}-\d{2}$/.test(ymd)) localStorage.setItem(WEEKLY_START_DATE_OVERRIDE_KEY, ymd);
+      else localStorage.removeItem(WEEKLY_START_DATE_OVERRIDE_KEY);
+    } catch (_) {}
+  }
+
   function weeklyResolveEndDateWithRates(ymd) {
     if (!ymd || !dates || !dates.length) return null;
     let best = null;
@@ -7594,6 +7617,7 @@
       const d = dates[i];
       if (d > ymd) break;
       if (typeof dateHasRatesData === "function" && dateHasRatesData(d)) best = d;
+      else if (typeof dateHasRatesData !== "function") best = d;
     }
     return best;
   }
@@ -7608,11 +7632,29 @@
     return resolved || auto;
   }
 
+  function weeklyAutoStartTarget(end) {
+    return end ? weeklySubtractCalendarDays(end, 7) : null;
+  }
+
+  function weeklyResolvedStartDate(end) {
+    if (!end) return { start: null, startTarget: null };
+    const startTarget = weeklyAutoStartTarget(end);
+    const ov = weeklyGetStartDateOverride();
+    let start = null;
+    if (ov) {
+      const cap = ov < end ? ov : weeklySubtractCalendarDays(end, 1);
+      start = weeklyResolveEndDateWithRates(cap) || weeklyResolveDateOnOrBefore(cap);
+    } else {
+      start = weeklyResolveEndDateWithRates(startTarget) || weeklyResolveDateOnOrBefore(startTarget);
+    }
+    if (start && start >= end) start = null;
+    return { start, startTarget };
+  }
+
   function weeklyReportDates() {
     const end = weeklyResolvedEndDate();
     if (!end) return { end: null, start: null, startTarget: null };
-    const startTarget = weeklySubtractCalendarDays(end, 7);
-    const start = weeklyResolveDateOnOrBefore(startTarget);
+    const { start, startTarget } = weeklyResolvedStartDate(end);
     return { end, start, startTarget };
   }
 
@@ -7980,6 +8022,7 @@
       const autoEnd = weeklyAutoEndDate();
       const { end, start, startTarget } = weeklyReportDates();
       const ov = weeklyGetEndDateOverride();
+      const startOv = weeklyGetStartDateOverride();
       if (weeklyEndDateInput) {
         if (autoEnd) weeklyEndDateInput.max = autoEnd;
         if (document.activeElement !== weeklyEndDateInput) {
@@ -7991,6 +8034,21 @@
           ? ov
             ? "국고채 최신일 " + autoEnd + " · 적용 " + (end || "—")
             : "국고채 금리 테이블 최신일 " + autoEnd + " (자동)"
+          : "—";
+      }
+      if (weeklyStartDateInput) {
+        if (end) {
+          weeklyStartDateInput.max = weeklySubtractCalendarDays(end, 1) || end;
+        }
+        if (document.activeElement !== weeklyStartDateInput) {
+          weeklyStartDateInput.value = startOv || "";
+        }
+      }
+      if (weeklyStartDateAutoHint) {
+        weeklyStartDateAutoHint.textContent = startTarget
+          ? startOv
+            ? "자동 목표 " + startTarget + " · 적용 " + (start || "—")
+            : "최신일−7일 " + startTarget + " · 적용 " + (start || "—") + " (자동)"
           : "—";
       }
       if (weeklyDateLabel) {
@@ -11883,6 +11941,15 @@
     };
     weeklyEndDateInput.addEventListener("change", onWeeklyEndDateInput);
     weeklyEndDateInput.addEventListener("input", onWeeklyEndDateInput);
+  }
+  if (weeklyStartDateInput) {
+    const onWeeklyStartDateInput = () => {
+      const v = (weeklyStartDateInput.value || "").trim();
+      weeklySetStartDateOverride(v);
+      renderWeeklyPage();
+    };
+    weeklyStartDateInput.addEventListener("change", onWeeklyStartDateInput);
+    weeklyStartDateInput.addEventListener("input", onWeeklyStartDateInput);
   }
 
   if (empReloadBtn) {
