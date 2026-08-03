@@ -2933,6 +2933,7 @@
           <div class="overview-prevday-toolbar overview-prevday-toolbar--compact">
             <button type="button" id="empFundSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
             <button type="button" id="empFundLock" class="sidebar btn btn-secondary ovpd-toolbar-act" aria-pressed="false">잠금</button>
+            <button type="button" id="empFundResetQtyBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">수량 초기화</button>
           </div>
         </div>
         <div class="emp-fund-layout">
@@ -3349,12 +3350,16 @@
     return "emp_fund_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
   }
   let empBmWeight = "";
+  let empFundQtyScale = "thousand";
   let empFundColumns = (function () {
     try {
       const raw = localStorage.getItem(EMP_FUND_HOLDINGS_STORAGE_KEY);
       if (!raw) return empCreateDefaultFunds(4);
       const o = JSON.parse(raw);
       if (o && o.bmWeight != null) empBmWeight = String(o.bmWeight);
+      if (o && o.qtyScale === "thousand") empFundQtyScale = "thousand";
+      else if (o && Array.isArray(o.funds) && o.funds.length) empFundQtyScale = "absolute";
+      else empFundQtyScale = "thousand";
       if (!o || !Array.isArray(o.funds) || !o.funds.length) return empCreateDefaultFunds(4);
       return o.funds.map((f) => ({
         id: f.id || empNewFundId(),
@@ -3504,6 +3509,7 @@
   const empSummaryLock = document.getElementById("empSummaryLock");
   const empFundLock = document.getElementById("empFundLock");
   const empFundSave = document.getElementById("empFundSave");
+  const empFundResetQtyBtn = document.getElementById("empFundResetQtyBtn");
   const empFundStatus = document.getElementById("empFundStatus");
   const empBmWeightInput = document.getElementById("empBmWeightInput");
   const empBmDurationValue = document.getElementById("empBmDurationValue");
@@ -5586,7 +5592,9 @@
         empApplyCuFromSnapshot(snap.empCu);
       }
       if (snap.empFunds) {
-        empApplyFundsFromSnapshot(snap.empFunds);
+        if (empFundPayloadHasHoldings(snap.empFunds)) {
+          empApplyFundsFromSnapshot(snap.empFunds);
+        }
       }
       if (snap.locks && snap.locks.empSummary != null) {
         try {
@@ -5716,7 +5724,7 @@
       trade: tradePayload,
       empFutures: { ...empFuturesDurationMap },
       empCu: empSummaryWrap ? empCollectCuFromDom() : { ...empCuMap },
-      empFunds: empFundWrap ? empCollectFundHoldingsFromDom() : { funds: empFundColumns.map(empSerializeFund) },
+      empFunds: empCollectFundHoldingsFromDom(),
       locks: {
         prevday: overviewPrevDayIsToolbarLocked(),
         policy: overviewPolicyIsLocked(),
@@ -5732,20 +5740,17 @@
     const ref = overviewFirebaseRef();
     if (!ref) return Promise.resolve(false);
     const manual = !!(opts && opts.manual);
-    if (manual) {
-      return ref
-        .set(snapshot)
-        .then(() => true)
-        .catch(() => false);
-    }
     return ref
       .once("value")
       .then((snap) => {
         const cur = snap.val();
         if (!cur || cur.version !== 1) return ref.set(snapshot);
         const merged = { ...snapshot };
-        if (!overviewSyncShouldWriteSection(snapshot.prevday, false) && cur.prevday) merged.prevday = cur.prevday;
-        if (!overviewSyncShouldWriteSection(snapshot.keybond, false) && cur.keybond) merged.keybond = cur.keybond;
+        if (!overviewSyncShouldWriteSection(snapshot.prevday, manual) && cur.prevday) merged.prevday = cur.prevday;
+        if (!overviewSyncShouldWriteSection(snapshot.keybond, manual) && cur.keybond) merged.keybond = cur.keybond;
+        if (!empFundPayloadHasHoldings(snapshot.empFunds) && empFundPayloadHasHoldings(cur.empFunds)) {
+          merged.empFunds = cur.empFunds;
+        }
         return ref.set(merged);
       })
       .then(() => true)
@@ -5763,21 +5768,32 @@
 
   function overviewSyncSaveToFile(snapshot) {
     if (!OVERVIEW_STATE_POST_PATH || overviewSyncIsReadOnlyHost()) return Promise.resolve(false);
-    const body = JSON.stringify(snapshot, null, 2);
-    return fetch(OVERVIEW_STATE_POST_PATH, {
-      method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      body,
-      cache: "no-store",
-    })
-      .then((r) => {
-        overviewSyncPostSupported = r.ok;
-        return r.ok;
+    const write = (bodySnap) => {
+      const body = JSON.stringify(bodySnap, null, 2);
+      return fetch(OVERVIEW_STATE_POST_PATH, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body,
+        cache: "no-store",
       })
-      .catch(() => {
-        overviewSyncPostSupported = false;
-        return false;
-      });
+        .then((r) => {
+          overviewSyncPostSupported = r.ok;
+          return r.ok;
+        })
+        .catch(() => {
+          overviewSyncPostSupported = false;
+          return false;
+        });
+    };
+    if (empFundPayloadHasHoldings(snapshot.empFunds)) return write(snapshot);
+    return overviewSyncFetchState()
+      .then((cur) => {
+        if (cur && cur.version === 1 && empFundPayloadHasHoldings(cur.empFunds)) {
+          return write({ ...snapshot, empFunds: cur.empFunds });
+        }
+        return write(snapshot);
+      })
+      .catch(() => write(snapshot));
   }
 
   function overviewSyncPersistAll(opts) {
@@ -5801,8 +5817,10 @@
         empCuMap = { ...snap.empCu };
       }
       if (snap.empFunds) {
-        localStorage.setItem(EMP_FUND_HOLDINGS_STORAGE_KEY, JSON.stringify(snap.empFunds));
-        empApplyFundsFromSnapshot(snap.empFunds);
+        if (empFundPayloadHasHoldings(snap.empFunds) || manual) {
+          localStorage.setItem(EMP_FUND_HOLDINGS_STORAGE_KEY, JSON.stringify(snap.empFunds));
+          empApplyFundsFromSnapshot(snap.empFunds);
+        }
       }
       if (snap.locks) {
         localStorage.setItem(OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY, snap.locks.prevday ? "1" : "0");
@@ -8306,6 +8324,11 @@
       empFundSave.disabled = fundLocked;
       empFundSave.classList.toggle("ovpd-toolbar-textlike", fundLocked);
     }
+    if (empFundResetQtyBtn) {
+      const fundLocked = empFundIsLocked();
+      empFundResetQtyBtn.disabled = fundLocked;
+      empFundResetQtyBtn.classList.toggle("ovpd-toolbar-textlike", fundLocked);
+    }
   }
 
   function empSummarySetLocked(on) {
@@ -8345,20 +8368,38 @@
     return empFmtDisplay(n, 0);
   }
 
-  function empQtyToEdit(stored) {
-    const n = empNum(stored);
-    if (n === null) return "";
-    return String(n / 1000);
-  }
-
-  function empQtyFromEdit(raw) {
-    const n = empNum(String(raw == null ? "" : raw).trim().replace(/,/g, ""));
+  function empQtyShares(storedThousand) {
+    const n = empNum(storedThousand);
     if (n === null) return null;
     return n * 1000;
   }
 
   function empParseQtyInput(raw) {
-    return empQtyFromEdit(raw);
+    const v = String(raw == null ? "" : raw).trim().replace(/,/g, "");
+    if (!v) return null;
+    return empNum(v);
+  }
+
+  function empMigrateFundQtyToThousandUnits(funds, qtyScale) {
+    if (!Array.isArray(funds)) return funds || [];
+    if (qtyScale === "thousand") return funds;
+    return funds.map((f) => {
+      const qty = {};
+      Object.keys((f && f.qty) || {}).forEach((k) => {
+        const n = empNum(f.qty[k]);
+        if (n === null) return;
+        qty[k] = n / 1000;
+      });
+      return { ...f, qty };
+    });
+  }
+
+  function empEnsureFundQtyScaleMigrated() {
+    if (empFundQtyScale === "thousand") return;
+    empFundColumns = empMigrateFundQtyToThousandUnits(empFundColumns, empFundQtyScale);
+    empNormalizeFundColumns();
+    empFundQtyScale = "thousand";
+    empSaveFundHoldingsLocal();
   }
 
   function empReadCuFromCell(etf) {
@@ -8454,10 +8495,7 @@
     if (empFundIsLocked()) return;
     empCollectFundHoldingsFromDom();
     try {
-      localStorage.setItem(
-        EMP_FUND_HOLDINGS_STORAGE_KEY,
-        JSON.stringify({ funds: empFundColumns.map(empSerializeFund), bmWeight: empBmWeight })
-      );
+      empSaveFundHoldingsLocal();
       overviewSyncPersistAll({ manual: true }).then((res) => {
         if (empFundStatus) empFundStatus.textContent = overviewSyncManualSaveStatus(res);
       });
@@ -8465,6 +8503,21 @@
       if (empFundStatus) {
         empFundStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
       }
+    }
+  }
+
+  function empFundResetAllQty() {
+    if (empFundIsLocked()) return;
+    if (!window.confirm("모든 펀드의 ETF 보유 수량을 초기화할까요?")) return;
+    empCollectFundHoldingsFromDom();
+    empFundColumns.forEach((fund) => {
+      fund.qty = {};
+    });
+    empSaveFundHoldingsLocal();
+    empRenderFundTable();
+    empScheduleFundPersist();
+    if (empFundStatus) {
+      empFundStatus.textContent = "수량 초기화됨 · 저장을 누르면 서버에 반영됩니다";
     }
   }
 
@@ -8479,30 +8532,54 @@
     };
   }
 
+  function empFundsPayloadFromMemory() {
+    return {
+      funds: empFundColumns.map(empSerializeFund),
+      bmWeight: empBmWeight,
+      qtyScale: "thousand",
+    };
+  }
+
+  function empFundPayloadHasHoldings(payload) {
+    if (!payload || !Array.isArray(payload.funds)) return false;
+    return payload.funds.some((f) => {
+      if (!f) return false;
+      if (String(f.code || "").trim() || String(f.navEok || "").trim() || String(f.setupRedeemEok || "").trim())
+        return true;
+      return Object.keys(f.qty || {}).some((k) => empNum(f.qty[k]) !== null);
+    });
+  }
+
   function empSaveFundHoldingsLocal() {
     try {
-      localStorage.setItem(
-        EMP_FUND_HOLDINGS_STORAGE_KEY,
-        JSON.stringify({ funds: empFundColumns.map(empSerializeFund), bmWeight: empBmWeight })
-      );
+      localStorage.setItem(EMP_FUND_HOLDINGS_STORAGE_KEY, JSON.stringify(empFundsPayloadFromMemory()));
     } catch (_) {}
   }
 
   function empApplyFundsFromSnapshot(payload) {
     if (!payload || !Array.isArray(payload.funds)) return;
+    if (!empFundPayloadHasHoldings(payload) && empFundPayloadHasHoldings(empFundsPayloadFromMemory())) return;
     empBmWeight = payload.bmWeight != null ? String(payload.bmWeight) : "";
-    empFundColumns = payload.funds.map((f) => ({
-      id: f.id || empNewFundId(),
-      code: f.code != null ? String(f.code) : "",
-      navEok: f.navEok != null ? String(f.navEok) : "",
-      setupRedeemEok: f.setupRedeemEok != null ? String(f.setupRedeemEok) : "",
-      cashWeight: f.cashWeight != null ? String(f.cashWeight) : "",
-      qty: f.qty && typeof f.qty === "object" ? { ...f.qty } : {},
-    }));
+    const qtyScale = payload.qtyScale === "thousand" ? "thousand" : "absolute";
+    const funds = empMigrateFundQtyToThousandUnits(
+      payload.funds.map((f) => ({
+        id: f.id || empNewFundId(),
+        code: f.code != null ? String(f.code) : "",
+        navEok: f.navEok != null ? String(f.navEok) : "",
+        setupRedeemEok: f.setupRedeemEok != null ? String(f.setupRedeemEok) : "",
+        cashWeight: f.cashWeight != null ? String(f.cashWeight) : "",
+        qty: f.qty && typeof f.qty === "object" ? { ...f.qty } : {},
+      })),
+      qtyScale
+    );
+    empFundColumns = funds;
+    empFundQtyScale = "thousand";
     empNormalizeFundColumns();
     empSaveFundHoldingsLocal();
     empSyncBmWeightInput();
   }
+
+  empEnsureFundQtyScaleMigrated();
 
   function empFindFund(fundId) {
     return empFundColumns.find((f) => f.id === fundId) || null;
@@ -8612,7 +8689,7 @@
     let sum = 0;
     let has = false;
     (etfNames || []).forEach((etfName) => {
-      const q = empNum(fund.qty && fund.qty[etfName]);
+      const q = empQtyShares(fund.qty && fund.qty[etfName]);
       if (q === null) return;
       const meta = empEtfMetaMap[etfName] || {};
       const bp = empNum(meta.basePrice);
@@ -8704,7 +8781,7 @@
   }
 
   function empComputeFundEtfWeight(qty, basePrice, fundOrNav) {
-    const q = empNum(qty);
+    const q = empQtyShares(qty);
     const bp = empNum(basePrice);
     let nav = null;
     if (fundOrNav && typeof fundOrNav === "object") nav = empFundEffectiveNavEok(fundOrNav);
@@ -8746,8 +8823,9 @@
   }
 
   function empCollectFundHoldingsFromDom() {
-    if (!empFundWrap) return { funds: empFundColumns.map(empSerializeFund), bmWeight: empBmWeight };
     if (empBmWeightInput) empBmWeight = String(empBmWeightInput.value || "").trim();
+    if (!empFundWrap) return empFundsPayloadFromMemory();
+    const hasQtyCells = !!empFundWrap.querySelector(".emp-fund-qty-input, .emp-fund-qty-plain");
     empFundColumns.forEach((fund) => {
       const fid = CSS.escape(fund.id);
       if (empFundMetaWrap) {
@@ -8759,13 +8837,14 @@
         if (setupEl) fund.setupRedeemEok = String(setupEl.value || "").trim();
       }
       fund.cashWeight = "";
+      if (!hasQtyCells) return;
       fund.qty = {};
       empFundWrap.querySelectorAll('.emp-fund-qty-input[data-fund-id="' + fid + '"]').forEach((el) => {
         const etf = el.getAttribute("data-emp-etf");
         if (!etf) return;
         const v = String(el.value || "").trim().replace(/,/g, "");
         if (v === "") return;
-        const n = empQtyFromEdit(v);
+        const n = empParseQtyInput(v);
         if (n !== null) fund.qty[etf] = n;
       });
       empFundWrap.querySelectorAll('.emp-fund-qty-plain[data-fund-id="' + fid + '"]').forEach((el) => {
@@ -8773,11 +8852,11 @@
         if (!etf) return;
         const v = String(el.textContent || "").trim().replace(/,/g, "");
         if (!v || v === "—") return;
-        const n = empNum(v);
+        const n = empParseQtyInput(v);
         if (n !== null) fund.qty[etf] = n;
       });
     });
-    return { funds: empFundColumns.map(empSerializeFund), bmWeight: empBmWeight };
+    return empFundsPayloadFromMemory();
   }
 
   function empFundIsEditing() {
@@ -8920,7 +8999,6 @@
   function empRenderFundEtfCells(fund, etfName, meta, wDur, locked) {
     const qtyRaw = fund.qty[etfName];
     const qtyVal = qtyRaw != null ? empFmtQty(qtyRaw) : "";
-    const qtyEditVal = qtyRaw != null ? empQtyToEdit(qtyRaw) : "";
     const wt = empComputeFundEtfWeight(qtyRaw, meta.basePrice, fund);
     const wtd = empComputeWeightDur(wt, wDur);
     let h = "";
@@ -8940,8 +9018,8 @@
         '" data-emp-etf="' +
         escapeHtml(etfName) +
         '" placeholder="천" value="' +
-        escapeHtml(qtyEditVal) +
-        '" title="천 단위 입력 (4 → 4,000)" /></td>';
+        escapeHtml(qtyVal) +
+        '" title="천 단위 입력값 그대로 저장 (계산 시 ×1000)" /></td>';
     }
     h +=
       '<td class="emp-fund-wt-cell" data-fund-id="' +
@@ -11994,6 +12072,7 @@
   }
   if (empSummarySave) empSummarySave.addEventListener("click", () => empSummarySaveToStorage());
   if (empFundSave) empFundSave.addEventListener("click", () => empFundSaveToStorage());
+  if (empFundResetQtyBtn) empFundResetQtyBtn.addEventListener("click", () => empFundResetAllQty());
   if (empSummaryLock) {
     empSummaryLock.addEventListener("click", () => empSummarySetLocked(!empSummaryIsLocked()));
   }
@@ -12079,15 +12158,8 @@
       (e) => {
         const el = e.target;
         if (!el || !el.classList || !el.classList.contains("emp-fund-qty-input")) return;
-        const fundId = el.getAttribute("data-fund-id");
-        const etf = el.getAttribute("data-emp-etf");
-        const fund = fundId ? empFindFund(fundId) : null;
-        if (fund && etf && fund.qty[etf] != null) {
-          el.value = empQtyToEdit(fund.qty[etf]);
-          return;
-        }
-        const n = empQtyFromEdit(el.value);
-        if (n !== null) el.value = empQtyToEdit(n);
+        const n = empParseQtyInput(el.value);
+        if (n !== null) el.value = String(n);
       },
       true
     );
@@ -12127,12 +12199,12 @@
         const fundId = el.getAttribute("data-fund-id");
         const etf = el.getAttribute("data-emp-etf");
         const fund = fundId ? empFindFund(fundId) : null;
-        const n = empQtyFromEdit(el.value);
+        const n = empParseQtyInput(el.value);
         if (fund && etf) {
           if (n === null) delete fund.qty[etf];
           else fund.qty[etf] = n;
         }
-        el.value = fund && etf && fund.qty[etf] != null ? empFmtQty(fund.qty[etf]) : "";
+        el.value = n !== null ? empFmtQty(n) : "";
         if (fundId && etf) empUpdateFundRowComputedCells(fundId, etf);
         empSaveFundHoldingsLocal();
         if (!empFundIsEditing()) empScheduleFundPersist();
