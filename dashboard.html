@@ -1570,6 +1570,53 @@
       background: rgba(59, 130, 246, 0.12);
       border: 1px solid rgba(59, 130, 246, 0.35);
     }
+    #page-overview .overview-month-schedule {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: baseline;
+      gap: 0.55rem;
+      margin: 0 0 0.85rem;
+      padding: 0.42rem 0.7rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(14, 17, 23, 0.45);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      white-space: nowrap;
+    }
+    #page-overview .overview-month-schedule__label {
+      flex: 0 0 auto;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+    }
+    #page-overview .overview-month-schedule__list {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 0.76rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.62);
+      font-variant-numeric: tabular-nums;
+    }
+    #page-overview .overview-month-schedule__item {
+      color: rgba(255, 255, 255, 0.58);
+    }
+    #page-overview .overview-month-schedule__item.is-upcoming {
+      font-weight: 700;
+    }
+    #page-overview .overview-month-schedule__item.is-upcoming.is-ktb {
+      color: #93c5fd;
+    }
+    #page-overview .overview-month-schedule__item.is-upcoming.is-policy {
+      color: #fca5a5;
+    }
+    #page-overview .overview-month-schedule__sep {
+      color: rgba(255, 255, 255, 0.35);
+      margin: 0 0.28rem;
+    }
+    #page-overview .overview-month-schedule__empty {
+      color: rgba(255, 255, 255, 0.4);
+    }
     #page-overview .overview-sync-banner.is-warn {
       background: rgba(245, 158, 11, 0.12);
       border-color: rgba(245, 158, 11, 0.45);
@@ -1767,6 +1814,7 @@
     #page-overview .overview-trade-table col.ovtr-col-current { width: 2.65rem; }
     #page-overview .overview-trade-table col.ovtr-col-qty { width: 2.35rem; }
     #page-overview .overview-trade-table col.ovtr-col-pnl { width: 4.1rem; }
+    #page-overview .overview-trade-table col.ovtr-col-del { width: 2.4rem; }
     #page-overview .overview-trade-table.overview-side-table-compact th,
     #page-overview .overview-trade-table.overview-side-table-compact td {
       padding: 0.2rem 0.28rem;
@@ -1827,6 +1875,30 @@
     #page-overview .overview-trade-table .overview-trade-calc--neg {
       color: #fca5a5;
     }
+    #page-overview .overview-trade-table td.ovtr-col-del {
+      text-align: center;
+    }
+    #page-overview .overview-trade-table.overview-side-table-compact .ovtr-btn-del {
+      padding: 0.12rem 0.28rem;
+      font-size: 0.66rem;
+      line-height: 1.3;
+    }
+    #page-overview .overview-trade-table .ovtr-btn-del {
+      padding: 0.15rem 0.35rem;
+      font-size: 0.68rem;
+      border-radius: 4px;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.12);
+      color: #fecaca;
+      cursor: pointer;
+    }
+    #page-overview .overview-trade-table .ovtr-btn-del:hover:not(:disabled) {
+      background: rgba(248, 113, 113, 0.22);
+    }
+    #page-overview .overview-trade-table .ovtr-btn-del:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
     #page-overview .overview-trade-status {
       font-size: 0.72rem;
       color: rgba(255, 255, 255, 0.55);
@@ -1834,13 +1906,15 @@
       margin-top: 0.25rem;
       min-height: 1.1em;
     }
-    #page-overview .overview-policy-block {
+    #page-overview .overview-policy-block,
+    #page-overview .overview-ktbplan-block {
       display: flex;
       flex-direction: column;
       align-items: stretch;
       min-width: 0;
     }
-    #page-overview .overview-policy-toolbar {
+    #page-overview .overview-policy-toolbar,
+    #page-overview .overview-ktbplan-toolbar {
       display: flex;
       flex-wrap: nowrap;
       align-items: center;
@@ -1852,11 +1926,13 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
-    #page-overview .overview-policy-toolbar-spacer {
+    #page-overview .overview-policy-toolbar-spacer,
+    #page-overview .overview-ktbplan-toolbar-spacer {
       flex: 1 1 auto;
       min-width: 0.25rem;
     }
-    #page-overview .overview-policy-title {
+    #page-overview .overview-policy-title,
+    #page-overview .overview-ktbplan-title {
       margin: 0;
       flex: 0 0 auto;
       font-size: 0.88rem;
@@ -1864,14 +1940,16 @@
       color: rgba(255, 255, 255, 0.92);
       line-height: 1.35;
     }
-    #page-overview .overview-policy-status {
+    #page-overview .overview-policy-status,
+    #page-overview .overview-ktbplan-status {
       font-size: 0.72rem;
       color: rgba(255, 255, 255, 0.55);
       text-align: right;
       margin-top: 0.25rem;
       min-height: 1.1em;
     }
-    #page-overview .overview-policy-table-wrap {
+    #page-overview .overview-policy-table-wrap,
+    #page-overview .overview-ktbplan-table-wrap {
       overflow: auto;
       max-height: min(72vh, 36rem);
       border-radius: 8px;
@@ -1879,14 +1957,16 @@
       background: rgba(14, 17, 23, 0.45);
       -webkit-overflow-scrolling: touch;
     }
-    #page-overview .overview-policy-table {
+    #page-overview .overview-policy-table,
+    #page-overview .overview-ktbplan-table {
       border-collapse: collapse;
       font-size: 0.74rem;
       table-layout: fixed;
       width: 100%;
       min-width: 0;
     }
-    #page-overview .overview-policy-table col.ovpol-col-label {
+    #page-overview .overview-policy-table col.ovpol-col-label,
+    #page-overview .overview-ktbplan-table col.ovktb-col-label {
       width: 4.5rem;
     }
     #page-overview .overview-policy-table th.ovpol-mo--current,
@@ -1896,6 +1976,8 @@
     }
     #page-overview .overview-policy-table.overview-side-table-compact th,
     #page-overview .overview-policy-table.overview-side-table-compact td,
+    #page-overview .overview-ktbplan-table.overview-side-table-compact th,
+    #page-overview .overview-ktbplan-table.overview-side-table-compact td,
     #page-overview .overview-keybond-table.overview-side-table-compact th,
     #page-overview .overview-keybond-table.overview-side-table-compact td {
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1908,32 +1990,39 @@
       font-variant-numeric: tabular-nums;
     }
     #page-overview .overview-policy-table th,
-    #page-overview .overview-policy-table td {
+    #page-overview .overview-policy-table td,
+    #page-overview .overview-ktbplan-table th,
+    #page-overview .overview-ktbplan-table td {
       border: 1px solid rgba(255, 255, 255, 0.1);
       padding: 0.28rem 0.38rem;
       text-align: center;
       vertical-align: middle;
       line-height: 1.35;
     }
-    #page-overview .overview-policy-table thead th {
+    #page-overview .overview-policy-table thead th,
+    #page-overview .overview-ktbplan-table thead th {
       background: rgba(22, 33, 62, 0.98);
       color: rgba(255, 255, 255, 0.9);
       font-weight: 600;
       white-space: nowrap;
     }
     #page-overview .overview-policy-table th.ovpol-corner,
-    #page-overview .overview-policy-table tbody th[scope="row"] {
+    #page-overview .overview-policy-table tbody th[scope="row"],
+    #page-overview .overview-ktbplan-table th.ovktb-corner,
+    #page-overview .overview-ktbplan-table tbody th[scope="row"] {
       min-width: 4rem;
       max-width: 5rem;
       text-align: center;
     }
-    #page-overview .overview-policy-table.overview-side-table-compact tbody th[scope="row"] {
+    #page-overview .overview-policy-table.overview-side-table-compact tbody th[scope="row"],
+    #page-overview .overview-ktbplan-table.overview-side-table-compact tbody th[scope="row"] {
       background: rgba(22, 33, 62, 0.72);
       color: rgba(255, 255, 255, 0.92);
       font-weight: 600;
       white-space: nowrap;
     }
-    #page-overview .overview-policy-table tbody th[scope="row"] {
+    #page-overview .overview-policy-table tbody th[scope="row"],
+    #page-overview .overview-ktbplan-table tbody th[scope="row"] {
       background: rgba(22, 33, 62, 0.72);
       color: rgba(255, 255, 255, 0.88);
       font-weight: 600;
@@ -1956,6 +2045,7 @@
       white-space: nowrap;
     }
     #page-overview .overview-policy-table.overview-side-table-compact .ovpol-day-input,
+    #page-overview .overview-ktbplan-table.overview-side-table-compact .ovktb-cell-input,
     #page-overview .overview-keybond-table.overview-side-table-compact input.ovkb-issuer-input {
       flex: 1 1 0;
       width: 100%;
@@ -1977,6 +2067,7 @@
       text-align: left;
     }
     #page-overview .overview-policy-table.overview-side-table-compact .ovpol-day-plain,
+    #page-overview .overview-ktbplan-table.overview-side-table-compact .ovktb-cell-plain,
     #page-overview .overview-keybond-table.overview-side-table-compact .ovkb-issuer-plain {
       display: block;
       width: 100%;
@@ -2028,7 +2119,8 @@
       padding: 0.2rem 0.25rem;
       margin: 0;
     }
-    #page-overview .overview-policy-table .ovpol-day-plain--empty {
+    #page-overview .overview-policy-table .ovpol-day-plain--empty,
+    #page-overview .overview-ktbplan-table .ovktb-cell-plain--empty {
       color: rgba(255, 255, 255, 0.35);
     }
     #page-overview .overview-keybond-block {
@@ -2260,6 +2352,7 @@
     }
     #page-overview .overview-prevday-toolbar.overview-prevday-toolbar--compact,
     #page-overview .overview-policy-toolbar.overview-policy-toolbar--compact,
+    #page-overview .overview-ktbplan-toolbar.overview-ktbplan-toolbar--compact,
     #page-overview .overview-keybond-toolbar.overview-keybond-toolbar--compact,
     #page-emp .overview-prevday-toolbar.overview-prevday-toolbar--compact {
       min-height: calc(0.74rem * 1.35 + 0.2rem);
@@ -2267,6 +2360,7 @@
     }
     #page-overview .overview-prevday-toolbar--compact > .sidebar.btn,
     #page-overview .overview-policy-toolbar--compact > .sidebar.btn,
+    #page-overview .overview-ktbplan-toolbar--compact > .sidebar.btn,
     #page-overview .overview-keybond-toolbar--compact > .sidebar.btn,
     #page-emp .overview-prevday-toolbar--compact > .sidebar.btn {
       flex: 0 0 auto;
@@ -2282,12 +2376,14 @@
     }
     #page-overview .overview-prevday-toolbar--compact .sidebar.btn-secondary,
     #page-overview .overview-policy-toolbar--compact > .sidebar.btn-secondary,
+    #page-overview .overview-ktbplan-toolbar--compact > .sidebar.btn-secondary,
     #page-overview .overview-keybond-toolbar--compact > .sidebar.btn-secondary,
     #page-emp .overview-prevday-toolbar--compact .sidebar.btn-secondary {
       color: #fff;
     }
     #page-overview .overview-prevday-toolbar .ovpd-toolbar-textlike,
     #page-overview .overview-policy-toolbar .ovpd-toolbar-textlike,
+    #page-overview .overview-ktbplan-toolbar .ovpd-toolbar-textlike,
     #page-overview .overview-keybond-toolbar .ovpd-toolbar-textlike {
       background: transparent !important;
       border: none !important;
@@ -3018,6 +3114,10 @@
           <span id="overviewFbSetupStatus" class="overview-memo-status" style="margin:0;text-align:left"></span>
         </div>
       </div>
+      <div class="overview-month-schedule" id="overviewMonthSchedule" aria-live="polite">
+        <span class="overview-month-schedule__label" id="overviewMonthScheduleLabel">주요 일정</span>
+        <span class="overview-month-schedule__list" id="overviewMonthScheduleList"></span>
+      </div>
       <div class="overview-layout">
         <div class="overview-prevday-block">
           <div class="overview-prevday-header-row">
@@ -3095,6 +3195,7 @@
                   <col class="ovtr-col-pnl" />
                   <col class="ovtr-col-pnl" />
                   <col class="ovtr-col-pnl" />
+                  <col class="ovtr-col-del" />
                 </colgroup>
                 <thead>
                   <tr>
@@ -3103,6 +3204,7 @@
                     <th colspan="5" class="overview-trade-group-head">B</th>
                     <th rowspan="2" class="ovtr-cell-pnl">총손익</th>
                     <th rowspan="2" class="ovtr-cell-pnl">성과(bp)</th>
+                    <th rowspan="2" class="ovtr-col-del" aria-label="행 삭제"></th>
                   </tr>
                   <tr>
                     <th>구분</th>
@@ -3156,6 +3258,36 @@
               </table>
             </div>
             <span id="overviewPolicyStatus" class="overview-policy-status" aria-live="polite"></span>
+          </div>
+          <div class="overview-ktbplan-block">
+            <div class="overview-ktbplan-toolbar overview-ktbplan-toolbar--compact">
+              <h3 class="overview-ktbplan-title" id="overviewKtbPlanTitle">국고채 발행 계획</h3>
+              <span class="overview-ktbplan-toolbar-spacer" aria-hidden="true"></span>
+              <button type="button" id="overviewKtbPlanSave" class="sidebar btn btn-primary ovpd-toolbar-act">저장</button>
+              <button type="button" id="overviewKtbPlanLock" class="sidebar btn btn-secondary" aria-pressed="false">잠금</button>
+            </div>
+            <div class="overview-ktbplan-table-wrap">
+              <table class="overview-ktbplan-table overview-side-table-compact" id="overviewKtbPlanTable" aria-label="국고채 발행 계획">
+                <colgroup>
+                  <col class="ovktb-col-label" />
+                  <col span="7" class="ovktb-col-tenor" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th class="ovktb-corner"></th>
+                    <th>2년</th>
+                    <th>3년</th>
+                    <th>5년</th>
+                    <th>10년</th>
+                    <th>20년</th>
+                    <th>30년</th>
+                    <th>50년</th>
+                  </tr>
+                </thead>
+                <tbody id="overviewKtbPlanTbody"></tbody>
+              </table>
+            </div>
+            <span id="overviewKtbPlanStatus" class="overview-ktbplan-status" aria-live="polite"></span>
           </div>
           <div class="overview-keybond-block">
             <div class="overview-keybond-header-row">
@@ -3281,6 +3413,8 @@
   const OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY = "market_db_dashboard_overview_prevday_toolbar_lock_v1";
   const OVERVIEW_POLICY_STORAGE_KEY = "market_db_dashboard_overview_policy_meetings_v1";
   const OVERVIEW_POLICY_LOCK_KEY = "market_db_dashboard_overview_policy_toolbar_lock_v1";
+  const OVERVIEW_KTBPLAN_STORAGE_KEY = "market_db_dashboard_overview_ktb_issuance_plan_v1";
+  const OVERVIEW_KTBPLAN_LOCK_KEY = "market_db_dashboard_overview_ktb_issuance_plan_lock_v1";
   const OVERVIEW_KEYBOND_STORAGE_KEY = "market_db_dashboard_overview_keybond_v1";
   const OVERVIEW_KEYBOND_LOCK_KEY = "market_db_dashboard_overview_keybond_lock_v1";
   const OVERVIEW_MEMO_STORAGE_KEY = "market_db_dashboard_overview_memo_v1";
@@ -3401,6 +3535,18 @@
     { key: "rba", label: "RBA", days: ["", "3", "17", "", "5", "16", "", "11", "29", "", "3", "8"] },
     { key: "base", label: "지준일", days: ["", "", "", "", "", "10", "8", "5", "9", "7", "11", "9"] },
   ];
+  /** @type {{ key: string, label: string }[]} */
+  const OVERVIEW_KTBPLAN_TENORS = [
+    { key: "y2", label: "2년" },
+    { key: "y3", label: "3년" },
+    { key: "y5", label: "5년" },
+    { key: "y10", label: "10년" },
+    { key: "y20", label: "20년" },
+    { key: "y30", label: "30년" },
+    { key: "y50", label: "50년" },
+  ];
+  /** @type {{ key: string, label: string }[]} */
+  const OVERVIEW_KTBPLAN_ROW_DEFS = [{ key: "auction", label: "입찰일" }];
 
   /** 브라우저/프록시가 CSV 응답을 캐시해 수정 후에도 예전 데이터가 보이는 것을 방지 */
   function fetchCsvNoCache(url) {
@@ -3571,6 +3717,13 @@
   const overviewPolicySave = document.getElementById("overviewPolicySave");
   const overviewPolicyLock = document.getElementById("overviewPolicyLock");
   const overviewPolicyStatus = document.getElementById("overviewPolicyStatus");
+  const overviewKtbPlanTitle = document.getElementById("overviewKtbPlanTitle");
+  const overviewKtbPlanTbody = document.getElementById("overviewKtbPlanTbody");
+  const overviewKtbPlanSave = document.getElementById("overviewKtbPlanSave");
+  const overviewKtbPlanLock = document.getElementById("overviewKtbPlanLock");
+  const overviewKtbPlanStatus = document.getElementById("overviewKtbPlanStatus");
+  const overviewMonthScheduleLabel = document.getElementById("overviewMonthScheduleLabel");
+  const overviewMonthScheduleList = document.getElementById("overviewMonthScheduleList");
   const overviewMemoTextarea = document.getElementById("overviewMemoTextarea");
   const overviewMemoSave = document.getElementById("overviewMemoSave");
   const overviewMemoStatus = document.getElementById("overviewMemoStatus");
@@ -4350,6 +4503,7 @@
     });
   }
   if (overviewPolicySave) overviewPolicySave.addEventListener("click", () => overviewPolicySaveToStorage());
+  if (overviewKtbPlanSave) overviewKtbPlanSave.addEventListener("click", () => overviewKtbPlanSaveToStorage());
   if (overviewMemoSave) overviewMemoSave.addEventListener("click", () => overviewMemoSaveToStorage(false));
   if (overviewMemoTextarea) {
     overviewMemoTextarea.addEventListener("input", () => {
@@ -4369,6 +4523,16 @@
     });
   }
   if (overviewTradeTbody) {
+    overviewTradeTbody.addEventListener("click", (e) => {
+      const el = e.target && e.target.closest && e.target.closest(".ovtr-btn-del");
+      if (!el) return;
+      if (overviewTradeIsLocked()) return;
+      const tr = el.closest("tr[data-ovtr-id]");
+      if (!tr || overviewTradeTbody.querySelectorAll("tr[data-ovtr-id]").length <= 1) return;
+      tr.remove();
+      if (overviewTradeStatus) overviewTradeStatus.textContent = "";
+      overviewTradeRecalc();
+    });
     overviewTradeTbody.addEventListener("input", () => {
       if (overviewTradeStatus) overviewTradeStatus.textContent = "";
       overviewTradeRecalc();
@@ -4444,6 +4608,11 @@
       overviewPolicySetLocked(!overviewPolicyIsLocked());
     });
   }
+  if (overviewKtbPlanLock) {
+    overviewKtbPlanLock.addEventListener("click", () => {
+      overviewKtbPlanSetLocked(!overviewKtbPlanIsLocked());
+    });
+  }
   if (overviewPolicyTbody) {
     overviewPolicyTbody.addEventListener("input", (e) => {
       if (overviewPolicyStatus) overviewPolicyStatus.textContent = "";
@@ -4456,6 +4625,13 @@
           wd.textContent = overviewPolicyWeekdayParen(Number.isFinite(mo) ? mo : 0, t.value);
         }
       }
+      overviewMonthScheduleRender();
+    });
+  }
+  if (overviewKtbPlanTbody) {
+    overviewKtbPlanTbody.addEventListener("input", () => {
+      if (overviewKtbPlanStatus) overviewKtbPlanStatus.textContent = "";
+      overviewMonthScheduleRender();
     });
   }
   if (overviewKeyBondSave) overviewKeyBondSave.addEventListener("click", () => overviewKeyBondSaveToStorage());
@@ -4561,7 +4737,9 @@
   }
   overviewPrevDaySyncToolbarLockUi();
   overviewPolicySyncToolbarLockUi();
+  overviewKtbPlanSyncToolbarLockUi();
   overviewKeyBondSyncToolbarLockUi();
+  overviewMonthScheduleRender();
 
   function overviewMemoFormatSavedAt(ts) {
     try {
@@ -4632,6 +4810,8 @@
       const el = tr.querySelector("." + cls);
       if (el) el.disabled = false;
     });
+    const del = tr.querySelector(".ovtr-btn-del");
+    if (del) del.disabled = locked;
   }
 
   function overviewTradeSyncToolbarLockUi() {
@@ -4862,7 +5042,8 @@
       '<td><input type="text" class="overview-trade-input ovtr-qty-b" inputmode="numeric" autocomplete="off" spellcheck="false" /></td>' +
       '<td class="ovtr-cell-pnl"><span class="overview-trade-calc ovtr-pnl-b">—</span></td>' +
       '<td class="ovtr-cell-pnl"><span class="overview-trade-calc ovtr-pnl-total">—</span></td>' +
-      '<td class="ovtr-cell-pnl"><span class="overview-trade-calc ovtr-perf">—</span></td>';
+      '<td class="ovtr-cell-pnl"><span class="overview-trade-calc ovtr-perf">—</span></td>' +
+      '<td class="ovtr-col-del"><button type="button" class="ovtr-btn-del" aria-label="행 삭제">삭제</button></td>';
     const navInp = tr.querySelector(".ovtr-nav");
     const typeA = tr.querySelector(".ovtr-type-a");
     const priceA = tr.querySelector(".ovtr-price-a");
@@ -5078,6 +5259,7 @@
     });
     overviewPolicyTbody.innerHTML = h;
     overviewPolicySyncCurrentMonthHighlight();
+    overviewMonthScheduleRender();
   }
 
   function overviewPolicySyncCurrentMonthHighlight() {
@@ -5103,6 +5285,264 @@
     }
   }
 
+  function overviewKtbPlanIsLocked() {
+    try {
+      return localStorage.getItem(OVERVIEW_KTBPLAN_LOCK_KEY) === "1";
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function overviewKtbPlanSyncTitle() {
+    if (!overviewKtbPlanTitle) return;
+    const mo = new Date().getMonth() + 1;
+    overviewKtbPlanTitle.textContent = mo + "월 국고채 발행 계획";
+  }
+
+  function overviewKtbPlanSyncToolbarLockUi() {
+    const locked = overviewKtbPlanIsLocked();
+    if (overviewKtbPlanLock) {
+      overviewKtbPlanLock.setAttribute("aria-pressed", locked ? "true" : "false");
+      overviewKtbPlanLock.textContent = locked ? "잠금 해제" : "잠금";
+    }
+    if (overviewKtbPlanSave) {
+      overviewKtbPlanSave.disabled = locked;
+      overviewKtbPlanSave.classList.toggle("ovpd-toolbar-textlike", locked);
+    }
+  }
+
+  function overviewKtbPlanSetLocked(on) {
+    let snapshot = overviewKtbPlanLoadSaved();
+    if (overviewKtbPlanTbody && overviewKtbPlanTbody.querySelector("tr[data-ovktb-key]")) {
+      snapshot = overviewKtbPlanMergeSaved(overviewKtbPlanCollectFromDom());
+    }
+    try {
+      localStorage.setItem(OVERVIEW_KTBPLAN_LOCK_KEY, on ? "1" : "0");
+    } catch (_) {}
+    overviewKtbPlanRenderFromState(snapshot);
+    overviewKtbPlanSyncToolbarLockUi();
+  }
+
+  function overviewKtbPlanEmptyValues() {
+    return OVERVIEW_KTBPLAN_TENORS.map(() => "");
+  }
+
+  function overviewKtbPlanDefaultState() {
+    return {
+      rows: OVERVIEW_KTBPLAN_ROW_DEFS.map((def) => ({
+        key: def.key,
+        label: def.label,
+        values: overviewKtbPlanEmptyValues(),
+      })),
+    };
+  }
+
+  function overviewKtbPlanMergeSaved(obj) {
+    return {
+      rows: OVERVIEW_KTBPLAN_ROW_DEFS.map((def) => {
+        const found =
+          obj && Array.isArray(obj.rows)
+            ? obj.rows.find((x) => String(x.key || "").trim() === def.key)
+            : null;
+        const raw =
+          found && Array.isArray(found.values)
+            ? found.values.map((d) => String(d == null ? "" : d).trim())
+            : overviewKtbPlanEmptyValues();
+        const padded = raw.slice(0, OVERVIEW_KTBPLAN_TENORS.length);
+        while (padded.length < OVERVIEW_KTBPLAN_TENORS.length) padded.push("");
+        return { key: def.key, label: def.label, values: padded };
+      }),
+    };
+  }
+
+  function overviewKtbPlanLoadSaved() {
+    try {
+      const raw = localStorage.getItem(OVERVIEW_KTBPLAN_STORAGE_KEY);
+      if (!raw) return overviewKtbPlanDefaultState();
+      return overviewKtbPlanMergeSaved(JSON.parse(raw));
+    } catch (_) {
+      return overviewKtbPlanDefaultState();
+    }
+  }
+
+  function overviewKtbPlanCollectFromDom() {
+    if (!overviewKtbPlanTbody) return { rows: [] };
+    const rows = [];
+    overviewKtbPlanTbody.querySelectorAll("tr[data-ovktb-key]").forEach((tr) => {
+      const key = String(tr.getAttribute("data-ovktb-key") || "").trim();
+      const values = [];
+      for (let i = 0; i < OVERVIEW_KTBPLAN_TENORS.length; i++) {
+        const inp = tr.querySelector('input.ovktb-cell-input[data-tenor="' + i + '"]');
+        const sp = tr.querySelector('span.ovktb-cell-plain[data-tenor="' + i + '"]');
+        if (inp) {
+          values.push(String(inp.value || "").trim());
+        } else if (sp) {
+          const t = String(sp.textContent || "").trim();
+          values.push(t === "—" ? "" : t);
+        } else values.push("");
+      }
+      rows.push({ key, values });
+    });
+    return { rows };
+  }
+
+  function overviewKtbPlanSaveToStorage() {
+    if (overviewKtbPlanIsLocked()) return;
+    const payload = overviewKtbPlanCollectFromDom();
+    try {
+      localStorage.setItem(OVERVIEW_KTBPLAN_STORAGE_KEY, JSON.stringify(payload));
+      overviewSyncPersistAll({ manual: true }).then((res) => {
+        if (overviewKtbPlanStatus) overviewKtbPlanStatus.textContent = overviewSyncManualSaveStatus(res);
+      });
+    } catch (e) {
+      if (overviewKtbPlanStatus)
+        overviewKtbPlanStatus.textContent = "저장 실패: " + (e && e.message ? e.message : String(e));
+    }
+  }
+
+  function overviewKtbPlanRenderFromState(st) {
+    overviewKtbPlanSyncTitle();
+    if (!overviewKtbPlanTbody) return;
+    const locked = overviewKtbPlanIsLocked();
+    const merged = st && st.rows && st.rows.length ? overviewKtbPlanMergeSaved(st) : overviewKtbPlanLoadSaved();
+    let h = "";
+    merged.rows.forEach((row) => {
+      h +=
+        '<tr data-ovktb-key="' +
+        escapeHtml(row.key) +
+        '"><th scope="row" class="ovktb-row-label">' +
+        escapeHtml(row.label) +
+        "</th>";
+      for (let i = 0; i < OVERVIEW_KTBPLAN_TENORS.length; i++) {
+        const v = row.values[i] != null ? String(row.values[i]).trim() : "";
+        const tenorLabel = OVERVIEW_KTBPLAN_TENORS[i].label;
+        if (locked) {
+          if (v)
+            h +=
+              '<td><span class="ovktb-cell-plain" data-tenor="' +
+              i +
+              '">' +
+              escapeHtml(v) +
+              "</span></td>";
+          else
+            h +=
+              '<td><span class="ovktb-cell-plain ovktb-cell-plain--empty" data-tenor="' +
+              i +
+              '">—</span></td>';
+        } else {
+          h +=
+            '<td><input type="text" class="ovktb-cell-input" autocomplete="off" spellcheck="false" data-tenor="' +
+            i +
+            '" value="' +
+            escapeHtml(v) +
+            '" title="' +
+            escapeHtml(tenorLabel + " 입찰일") +
+            '" /></td>';
+        }
+      }
+      h += "</tr>";
+    });
+    overviewKtbPlanTbody.innerHTML = h;
+    overviewMonthScheduleRender();
+  }
+
+  function overviewMonthScheduleParseDayToken(raw, defaultMonth) {
+    const s = String(raw == null ? "" : raw).trim();
+    if (!s || s === "—") return null;
+    let m = s.match(/^(\d{1,2})\s*[\/.\-월]\s*(\d{1,2})/);
+    if (m) {
+      const mo = parseInt(m[1], 10);
+      const d = parseInt(m[2], 10);
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return { month: mo, day: d };
+    }
+    m = s.match(/^(\d{1,2})\s*일?/);
+    if (m) {
+      const d = parseInt(m[1], 10);
+      if (d >= 1 && d <= 31) return { month: defaultMonth, day: d };
+    }
+    return null;
+  }
+
+  function overviewMonthScheduleWeekdayParen(year, month1based, day) {
+    const dt = new Date(year, month1based - 1, day);
+    if (dt.getFullYear() !== year || dt.getMonth() !== month1based - 1 || dt.getDate() !== day) return "";
+    return ["일", "월", "화", "수", "목", "금", "토"][dt.getDay()];
+  }
+
+  function overviewMonthScheduleCollectEvents() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const monthIdx = now.getMonth();
+    /** @type {{ day: number, label: string, sortKey: string, kind: "policy" | "ktb" }[]} */
+    const events = [];
+
+    const policyState =
+      overviewPolicyTbody && overviewPolicyTbody.querySelector("tr[data-ovpol-key]")
+        ? overviewPolicyMergeSaved(overviewPolicyCollectFromDom())
+        : overviewPolicyLoadSaved();
+    (policyState.rows || []).forEach((row) => {
+      const def = OVERVIEW_POLICY_ROW_DEFS.find((d) => d.key === row.key);
+      const label = def ? def.label : row.label || row.key;
+      const dayRaw = row.days && row.days[monthIdx] != null ? row.days[monthIdx] : "";
+      const parsed = overviewMonthScheduleParseDayToken(dayRaw, month);
+      if (!parsed || parsed.month !== month) return;
+      events.push({ day: parsed.day, label: String(label), sortKey: "p:" + row.key, kind: "policy" });
+    });
+
+    const ktbState =
+      overviewKtbPlanTbody && overviewKtbPlanTbody.querySelector("tr[data-ovktb-key]")
+        ? overviewKtbPlanMergeSaved(overviewKtbPlanCollectFromDom())
+        : overviewKtbPlanLoadSaved();
+    const auction = (ktbState.rows || []).find((r) => r.key === "auction") || (ktbState.rows || [])[0];
+    if (auction && Array.isArray(auction.values)) {
+      OVERVIEW_KTBPLAN_TENORS.forEach((tenor, i) => {
+        const parsed = overviewMonthScheduleParseDayToken(auction.values[i], month);
+        if (!parsed || parsed.month !== month) return;
+        events.push({ day: parsed.day, label: tenor.label, sortKey: "k:" + tenor.key, kind: "ktb" });
+      });
+    }
+
+    events.sort((a, b) => a.day - b.day || a.sortKey.localeCompare(b.sortKey));
+    return { year, month, events };
+  }
+
+  function overviewMonthScheduleRender() {
+    const { year, month, events } = overviewMonthScheduleCollectEvents();
+    if (overviewMonthScheduleLabel) overviewMonthScheduleLabel.textContent = month + "월 주요 일정";
+    if (!overviewMonthScheduleList) return;
+    if (!events.length) {
+      overviewMonthScheduleList.innerHTML =
+        '<span class="overview-month-schedule__empty">등록된 일정이 없습니다</span>';
+      return;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const parts = [];
+    events.forEach((ev, idx) => {
+      if (idx) parts.push('<span class="overview-month-schedule__sep">,</span>');
+      const wd = overviewMonthScheduleWeekdayParen(year, month, ev.day);
+      const evDate = new Date(year, month - 1, ev.day);
+      evDate.setHours(0, 0, 0, 0);
+      const upcoming = evDate.getTime() >= today.getTime();
+      const text =
+        month +
+        "/" +
+        ev.day +
+        (wd ? "(" + wd + ")" : "") +
+        " " +
+        ev.label;
+      const kindCls = ev.kind === "ktb" ? " is-ktb" : " is-policy";
+      parts.push(
+        '<span class="overview-month-schedule__item' +
+          (upcoming ? " is-upcoming" + kindCls : "") +
+          '">' +
+          escapeHtml(text) +
+          "</span>"
+      );
+    });
+    overviewMonthScheduleList.innerHTML = parts.join("");
+  }
 
   function overviewKeyBondNewId() {
     return "ovkb_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
@@ -5468,6 +5908,7 @@
     if (snap.memo && String(snap.memo).trim()) return true;
     if (snap.prevday && Array.isArray(snap.prevday.rows) && snap.prevday.rows.length) return true;
     if (snap.policy && Array.isArray(snap.policy.rows)) return true;
+    if (snap.ktbplan && Array.isArray(snap.ktbplan.rows)) return true;
     if (snap.keybond && Array.isArray(snap.keybond.rows) && snap.keybond.rows.length) return true;
     if (snap.empFutures && typeof snap.empFutures === "object" && Object.keys(snap.empFutures).length) return true;
     if (snap.empCu && typeof snap.empCu === "object" && Object.keys(snap.empCu).length) return true;
@@ -5568,6 +6009,9 @@
       if (snap.policy && Array.isArray(snap.policy.rows)) {
         localStorage.setItem(OVERVIEW_POLICY_STORAGE_KEY, JSON.stringify(snap.policy));
       }
+      if (snap.ktbplan && Array.isArray(snap.ktbplan.rows)) {
+        localStorage.setItem(OVERVIEW_KTBPLAN_STORAGE_KEY, JSON.stringify(snap.ktbplan));
+      }
       if (snap.keybond && Array.isArray(snap.keybond.rows) && snap.keybond.rows.length) {
         localStorage.setItem(OVERVIEW_KEYBOND_STORAGE_KEY, JSON.stringify(snap.keybond));
       }
@@ -5577,6 +6021,9 @@
       if (snap.locks) {
         localStorage.setItem(OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY, snap.locks.prevday ? "1" : "0");
         localStorage.setItem(OVERVIEW_POLICY_LOCK_KEY, snap.locks.policy ? "1" : "0");
+        if (snap.locks.ktbplan != null) {
+          localStorage.setItem(OVERVIEW_KTBPLAN_LOCK_KEY, snap.locks.ktbplan ? "1" : "0");
+        }
         localStorage.setItem(OVERVIEW_KEYBOND_LOCK_KEY, snap.locks.keybond ? "1" : "0");
         if (snap.locks.trade != null) {
           localStorage.setItem(OVERVIEW_TRADE_LOCK_KEY, snap.locks.trade ? "1" : "0");
@@ -5707,6 +6154,13 @@
         : JSON.parse(localStorage.getItem(OVERVIEW_POLICY_STORAGE_KEY) || "null");
     } catch (_) {}
 
+    let ktbplanPayload = null;
+    try {
+      ktbplanPayload = overviewKtbPlanTbody
+        ? overviewKtbPlanCollectFromDom()
+        : JSON.parse(localStorage.getItem(OVERVIEW_KTBPLAN_STORAGE_KEY) || "null");
+    } catch (_) {}
+
     let keybondPayload = overviewSyncCollectKeybondPayload();
 
     let tradePayload = null;
@@ -5720,6 +6174,7 @@
       memo: overviewMemoTextarea ? overviewMemoTextarea.value : "",
       prevday: prevdayPayload,
       policy: policyPayload,
+      ktbplan: ktbplanPayload,
       keybond: keybondPayload,
       trade: tradePayload,
       empFutures: { ...empFuturesDurationMap },
@@ -5728,6 +6183,7 @@
       locks: {
         prevday: overviewPrevDayIsToolbarLocked(),
         policy: overviewPolicyIsLocked(),
+        ktbplan: overviewKtbPlanIsLocked(),
         keybond: overviewKeyBondIsLocked(),
         trade: overviewTradeIsLocked(),
         empSummary: empSummaryIsLocked(),
@@ -5805,6 +6261,7 @@
         localStorage.setItem(OVERVIEW_PREVDAY_STORAGE_KEY, JSON.stringify(snap.prevday));
       }
       if (snap.policy) localStorage.setItem(OVERVIEW_POLICY_STORAGE_KEY, JSON.stringify(snap.policy));
+      if (snap.ktbplan) localStorage.setItem(OVERVIEW_KTBPLAN_STORAGE_KEY, JSON.stringify(snap.ktbplan));
       if (overviewSyncShouldWriteSection(snap.keybond, manual)) {
         localStorage.setItem(OVERVIEW_KEYBOND_STORAGE_KEY, JSON.stringify(snap.keybond));
       }
@@ -5825,6 +6282,9 @@
       if (snap.locks) {
         localStorage.setItem(OVERVIEW_PREVDAY_TOOLBAR_LOCK_KEY, snap.locks.prevday ? "1" : "0");
         localStorage.setItem(OVERVIEW_POLICY_LOCK_KEY, snap.locks.policy ? "1" : "0");
+        if (snap.locks.ktbplan != null) {
+          localStorage.setItem(OVERVIEW_KTBPLAN_LOCK_KEY, snap.locks.ktbplan ? "1" : "0");
+        }
         localStorage.setItem(OVERVIEW_KEYBOND_LOCK_KEY, snap.locks.keybond ? "1" : "0");
         if (snap.locks.trade != null) {
           localStorage.setItem(OVERVIEW_TRADE_LOCK_KEY, snap.locks.trade ? "1" : "0");
@@ -5890,6 +6350,9 @@
     overviewTradeSyncToolbarLockUi();
     overviewPolicyRenderFromState(overviewPolicyLoadSaved());
     overviewPolicySyncToolbarLockUi();
+    overviewKtbPlanRenderFromState(overviewKtbPlanLoadSaved());
+    overviewKtbPlanSyncToolbarLockUi();
+    overviewMonthScheduleRender();
     overviewKeyBondSyncToolbarLockUi();
     overviewPrevDaySyncToolbarLockUi();
     ensureTermData().then(() => {

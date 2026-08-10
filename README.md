@@ -39,7 +39,7 @@
 - `term_table_long.csv` — Term Structure 탭 (없으면 해당 탭만 오류)
 - `bond_db.xlsx` — 채권 DB 원본 (선택); CSV는 `BondDb_ExportToCsv.bas`로 생성
 - `bond_db_ktb.csv`, `bond_db_msb.csv` — 국고채·통안채 표 형태 CSV (`BondDb_ExportToCsv`)
-- `overview_state.json` — Overview 메모·전일종가표·통화정책·주요종목민평 저장 (git push로 기기 간 공유)
+- `overview_state.json` — Overview 메모·전일종가표·통화정책·국고채 발행 계획·주요종목민평 저장 (git push로 기기 간 공유)
 - `serve_dashboard.py` — 로컬 http 서버 + Overview `overview_state.json` POST 저장 + ETF 개요 메일 발송 API
 
 ### ETF 개요 메일 발송
