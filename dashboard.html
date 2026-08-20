@@ -1284,6 +1284,44 @@
       box-sizing: border-box;
     }
     .rates-inline-note__sep { opacity: 0.5; padding: 0 0.15rem; }
+    .rates-daily-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 0.35rem;
+      align-items: baseline;
+      margin: 0 0 0.75rem;
+      padding: 0.42rem 0.7rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(14,17,23,0.45);
+      font-size: 0.76rem;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.88);
+    }
+    .rates-daily-summary__label { font-weight: 700; color: rgba(255,255,255,0.92); }
+    .rates-daily-summary__tenor-block {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0 0.35rem;
+      align-items: baseline;
+    }
+    .rates-daily-summary__tenor-tag {
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 0.02em;
+      padding: 0.06rem 0.38rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.72);
+    }
+    .rates-daily-summary__tenor-sep {
+      opacity: 0.28;
+      padding: 0 0.15rem;
+      user-select: none;
+    }
+    .rates-daily-summary__item--pos { color: #93c5fd; }
+    .rates-daily-summary__item--neg { color: #f87171; font-weight: 700; }
     .rates-history-toolbar {
       display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1rem;
       margin: 0 0 1rem; padding: 0.55rem 0.75rem;
@@ -2730,6 +2768,7 @@
 
   <div id="page-rates" class="page is-active">
     <div class="rates-analysis-outer">
+      <div class="rates-daily-summary" id="ratesDailySummary" aria-live="polite" hidden></div>
       <div class="rates-history-toolbar">
         <label for="ratesHistoryDays">일자별 수준 표시 거래일 수</label>
         <input type="number" id="ratesHistoryDays" min="1" max="250" value="7" step="1" title="국고·크레딧 데이터가 있는 일자만, 최신일부터 이 개수만큼 표시합니다." />
@@ -3693,6 +3732,7 @@
   const fundReturnRankingJaBtn = document.getElementById("fundReturnRankingJa");
   let fundReturnRankingKind = "mo";
   const ratesAnalysisStatus = document.getElementById("ratesAnalysisStatus");
+  const ratesDailySummary = document.getElementById("ratesDailySummary");
   const ratesTableKtbWrap = document.getElementById("ratesTableKtbWrap");
   const ratesTableCreditYldWrap = document.getElementById("ratesTableCreditYldWrap");
   const ratesTableCreditSprWrap = document.getElementById("ratesTableCreditSprWrap");
@@ -11140,12 +11180,14 @@
     [1, 2],
     [2, 3],
     [3, 5],
+    [2, 5],
     [3, 10],
+    [10, 20],
     [10, 30],
     [20, 30],
   ];
   const RATES_KTB_CUSTOM_SPREAD_KEY = "market_db_dashboard_rates_ktb_custom_spreads_v1";
-  const RATES_KTB_CUSTOM_SPREAD_COLS = 3;
+  const RATES_KTB_CUSTOM_SPREAD_COLS = 1;
   const RATES_CREDIT_LINES = [
     { inst: "특은채", label: "특은" },
     { inst: "특수채", label: "특수" },
@@ -11290,12 +11332,78 @@
     return (yb - ya) * 100;
   }
 
+  /** 3V: 100×(2/3년 스프레드)÷(2/5년 스프레드). 스프레드는 ktbTermSpreadBp와 동일(bp). 분모 0이면 null */
+  function ktbThreeVPercent(d) {
+    const num = ktbTermSpreadBp(d, 2, 3);
+    const den = ktbTermSpreadBp(d, 2, 5);
+    if (num === null || den === null || Math.abs(den) < 1e-12) return null;
+    return (num / den) * 100;
+  }
+
   /** 5V: 100×(3/5년 스프레드)÷(3/10년 스프레드). 스프레드는 ktbTermSpreadBp와 동일(bp). 분모 0이면 null */
   function ktbFiveVPercent(d) {
     const num = ktbTermSpreadBp(d, 3, 5);
     const den = ktbTermSpreadBp(d, 3, 10);
     if (num === null || den === null || Math.abs(den) < 1e-12) return null;
     return (num / den) * 100;
+  }
+
+  function creditSpreadBpDelta(d0, dPrev, inst, tenor) {
+    const v0 = creditSpreadBp(d0, inst, tenor);
+    const v1 = creditSpreadBp(dPrev, inst, tenor);
+    if (v0 === null || v1 === null) return null;
+    return v0 - v1;
+  }
+
+  function fmtRatesDailySummaryBp(delta) {
+    if (delta === null || Number.isNaN(delta)) return null;
+    const sign = delta >= 0 ? "+" : "";
+    return "(" + sign + delta.toFixed(1) + "bp)";
+  }
+
+  function renderRatesDailySummary(d0, dPrev) {
+    if (!ratesDailySummary) return;
+    if (!d0 || !dPrev) {
+      ratesDailySummary.hidden = true;
+      ratesDailySummary.innerHTML = "";
+      return;
+    }
+    function buildTenorBlock(tenor, tagLabel) {
+      const items = [];
+      RATES_CREDIT_LINES.forEach((line) => {
+        const delta = creditSpreadBpDelta(d0, dPrev, line.inst, tenor);
+        const bp = fmtRatesDailySummaryBp(delta);
+        if (bp) items.push({ inst: line.inst, bp, delta });
+      });
+      if (!items.length) return "";
+      let block = '<span class="rates-daily-summary__tenor-block">';
+      block += '<span class="rates-daily-summary__tenor-tag">' + escapeHtml(tagLabel) + "</span>";
+      items.forEach((item, i) => {
+        const signCls = item.delta < 0 ? " rates-daily-summary__item--neg" : " rates-daily-summary__item--pos";
+        block +=
+          '<span class="rates-daily-summary__item' +
+          signCls +
+          '">' +
+          escapeHtml(item.inst + " " + item.bp);
+        if (i < items.length - 1) block += ",";
+        block += "</span>";
+      });
+      block += "</span>";
+      return block;
+    }
+    const block2y = buildTenorBlock(2, "2년");
+    const block3y = buildTenorBlock(3, "3년");
+    if (!block2y && !block3y) {
+      ratesDailySummary.hidden = true;
+      ratesDailySummary.innerHTML = "";
+      return;
+    }
+    let html = '<span class="rates-daily-summary__label">전일 요약:</span>';
+    if (block2y) html += block2y;
+    if (block2y && block3y) html += '<span class="rates-daily-summary__tenor-sep" aria-hidden="true">|</span>';
+    if (block3y) html += block3y;
+    ratesDailySummary.innerHTML = html;
+    ratesDailySummary.hidden = false;
   }
 
   function creditSpreadBp(d, inst, y) {
@@ -11448,6 +11556,7 @@
     if (!ratesTableKtbWrap) return;
     if (!rawRows.length || !dates.length) {
       if (ratesAnalysisStatus) ratesAnalysisStatus.textContent = "데이터를 불러오는 중이거나 행이 없습니다.";
+      renderRatesDailySummary(null, null);
       ratesTableKtbWrap.innerHTML = "";
       ratesTableCreditYldWrap.innerHTML = "";
       ratesTableCreditSprWrap.innerHTML = "";
@@ -11459,6 +11568,7 @@
     const d0 = latestDateWithRatesData();
     if (!d0) {
       if (ratesAnalysisStatus) ratesAnalysisStatus.textContent = "국고채·크레딧 금리가 있는 일자가 없습니다.";
+      renderRatesDailySummary(null, null);
       ratesTableKtbWrap.innerHTML = "";
       ratesTableCreditYldWrap.innerHTML = "";
       ratesTableCreditSprWrap.innerHTML = "";
@@ -11474,6 +11584,7 @@
         "최신일(데이터): " + d0 + " · 일자별 " + histDates.length + "거래일 표시 (요청 " + nRequested + "거래일)";
     }
     const dPrev = dateRefPrev(d0);
+    renderRatesDailySummary(d0, dPrev);
     const dMtd = dateRefMtd(d0);
     const dYtd = dateRefYtd(d0);
     const refMap = { DTD: dPrev, MTD: dMtd, YTD: dYtd };
@@ -11493,7 +11604,7 @@
     const credTen = RATES_CREDIT_TENORS;
     const slopePairs = RATES_SPREAD_SLOPE_PAIRS;
     const customSpreadPairs = ratesKtbCustomSpreadInputs.map((s) => parseKtbCustomSpreadPair(s));
-    const ktbPairs = RATES_TB_TENORS.length + ktbTen.length + ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS + 1;
+    const ktbPairs = RATES_TB_TENORS.length + ktbTen.length + ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS + 2;
     const creditGroupA = RATES_CREDIT_LINES.filter((line) => RATES_CREDIT_GROUP_A.indexOf(line.inst) >= 0);
     const creditGroupB = RATES_CREDIT_LINES.filter((line) => RATES_CREDIT_GROUP_B.indexOf(line.inst) >= 0);
     const creditColsA = creditGroupA.length * credTen.length;
@@ -11550,6 +11661,16 @@
         } else h += tdVal(sA, 1, false);
       });
       {
+        const vA = ktbThreeVPercent(dAnchor);
+        if (isDelta && refD) {
+          const vR = ktbThreeVPercent(refD);
+          const dV = vA !== null && vR !== null ? vA - vR : null;
+          h += tdVal(dV !== null && !Number.isNaN(dV) ? Math.round(dV) : null, 0, true);
+        } else if (vA !== null && !Number.isNaN(vA)) {
+          h += "<td>" + String(Math.round(vA)) + "%</td>";
+        } else h += "<td>—</td>";
+      }
+      {
         const vA = ktbFiveVPercent(dAnchor);
         if (isDelta && refD) {
           const vR = ktbFiveVPercent(refD);
@@ -11594,6 +11715,12 @@
         const sR = dCustom ? ktbTermSpreadBp(dCustom, pair[0], pair[1]) : null;
         h += tdVal(sA !== null && sR !== null ? sA - sR : null, 1, true);
       });
+      {
+        const vA = ktbThreeVPercent(d0);
+        const vR = dCustom ? ktbThreeVPercent(dCustom) : null;
+        const dV = vA !== null && vR !== null ? vA - vR : null;
+        h += tdVal(dV !== null && !Number.isNaN(dV) ? Math.round(dV) : null, 0, true);
+      }
       {
         const vA = ktbFiveVPercent(d0);
         const vR = dCustom ? ktbFiveVPercent(dCustom) : null;
@@ -11701,6 +11828,7 @@
     hK += "<th colspan=\"" + RATES_TB_TENORS.length + "\" class=\"group-head\">통안채 금리</th>";
     hK += "<th colspan=\"" + ktbTen.length + "\" class=\"group-head\">국고채 금리</th>";
     hK += "<th colspan=\"" + (ktbSpr.length + RATES_KTB_CUSTOM_SPREAD_COLS) + "\" class=\"group-head\">만기간 스프레드</th>";
+    hK += "<th rowspan=\"2\" title=\"100×(2/3년 스프레드)÷(2/5년 스프레드), 스프레드=국고채 금리차(bp)\">3V</th>";
     hK += "<th rowspan=\"2\" title=\"100×(3/5년 스프레드)÷(3/10년 스프레드), 스프레드=국고채 금리차(bp)\">5V</th></tr><tr>";
     RATES_TB_TENORS.forEach((t) => { hK += "<th>" + t + "</th>"; });
     ktbTen.forEach((t) => { hK += "<th>" + t + "</th>"; });
