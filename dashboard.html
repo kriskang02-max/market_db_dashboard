@@ -2007,6 +2007,9 @@
     #page-overview .overview-ktbplan-table col.ovktb-col-label {
       width: 4.5rem;
     }
+    #page-overview .overview-ktbplan-table col.ovktb-col-data {
+      width: calc((100% - 4.5rem) / 9);
+    }
     #page-overview .overview-policy-table th.ovpol-mo--current,
     #page-overview .overview-policy-table td.ovpol-mo--current {
       background: rgba(59, 130, 246, 0.2);
@@ -3309,7 +3312,7 @@
               <table class="overview-ktbplan-table overview-side-table-compact" id="overviewKtbPlanTable" aria-label="국고채 발행 계획">
                 <colgroup>
                   <col class="ovktb-col-label" />
-                  <col span="7" class="ovktb-col-tenor" />
+                  <col span="9" class="ovktb-col-data" />
                 </colgroup>
                 <thead>
                   <tr>
@@ -3321,6 +3324,8 @@
                     <th>20년</th>
                     <th>30년</th>
                     <th>50년</th>
+                    <th>교환</th>
+                    <th>바이백</th>
                   </tr>
                 </thead>
                 <tbody id="overviewKtbPlanTbody"></tbody>
@@ -3586,6 +3591,11 @@
   ];
   /** @type {{ key: string, label: string }[]} */
   const OVERVIEW_KTBPLAN_ROW_DEFS = [{ key: "auction", label: "입찰일" }];
+  /** @type {{ key: string, label: string }[]} */
+  const OVERVIEW_KTBPLAN_TAIL_COLS = [
+    { key: "exchange", label: "교환" },
+    { key: "buyback", label: "바이백" },
+  ];
 
   /** 브라우저/프록시가 CSV 응답을 캐시해 수정 후에도 예전 데이터가 보이는 것을 방지 */
   function fetchCsvNoCache(url) {
@@ -5367,12 +5377,21 @@
     return OVERVIEW_KTBPLAN_TENORS.map(() => "");
   }
 
+  function overviewKtbPlanEmptyExtra() {
+    const extra = {};
+    OVERVIEW_KTBPLAN_TAIL_COLS.forEach((col) => {
+      extra[col.key] = "";
+    });
+    return extra;
+  }
+
   function overviewKtbPlanDefaultState() {
     return {
       rows: OVERVIEW_KTBPLAN_ROW_DEFS.map((def) => ({
         key: def.key,
         label: def.label,
         values: overviewKtbPlanEmptyValues(),
+        extra: overviewKtbPlanEmptyExtra(),
       })),
     };
   }
@@ -5390,7 +5409,14 @@
             : overviewKtbPlanEmptyValues();
         const padded = raw.slice(0, OVERVIEW_KTBPLAN_TENORS.length);
         while (padded.length < OVERVIEW_KTBPLAN_TENORS.length) padded.push("");
-        return { key: def.key, label: def.label, values: padded };
+        const extra = overviewKtbPlanEmptyExtra();
+        OVERVIEW_KTBPLAN_TAIL_COLS.forEach((col) => {
+          extra[col.key] =
+            found && found.extra && found.extra[col.key] != null
+              ? String(found.extra[col.key]).trim()
+              : "";
+        });
+        return { key: def.key, label: def.label, values: padded, extra };
       }),
     };
   }
@@ -5421,7 +5447,18 @@
           values.push(t === "—" ? "" : t);
         } else values.push("");
       }
-      rows.push({ key, values });
+      const extra = overviewKtbPlanEmptyExtra();
+      OVERVIEW_KTBPLAN_TAIL_COLS.forEach((col, i) => {
+        const inp = tr.querySelector('input.ovktb-cell-input[data-tail="' + i + '"]');
+        const sp = tr.querySelector('span.ovktb-cell-plain[data-tail="' + i + '"]');
+        if (inp) {
+          extra[col.key] = String(inp.value || "").trim();
+        } else if (sp) {
+          const t = String(sp.textContent || "").trim();
+          extra[col.key] = t === "—" ? "" : t;
+        }
+      });
+      rows.push({ key, values, extra });
     });
     return { rows };
   }
@@ -5480,6 +5517,33 @@
             '" /></td>';
         }
       }
+      OVERVIEW_KTBPLAN_TAIL_COLS.forEach((col, i) => {
+        const v =
+          row.extra && row.extra[col.key] != null ? String(row.extra[col.key]).trim() : "";
+        if (locked) {
+          if (v)
+            h +=
+              '<td><span class="ovktb-cell-plain" data-tail="' +
+              i +
+              '">' +
+              escapeHtml(v) +
+              "</span></td>";
+          else
+            h +=
+              '<td><span class="ovktb-cell-plain ovktb-cell-plain--empty" data-tail="' +
+              i +
+              '">—</span></td>';
+        } else {
+          h +=
+            '<td><input type="text" class="ovktb-cell-input" autocomplete="off" spellcheck="false" data-tail="' +
+            i +
+            '" value="' +
+            escapeHtml(v) +
+            '" title="' +
+            escapeHtml(col.label) +
+            '" /></td>';
+        }
+      });
       h += "</tr>";
     });
     overviewKtbPlanTbody.innerHTML = h;
