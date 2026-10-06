@@ -663,6 +663,25 @@
       font-weight: 700;
       color: #fbbf24;
     }
+    #page-emp .emp-view-date {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 0.28rem;
+      margin-left: 0.4rem;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    #page-emp .emp-view-date__select {
+      font-size: 0.74rem;
+      padding: 0.12rem 0.35rem;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.95);
+      font-family: inherit;
+      min-width: 7.5rem;
+    }
     #page-emp .emp-disparity-filter {
       display: inline-flex;
       flex: 0 0 auto;
@@ -3044,6 +3063,10 @@
         <div class="emp-summary-block emp-split-col">
           <div class="overview-prevday-header-row">
             <h3 class="overview-prevday-table-heading">ETF 개요</h3>
+            <label class="emp-view-date" for="empViewDateSelect" title="ETF정보 시트 기준 조회 일자">
+              <span>조회일</span>
+              <select id="empViewDateSelect" class="emp-view-date__select" aria-label="ETF 개요 조회 일자"></select>
+            </label>
             <div class="emp-disparity-filter" title="괴리율 상·하한 필터">
               <span class="emp-disparity-filter__label">괴리율</span>
               <input type="number" id="empDisparityFilterUpper" class="emp-disparity-filter__input" placeholder="상한" step="any" aria-label="괴리율 상한" />
@@ -3709,6 +3732,7 @@
   const empBmWeightInput = document.getElementById("empBmWeightInput");
   const empBmDurationValue = document.getElementById("empBmDurationValue");
   const empSummaryStatus = document.getElementById("empSummaryStatus");
+  const empViewDateSelect = document.getElementById("empViewDateSelect");
   const empSummaryWrap = document.getElementById("empSummaryWrap");
   const empFundWrap = document.getElementById("empFundWrap");
   const empFundMetaWrap = document.getElementById("empFundMetaWrap");
@@ -8697,6 +8721,9 @@
   let empDatasetDateTag = "";
   let empEtfNavMap = {};
   let empEtfMetaMap = {};
+  let empEtfInfoMap = {};
+  let empAvailableDates = [];
+  let empViewDate = "";
   let empDatasetLoadedAt = null;
   let empFuturesMetaList = [];
   let empFuturesPersistTimer = null;
@@ -10157,7 +10184,7 @@
     }
     let text =
       "일자 " +
-      (empDatasetRows[0].일자 || "—") +
+      (empViewDate || empDatasetRows[0].일자 || "—") +
       " · " +
       empDatasetRows.length +
       "행 · ETF " +
@@ -10730,6 +10757,90 @@
       .sort();
   }
 
+  function empCollectAvailableDates(etfInfoMap) {
+    const set = new Set();
+    Object.keys(etfInfoMap || {}).forEach((etfName) => {
+      empGetEtfInfoSortedDateKeys(etfInfoMap[etfName]).forEach((k) => set.add(k));
+    });
+    return Array.from(set).sort().reverse();
+  }
+
+  function empFillViewDateSelect(preferredDate) {
+    if (!empViewDateSelect) return;
+    const prev = preferredDate || empViewDateSelect.value || empViewDate || "";
+    empViewDateSelect.innerHTML = "";
+    if (!empAvailableDates.length) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "—";
+      empViewDateSelect.appendChild(opt);
+      empViewDateSelect.disabled = true;
+      return;
+    }
+    empViewDateSelect.disabled = false;
+    empAvailableDates.forEach((d) => {
+      const opt = document.createElement("option");
+      opt.value = d;
+      opt.textContent = d;
+      empViewDateSelect.appendChild(opt);
+    });
+    if (prev && empAvailableDates.indexOf(prev) >= 0) empViewDateSelect.value = prev;
+    else empViewDateSelect.value = empAvailableDates[0];
+    empViewDate = empViewDateSelect.value || "";
+  }
+
+  function empBuildMetaForDate(etfName, dateKey, codeFallback) {
+    const etfInfo = empEtfInfoMap[etfName] ? empEtfInfoMap[etfName][dateKey] : null;
+    const code =
+      codeFallback != null
+        ? codeFallback
+        : empEtfMetaMap[etfName] && empEtfMetaMap[etfName].code
+          ? empEtfMetaMap[etfName].code
+          : "";
+    if (!etfInfo) {
+      return { basePrice: null, disparity: null, disparityPrev: null, code };
+    }
+    const disparities = empGetEtfInfoDisparityPair(empEtfInfoMap, etfName, dateKey);
+    return {
+      basePrice: etfInfo.basePrice,
+      disparity: disparities.disparity,
+      disparityPrev: disparities.disparityPrev,
+      code,
+    };
+  }
+
+  function empApplyViewDate(dateKey, opts) {
+    const silent = !!(opts && opts.silent);
+    if (!dateKey || !empDatasetRows.length) return;
+    empViewDate = dateKey;
+    const navMap = {};
+    const metaMap = {};
+    const etfNames = Array.from(new Set(empDatasetRows.map((r) => r.ETF명).filter(Boolean)));
+    etfNames.forEach((etfName) => {
+      const code = empEtfMetaMap[etfName] && empEtfMetaMap[etfName].code ? empEtfMetaMap[etfName].code : "";
+      const meta = empBuildMetaForDate(etfName, dateKey, code);
+      metaMap[etfName] = meta;
+      const etfInfo = empEtfInfoMap[etfName] ? empEtfInfoMap[etfName][dateKey] : null;
+      if (etfInfo && etfInfo.nav != null) navMap[etfName] = etfInfo.nav;
+    });
+    empEtfNavMap = navMap;
+    empEtfMetaMap = metaMap;
+    empDatasetRows = empDatasetRows.map((r) => {
+      const etfInfo = empEtfInfoMap[r.ETF명] ? empEtfInfoMap[r.ETF명][dateKey] : null;
+      const shares = etfInfo ? etfInfo.shares : null;
+      const prevEval = r._prevEval != null ? empNum(r._prevEval) : null;
+      const evalAmt =
+        prevEval != null && shares != null ? (prevEval * shares) / 1000 : null;
+      return Object.assign({}, r, { 일자: dateKey, 평가액: evalAmt });
+    });
+    empDatasetDateTag = dateKey.replace(/-/g, "");
+    if (empViewDateSelect && empViewDateSelect.value !== dateKey) {
+      empViewDateSelect.value = dateKey;
+    }
+    empUpdateMetaLabel(false);
+    if (!silent) empRefreshEmpViews();
+  }
+
   function empGetEtfInfoDisparityPair(etfInfoMap, etfName, dateKey) {
     const byDate = etfInfoMap[etfName];
     if (!byDate || !dateKey) return { disparity: null, disparityPrev: null };
@@ -10817,13 +10928,14 @@
               : "",
           섹터: empFmtSector(infomaxMajor, infomaxMinor),
           평가액: evalAmt,
+          _prevEval: prevEval,
           민평3사가격: empNum(empCell(pdfWs, r, block.startCol + 8)),
           민평3사듀레이션: empNum(empCell(pdfWs, r, block.startCol + 9)),
           민평3사수익률: empNum(empCell(pdfWs, r, block.startCol + 11)),
         });
       }
     });
-    return { rows: out, dateTag, navMap, metaMap };
+    return { rows: out, dateTag, navMap, metaMap, etfInfoMap };
   }
 
   function empRenderTable() {
@@ -10864,9 +10976,21 @@
   function empApplyDataset(result) {
     empDatasetRows = result.rows || [];
     empDatasetDateTag = result.dateTag || "";
+    empEtfInfoMap = result.etfInfoMap || {};
+    empAvailableDates = empCollectAvailableDates(empEtfInfoMap);
     empEtfNavMap = result.navMap || {};
     empEtfMetaMap = result.metaMap || {};
     empDatasetLoadedAt = empDatasetRows.length ? Date.now() : null;
+    const latestFromTag = empDatasetDateTag
+      ? empDatasetDateTag.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")
+      : "";
+    const preferred =
+      (latestFromTag && empAvailableDates.indexOf(latestFromTag) >= 0 && latestFromTag) ||
+      (empDatasetRows[0] && empDatasetRows[0].일자) ||
+      empAvailableDates[0] ||
+      "";
+    empFillViewDateSelect(preferred);
+    if (empViewDate) empApplyViewDate(empViewDate, { silent: true });
     empUpdateMetaLabel(false);
     empRefreshEmpViews();
     empSetStatus("");
@@ -10886,8 +11010,12 @@
       empDatasetDateTag = "";
       empEtfNavMap = {};
       empEtfMetaMap = {};
+      empEtfInfoMap = {};
+      empAvailableDates = [];
+      empViewDate = "";
       empBmSheetRows = [];
       empDatasetLoadedAt = null;
+      empFillViewDateSelect("");
       empUpdateMetaLabel(false);
       empRefreshEmpViews();
       empSetStatus("파일 처리 실패: " + (err && err.message ? err.message : String(err)), true);
@@ -12691,8 +12819,19 @@
       empDatasetDateTag = "";
       empEtfNavMap = {};
       empEtfMetaMap = {};
+      empEtfInfoMap = {};
+      empAvailableDates = [];
+      empViewDate = "";
       empDatasetLoadedAt = null;
+      empFillViewDateSelect("");
       empLoadDefaultWorkbook();
+    });
+  }
+  if (empViewDateSelect) {
+    empViewDateSelect.addEventListener("change", () => {
+      const d = (empViewDateSelect.value || "").trim();
+      if (!d) return;
+      empApplyViewDate(d);
     });
   }
   if (empExportBtn) empExportBtn.addEventListener("click", () => empExportXlsx());
