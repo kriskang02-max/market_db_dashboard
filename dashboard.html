@@ -6620,7 +6620,7 @@
   /** 모펀드 6사(약칭 순). fundNameList에서 첫 일치만 사용 */
   const MO_BANK_SIX_SPEC = [
     { short: "신한", pick: (n) => !isJaFundName(n) && n.indexOf("신한초단기채") >= 0 },
-    { short: "KB", pick: (n) => !isJaFundName(n) && n.indexOf("KB머니마켓액티브") >= 0 },
+    { short: "KB", pick: (n) => !isJaFundName(n) && n.indexOf("KB") >= 0 },
     { short: "우리", pick: (n) => !isJaFundName(n) && n.indexOf("우리") >= 0 && n.indexOf("초단기") >= 0 },
     { short: "하나", pick: (n) => !isJaFundName(n) && n.indexOf("하나") >= 0 && n.indexOf("초단기") >= 0 },
     { short: "키움", pick: (n) => !isJaFundName(n) && n.indexOf("키움") >= 0 && n.indexOf("초단기") >= 0 },
@@ -6798,6 +6798,8 @@
   }
 
   const MO_SIX_CUSTODY_PERIODS = [
+    ["1일", "a1d"],
+    ["3일", "a3d"],
     ["1주", "a1w"],
     ["1달", "a1m"],
     ["3달", "a3m"],
@@ -6808,6 +6810,8 @@
   ];
 
   const FUND_RETURN_RANKING_PERIODS = [
+    ["1일", "r1d"],
+    ["3일", "r3d"],
     ["1주", "r1w"],
     ["1달", "r1m"],
     ["3달", "r3m"],
@@ -6981,6 +6985,7 @@
       ? aumDeltaEok(setupUpTo[setupUpTo.length - 1].v, setupUpTo[setupUpTo.length - 2].v)
       : null;
 
+    const t3d = addCalendarDays(asOf, -3);
     const t1w = addCalendarDays(asOf, -7);
     const t1m = addCalendarDays(asOf, -30);
     const t3m = addCalendarDays(asOf, -90);
@@ -7004,6 +7009,7 @@
       return { r: rAnn, a: aMil };
     }
 
+    const d3 = t3d ? pairNavSetup(t3d) : { r: null, a: null };
     const w = t1w ? pairNavSetup(t1w) : { r: null, a: null };
     const m = t1m ? pairNavSetup(t1m) : { r: null, a: null };
     const m3 = t3m ? pairNavSetup(t3m) : { r: null, a: null };
@@ -7053,6 +7059,7 @@
       rangeStart: start,
       rRange, aRange,
       r1d, a1d,
+      r3d: d3.r, a3d: d3.a,
       r1w: w.r, a1w: w.a,
       r1m: m.r, a1m: m.a,
       r3m: m3.r, a3m: m3.a,
@@ -7137,8 +7144,8 @@
     });
     h += "</tr><tr>";
     heads.forEach(() => {
-      h += "<th class=\"subhead\">수익률</th>";
       h += "<th class=\"subhead\">수탁고 변동</th>";
+      h += "<th class=\"subhead\">수익률</th>";
     });
     h += "</tr></thead><tbody>";
     rows.forEach((m) => {
@@ -7149,8 +7156,8 @@
         let pctTitle = "";
         if (rk === "rYtd") pctTitle = m.ytdTooltip || "";
         else if (rk === "rMtd") pctTitle = m.mtdTooltip || "";
-        h += pctCellHtml(m[rk], pctTitle || undefined);
         h += aumEokCellHtml(m[ak]);
+        h += pctCellHtml(m[rk], pctTitle || undefined);
       });
       h += "</tr>";
     });
