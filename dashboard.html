@@ -1104,6 +1104,12 @@
     }
     .fund-metric-table tr.fund-metric-table__row--highlight td.name-cell { font-weight: 600; color: rgba(255, 255, 255, 0.96); }
     .fund-metric-table .subhead { font-size: 0.62rem; font-weight: 500; color: rgba(255,255,255,0.55); }
+    #fundTableMoWrap .fund-metric-table--summary th.fund-metric-group-start,
+    #fundTableJaWrap .fund-metric-table--summary th.fund-metric-group-start,
+    #fundTableMoWrap .fund-metric-table--summary td.fund-metric-group-start,
+    #fundTableJaWrap .fund-metric-table--summary td.fund-metric-group-start {
+      border-left: 2px solid rgba(255, 255, 255, 0.32);
+    }
     .pct-up { color: #f87171; }
     .pct-down { color: #60a5fa; }
     .fund-mo-six-custody { width: 100%; max-width: 100%; }
@@ -2903,7 +2909,7 @@
   <div id="page-fund" class="page">
     <div class="fund-summary-outer" id="fundSummaryOuter">
       <p class="fund-summary__note fund-summary__note--compact" id="fundSummaryNote">
-        수익률은 <strong>수정기준가</strong>(없으면 기준가) 구간 수익률을 <strong>연환산(단리, 365일)</strong>입니다. <strong>YTD</strong>는 전년 말(당해 1/1 이전 마지막 관측일) 대비, <strong>MTD</strong>는 당월 첫 관측일 대비입니다. 수익률 셀에 마우스를 올리면 사용한 일자·수정기준가·구간수익률·연환산 식을 볼 수 있습니다. 수탁고 변동은 <strong>설정액</strong> 차이(원)를 10⁸으로 나눈 값이며 <strong>소수점은 버립니다</strong>. 아래 <strong>구간 시작일</strong>을 넣으면 그 앞에 <strong>시작일~최신</strong> 열이 추가됩니다. 자펀드: 펀드명에 알파벳 <strong>C</strong> 포함(KCGI초단기우량채증권(채권)은 모펀드).
+        수익률은 <strong>수정기준가</strong>(없으면 기준가) 구간 수익률을 <strong>연환산(단리, 365일)</strong>입니다. <strong>YTD</strong>는 전년 말(당해 1/1 이전 마지막 관측일) 대비, <strong>MTD</strong>는 당월 첫 관측일 대비입니다. 수익률 셀에 마우스를 올리면 사용한 일자·수정기준가·구간수익률·연환산 식을 볼 수 있습니다. 수탁고 변동은 <strong>설정액</strong> 차이(원)를 10⁸으로 나눈 값이며 <strong>소수점은 버립니다</strong>. 표는 <strong>펀드 · 순자산 · 수탁고 변동(YTD→1년) · 수익률(같은 순서)</strong>입니다. <strong>구간 시작일</strong>을 넣으면 각 묶음 앞에 <strong>시작일~기준일</strong> 열이 추가됩니다. 자펀드: 펀드명에 알파벳 <strong>C</strong> 포함(KCGI초단기우량채증권(채권)은 모펀드).
       </p>
       <div class="fund-range-toolbar" id="fundRangeToolbar">
         <label for="fundMetricsAsOfDateInput" class="fund-range-toolbar__label">기준일</label>
@@ -6781,12 +6787,15 @@
     return (nowV - prevV) / 1e8;
   }
 
-  function pctCellHtml(x, titleAttr) {
-    if (x === null || x === undefined || Number.isNaN(x)) return "<td>—</td>";
-    const cls = x > 0 ? "pct-up" : x < 0 ? "pct-down" : "";
+  function pctCellHtml(x, titleAttr, extraCls) {
+    const extra = extraCls ? String(extraCls) : "";
+    if (x === null || x === undefined || Number.isNaN(x)) {
+      return "<td" + (extra ? " class=\"" + extra + "\"" : "") + ">—</td>";
+    }
+    const cls = [x > 0 ? "pct-up" : x < 0 ? "pct-down" : "", extra].filter(Boolean).join(" ");
     const s = (x >= 0 ? "+" : "") + x.toFixed(2) + "%";
     const t = titleAttr ? " title=\"" + escapeHtml(titleAttr) + "\"" : "";
-    return "<td class=\"" + cls + "\"" + t + ">" + s + "</td>";
+    return "<td" + (cls ? " class=\"" + cls + "\"" : "") + t + ">" + s + "</td>";
   }
 
   function aumEokCellHtml(x) {
@@ -7139,25 +7148,28 @@
     const heads = headsRange.concat(headsFixed);
     let h = "<table class=\"fund-metric-table fund-metric-table--summary\"><thead><tr>";
     h += "<th class=\"name-cell\" rowspan=\"2\">펀드</th><th rowspan=\"2\">순자산<br><span class=\"subhead\">(기준일)</span></th>";
-    heads.forEach(([lbl]) => {
-      h += "<th colspan=\"2\">" + lbl + "</th>";
-    });
+    h += "<th colspan=\"" + heads.length + "\">수탁고 변동</th>";
+    h += "<th colspan=\"" + heads.length + "\" class=\"fund-metric-group-start\">수익률</th>";
     h += "</tr><tr>";
-    heads.forEach(() => {
-      h += "<th class=\"subhead\">수탁고 변동</th>";
-      h += "<th class=\"subhead\">수익률</th>";
+    heads.forEach(([lbl]) => {
+      h += "<th class=\"subhead\">" + lbl + "</th>";
+    });
+    heads.forEach(([lbl], i) => {
+      h += "<th class=\"subhead" + (i === 0 ? " fund-metric-group-start" : "") + "\">" + lbl + "</th>";
     });
     h += "</tr></thead><tbody>";
     rows.forEach((m) => {
       const trCls = isFundSummaryHighlightRow(m.fund) ? " class=\"fund-metric-table__row--highlight\"" : "";
       h += "<tr" + trCls + "><td class=\"name-cell\">" + escapeHtml(m.fund) + "</td>";
       h += "<td>" + fmtNetWorth(m.netWorthDisplay) + "</td>";
-      heads.forEach(([, rk, ak]) => {
+      heads.forEach(([, , ak]) => {
+        h += aumEokCellHtml(m[ak]);
+      });
+      heads.forEach(([, rk], i) => {
         let pctTitle = "";
         if (rk === "rYtd") pctTitle = m.ytdTooltip || "";
         else if (rk === "rMtd") pctTitle = m.mtdTooltip || "";
-        h += aumEokCellHtml(m[ak]);
-        h += pctCellHtml(m[rk], pctTitle || undefined);
+        h += pctCellHtml(m[rk], pctTitle || undefined, i === 0 ? "fund-metric-group-start" : "");
       });
       h += "</tr>";
     });
