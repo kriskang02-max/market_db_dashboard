@@ -2871,6 +2871,7 @@
             <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="증권" checked /><span>증권</span></label>
             <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="카드" /><span>카드</span></label>
             <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="여전" /><span>여전</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="F&I" /><span>F&amp;I</span></label>
             <label class="term-radio-pill"><input type="radio" name="termCpCategory" value="일반" /><span>일반</span></label>
           </div>
           <div class="term-structure-table-wrap" id="termCpTableWrap"></div>
@@ -2895,6 +2896,8 @@
             <span class="term-rating-bar__label">섹터</span>
             <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="all" /><span>전체</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="특수" /><span>특수</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="지주" /><span>지주</span></label>
+            <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="증권" /><span>증권</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="은행" checked /><span>은행</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="카드" /><span>카드</span></label>
             <label class="term-radio-pill"><input type="radio" name="termBondCategory" value="여전" /><span>여전</span></label>
@@ -7386,7 +7389,11 @@
       if (!iss) return false;
       if (qIss) return String(iss).includes(qIss);
       if (!matchesCpRating(r["등급"], ratingFilter)) return false;
-      if (cat !== "all" && !sectorFilterMatch(rowSectorCp(r), cat)) return false;
+      if (cat !== "all") {
+        if (cat === "F&I") {
+          if (!iss.includes("에프앤아이")) return false;
+        } else if (!sectorFilterMatch(rowSectorCp(r), cat)) return false;
+      }
       return true;
     });
     const cellMap = new Map();
@@ -7446,8 +7453,13 @@
       if (qIssBd) return String(iss).includes(qIssBd);
       if (!matchesBondRating(r["등급"], ratingFilter)) return false;
       if (cat !== "all") {
-        const sec = bondSectorForRow(r, issuerSectorAll, iss);
-        if (!sectorFilterMatch(sec, cat)) return false;
+        if (cat === "지주" || cat === "증권") {
+          const nameForSector = cat === "지주" ? iss.replace(/토지주택/g, "") : iss;
+          if (!nameForSector.includes(cat)) return false;
+        } else {
+          const sec = bondSectorForRow(r, issuerSectorAll, iss);
+          if (!sectorFilterMatch(sec, cat)) return false;
+        }
       }
       return true;
     });
