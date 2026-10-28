@@ -7248,18 +7248,47 @@
     return [9, 0, s];
   }
 
-  function compareTenors(a, b) {
-    const oa = tenorSortKey(a);
-    const ob = tenorSortKey(b);
-    for (let i = 0; i < 3; i++) {
-      if (oa[i] !== ob[i]) return oa[i] < ob[i] ? -1 : 1;
-    }
-    return 0;
+  /** CP 표시 만기. 1주는 7일로 표기. 5월은 4·6월, 7~11월은 6월·1년 선형보간. 2년은 제외. */
+  const CP_TENOR_SPECS = [
+    { label: "1일", key: "1일" },
+    { label: "7일", key: "1주" },
+    { label: "15일", key: "15일" },
+    { label: "1월", key: "1월" },
+    { label: "2월", key: "2월" },
+    { label: "3월", key: "3월" },
+    { label: "4월", key: "4월" },
+    { label: "5월", interp: { a: "4월", b: "6월", t: 0.5 } },
+    { label: "6월", key: "6월" },
+    { label: "7월", interp: { a: "6월", b: "1년", t: 1 / 6 } },
+    { label: "8월", interp: { a: "6월", b: "1년", t: 2 / 6 } },
+    { label: "9월", interp: { a: "6월", b: "1년", t: 3 / 6 } },
+    { label: "10월", interp: { a: "6월", b: "1년", t: 4 / 6 } },
+    { label: "11월", interp: { a: "6월", b: "1년", t: 5 / 6 } },
+    { label: "1년", key: "1년" },
+  ];
+
+  function cpTenorPoint(cellMap, issuer, tenor) {
+    const dmap = cellMap.get(issuer + "\0" + tenor);
+    if (!dmap || !dmap.size) return null;
+    const dates = Array.from(dmap.keys()).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
+    const byDate = dates.map((d) => ({ d, rate: dmap.get(d) }));
+    return { latest: byDate[0], t1: byDate[1] || null };
   }
 
-  // Bond term: 3~9월, 1~10년. 4·5월은 3·6월, 7·8월은 6·9월 선형보간. 15·20·30년은 표시하지 않음.
+  function cpLerpPoint(a, b, t) {
+    if (!a || !b || !a.latest || !b.latest) return null;
+    if (!Number.isFinite(a.latest.rate) || !Number.isFinite(b.latest.rate)) return null;
+    const latest = { d: a.latest.d, rate: a.latest.rate + (b.latest.rate - a.latest.rate) * t };
+    let t1 = null;
+    if (a.t1 && b.t1 && Number.isFinite(a.t1.rate) && Number.isFinite(b.t1.rate)) {
+      t1 = { d: a.t1.d, rate: a.t1.rate + (b.t1.rate - a.t1.rate) * t };
+    }
+    return { latest, t1 };
+  }
+
+  // Bond term: 3~11월, 1~10년. 4·5월은 3·6월, 7·8월은 6·9월, 10·11월은 9월·1년 선형보간.
   const BOND_TENOR_ORDER = [
-    "3월", "4월", "5월", "6월", "7월", "8월", "9월",
+    "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월",
     "1년", "1.5년", "2년", "2.5년", "3년", "4년", "5년", "7년", "10년",
   ];
   const BOND_TENOR_INTERP = {
@@ -7267,6 +7296,8 @@
     "5월": { a: "3월", b: "6월", t: 2 / 3 },
     "7월": { a: "6월", b: "9월", t: 1 / 3 },
     "8월": { a: "6월", b: "9월", t: 2 / 3 },
+    "10월": { a: "9월", b: "1년", t: 1 / 3 },
+    "11월": { a: "9월", b: "1년", t: 2 / 3 },
   };
   function normalizeBondTenorLabel(t) {
     const s = String(t || "").trim();
@@ -7446,27 +7477,28 @@
       issuers.sort((a, b) => a.localeCompare(b, "ko"));
     }
     if (qIss) issuers = issuers.filter((i) => String(i).includes(qIss));
-    const tenorSet = new Set();
-    filtered.forEach((r) => {
-      const tn = (r["만기"] || "").trim();
-      if (tn) tenorSet.add(tn);
-    });
-    const tenors = Array.from(tenorSet).sort(compareTenors);
+    const tenors = CP_TENOR_SPECS.map((spec) => spec.label);
     const body = [];
     for (const iss of issuers) {
       const cells = [];
       let any = false;
-      for (const ten of tenors) {
-        const k = iss + "\0" + ten;
-        const dmap = cellMap.get(k);
-        if (!dmap || dmap.size === 0) {
+      for (const spec of CP_TENOR_SPECS) {
+        let point = null;
+        if (spec.interp) {
+          point = cpLerpPoint(
+            cpTenorPoint(cellMap, iss, spec.interp.a),
+            cpTenorPoint(cellMap, iss, spec.interp.b),
+            spec.interp.t
+          );
+        } else {
+          point = cpTenorPoint(cellMap, iss, spec.key);
+        }
+        if (!point || !point.latest) {
           cells.push(null);
           continue;
         }
         any = true;
-        const dates = Array.from(dmap.keys()).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
-        const byDate = dates.map((d) => ({ d, rate: dmap.get(d) }));
-        cells.push({ latest: byDate[0], t1: byDate[1] });
+        cells.push(point);
       }
       if (any) body.push({ issuer: iss, category: sectorForIssuerCp(filtered, iss), cells });
     }
