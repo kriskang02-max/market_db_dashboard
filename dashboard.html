@@ -2857,6 +2857,7 @@
           <h3>CP term — 만기별 금리</h3>
           <div class="term-rating-bar" role="group" aria-label="CP 등급 필터">
             <span class="term-rating-bar__label">등급</span>
+            <label class="term-radio-pill"><input type="radio" name="termCpRating" value="all" /><span>전체</span></label>
             <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A1" checked /><span>A1</span></label>
             <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2+" /><span>A2+</span></label>
             <label class="term-radio-pill"><input type="radio" name="termCpRating" value="A2" /><span>A2</span></label>
@@ -7199,7 +7200,15 @@
   }
 
   function matchesCpRating(csvRating, selected) {
-    return normTermRating(csvRating) === normTermRating(selected);
+    const sel = normTermRating(selected);
+    if (!sel || sel === "ALL") return true;
+    return normTermRating(csvRating) === sel;
+  }
+
+  function cpGradeSortKey(r) {
+    const order = ["A1", "A2+", "A2", "A2-"];
+    const i = order.indexOf(normTermRating(r));
+    return i >= 0 ? i : 100;
   }
 
   /** 등급 칸이 비어 있으면 통과(AS 파싱 실패 등) — 섹터·만기 데이터는 그대로 표시 */
@@ -7248,8 +7257,17 @@
     return 0;
   }
 
-  // Bond term: 요청된 표준 만기 라벨 + 고정 순서
-  const BOND_TENOR_ORDER = ["3월", "6월", "1년", "1.5년", "2년", "2.5년", "3년", "4년", "5년", "7년", "10년", "20년", "30년"];
+  // Bond term: 3~9월, 1~10년. 4·5월은 3·6월, 7·8월은 6·9월 선형보간. 15·20·30년은 표시하지 않음.
+  const BOND_TENOR_ORDER = [
+    "3월", "4월", "5월", "6월", "7월", "8월", "9월",
+    "1년", "1.5년", "2년", "2.5년", "3년", "4년", "5년", "7년", "10년",
+  ];
+  const BOND_TENOR_INTERP = {
+    "4월": { a: "3월", b: "6월", t: 1 / 3 },
+    "5월": { a: "3월", b: "6월", t: 2 / 3 },
+    "7월": { a: "6월", b: "9월", t: 1 / 3 },
+    "8월": { a: "6월", b: "9월", t: 2 / 3 },
+  };
   function normalizeBondTenorLabel(t) {
     const s = String(t || "").trim();
     if (!s) return "";
@@ -7383,6 +7401,8 @@
   function buildCpTermPivot(rows, ratingFilter, categoryFilter, issuerSearch) {
     const cat = (categoryFilter || "all").trim();
     const qIss = (issuerSearch || "").trim();
+    const isRatingAll = normTermRating(ratingFilter) === "ALL";
+    const issuerRating = new Map();
     const filtered = rows.filter((r) => {
       if ((r.section || "").trim() !== "cp_term") return false;
       const iss = (r["발행사명"] || "").trim();
@@ -7394,6 +7414,8 @@
           if (!iss.includes("에프앤아이")) return false;
         } else if (!sectorFilterMatch(rowSectorCp(r), cat)) return false;
       }
+      const rating = (r["등급"] || "").trim();
+      if (rating && !issuerRating.has(iss)) issuerRating.set(iss, rating);
       return true;
     });
     const cellMap = new Map();
@@ -7412,7 +7434,17 @@
       const iss = (r["발행사명"] || "").trim();
       if (iss) issuerSet.add(iss);
     });
-    let issuers = Array.from(issuerSet).sort((a, b) => a.localeCompare(b, "ko"));
+    let issuers = Array.from(issuerSet);
+    if (isRatingAll && !qIss) {
+      issuers.sort((a, b) => {
+        const ka = cpGradeSortKey(issuerRating.get(a));
+        const kb = cpGradeSortKey(issuerRating.get(b));
+        if (ka !== kb) return ka - kb;
+        return String(a).localeCompare(String(b), "ko");
+      });
+    } else {
+      issuers.sort((a, b) => a.localeCompare(b, "ko"));
+    }
     if (qIss) issuers = issuers.filter((i) => String(i).includes(qIss));
     const tenorSet = new Set();
     filtered.forEach((r) => {
@@ -7485,11 +7517,8 @@
       if (!cur || date > cur.date) best.set(k, { date, rate });
     }
     const issuerSet = new Set();
-    const tenorSet = new Set();
     best.forEach((_, key) => {
-      const parts = key.split("\0");
-      issuerSet.add(parts[0]);
-      tenorSet.add(parts[1]);
+      issuerSet.add(key.split("\0")[0]);
     });
     let issuers = Array.from(issuerSet);
     if (isRatingAll && !qIssBd) {
@@ -7506,25 +7535,30 @@
       issuers.sort((a, b) => a.localeCompare(b, "ko"));
     }
     if (qIssBd) issuers = issuers.filter((i) => String(i).includes(qIssBd));
-    const tenors = Array.from(tenorSet).sort((a, b) => {
-      const ka = bondTenorSortKey(a);
-      const kb = bondTenorSortKey(b);
-      if (ka[0] !== kb[0]) return ka[0] - kb[0];
-      return ka[1] - kb[1];
-    });
+    const tenors = BOND_TENOR_ORDER.slice();
+    function bondDisplayedRate(issuer, tenor) {
+      const spec = BOND_TENOR_INTERP[tenor];
+      if (!spec) {
+        const v = best.get(issuer + "\0" + tenor);
+        return v && Number.isFinite(v.rate) ? v.rate : null;
+      }
+      const va = best.get(issuer + "\0" + spec.a);
+      const vb = best.get(issuer + "\0" + spec.b);
+      if (!va || !vb || !Number.isFinite(va.rate) || !Number.isFinite(vb.rate)) return null;
+      return va.rate + (vb.rate - va.rate) * spec.t;
+    }
     const body = [];
     for (const iss of issuers) {
       const cells = [];
       let any = false;
       for (const ten of tenors) {
-        const k = iss + "\0" + ten;
-        const v = best.get(k);
-        if (!v) {
+        const rate = bondDisplayedRate(iss, ten);
+        if (!Number.isFinite(rate)) {
           cells.push(null);
           continue;
         }
         any = true;
-        cells.push(v.rate);
+        cells.push(rate);
       }
       if (any) body.push({ issuer: iss, category: sectorForIssuerBond(filtered, iss, issuerSectorAll), cells });
     }
