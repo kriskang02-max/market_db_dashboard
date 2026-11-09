@@ -607,7 +607,7 @@
       width: 8%;
     }
     #page-emp .emp-summary-table col.emp-col-data {
-      width: calc(70% / 6);
+      width: calc(70% / 9);
     }
     #page-emp .emp-summary-table col.emp-col-fund-data,
     #page-emp .emp-fund-table col.emp-col-fund-data {
@@ -1110,6 +1110,25 @@
     #fundTableJaWrap .fund-metric-table--summary td.fund-metric-group-start {
       border-left: 2px solid rgba(255, 255, 255, 0.32);
     }
+    #fundTableMoWrap .fund-metric-table--summary th.fund-ret-head,
+    #fundTableJaWrap .fund-metric-table--summary th.fund-ret-head {
+      color: #fde68a;
+    }
+    #fundTableMoWrap .fund-metric-table--summary th.fund-ret-sub,
+    #fundTableJaWrap .fund-metric-table--summary th.fund-ret-sub {
+      color: rgba(253, 230, 138, 0.82);
+    }
+    #fundTableMoWrap .fund-metric-table--summary td.fund-ret-cell,
+    #fundTableJaWrap .fund-metric-table--summary td.fund-ret-cell {
+      color: #f8fafc;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      background-image: linear-gradient(rgba(148, 163, 184, 0.1), rgba(148, 163, 184, 0.1));
+    }
+    #fundTableMoWrap .fund-metric-table--summary td.fund-ret-cell.fund-ret-neg,
+    #fundTableJaWrap .fund-metric-table--summary td.fund-ret-cell.fund-ret-neg {
+      color: #93c5fd;
+    }
     .pct-up { color: #f87171; }
     .pct-down { color: #60a5fa; }
     .fund-mo-six-custody { width: 100%; max-width: 100%; }
@@ -1206,6 +1225,22 @@
       color: rgba(255, 255, 255, 0.92);
       word-break: keep-all;
     }
+    .fund-shinhan-mark { color: #fde047; font-weight: 700; }
+    .fund-oneday-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 0.35rem;
+      align-items: baseline;
+      margin: 0 0 0.75rem;
+      padding: 0.42rem 0.7rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(14,17,23,0.45);
+      font-size: 0.78rem;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.9);
+    }
+    .fund-oneday-summary__label { font-weight: 700; color: rgba(255,255,255,0.94); }
     .rates-analysis-outer { padding: 1rem 1.25rem 2rem; max-width: 100%; overflow-x: auto; background: #1a1a2e; }
     .rates-analysis-outer h2.rates-page-title { margin: 0 0 1rem; font-size: 1.35rem; font-weight: 700; color: rgba(255,255,255,0.96); }
     .rates-analysis-outer .rates-block { margin-bottom: 1.75rem; }
@@ -1612,6 +1647,12 @@
     }
     .term-structure-table th.term-col-issuer { min-width: 9rem; text-align: left; }
     .term-structure-table td.term-col-issuer { text-align: left; font-weight: 400; color: rgba(255,255,255,0.95); }
+    .term-structure-table td.term-col-interp {
+      background: rgba(203, 213, 225, 0.16);
+    }
+    .term-structure-table th.term-col-interp {
+      background: rgba(148, 163, 184, 0.38);
+    }
     .term-cell-stack { display: flex; flex-direction: column; gap: 0.12rem; align-items: center; }
     .term-cell-stack .term-rate-line { font-weight: 400; color: rgba(255,255,255,0.95); font-size: 0.78rem; }
     .term-cell-stack .term-bp-line { font-size: 0.68rem; font-weight: 500; }
@@ -2912,6 +2953,7 @@
 
   <div id="page-fund" class="page">
     <div class="fund-summary-outer" id="fundSummaryOuter">
+      <div class="fund-oneday-summary" id="fundOneDayReturnLine" hidden></div>
       <p class="fund-summary__note fund-summary__note--compact" id="fundSummaryNote">
         수익률은 <strong>수정기준가</strong>(없으면 기준가) 구간 수익률을 <strong>연환산(단리, 365일)</strong>입니다. <strong>YTD</strong>는 전년 말(당해 1/1 이전 마지막 관측일) 대비, <strong>MTD</strong>는 당월 첫 관측일 대비입니다. 수익률 셀에 마우스를 올리면 사용한 일자·수정기준가·구간수익률·연환산 식을 볼 수 있습니다. 수탁고 변동은 <strong>설정액</strong> 차이(원)를 10⁸으로 나눈 값이며 <strong>소수점은 버립니다</strong>. 표는 <strong>펀드 · 순자산 · 수탁고 변동(YTD→1년) · 수익률(같은 순서)</strong>입니다. <strong>구간 시작일</strong>을 넣으면 각 묶음 앞에 <strong>시작일~기준일</strong> 열이 추가됩니다. 자펀드: 펀드명에 알파벳 <strong>C</strong> 포함(KCGI초단기우량채증권(채권)은 모펀드).
       </p>
@@ -6793,13 +6835,14 @@
 
   function pctCellHtml(x, titleAttr, extraCls) {
     const extra = extraCls ? String(extraCls) : "";
+    const base = ["fund-ret-cell", extra].filter(Boolean).join(" ");
     if (x === null || x === undefined || Number.isNaN(x)) {
-      return "<td" + (extra ? " class=\"" + extra + "\"" : "") + ">—</td>";
+      return "<td class=\"" + base + "\">—</td>";
     }
-    const cls = [x > 0 ? "pct-up" : x < 0 ? "pct-down" : "", extra].filter(Boolean).join(" ");
+    const cls = base + (x < 0 ? " fund-ret-neg" : "");
     const s = (x >= 0 ? "+" : "") + x.toFixed(2) + "%";
     const t = titleAttr ? " title=\"" + escapeHtml(titleAttr) + "\"" : "";
-    return "<td" + (cls ? " class=\"" + cls + "\"" : "") + t + ">" + s + "</td>";
+    return "<td class=\"" + cls + "\"" + t + ">" + s + "</td>";
   }
 
   function aumEokCellHtml(x) {
@@ -6856,6 +6899,11 @@
     return null;
   }
 
+  function fundOperatorTokenHtml(short, text) {
+    const esc = escapeHtml(text);
+    return short === "신한" ? '<span class="fund-shinhan-mark">' + esc + "</span>" : esc;
+  }
+
   function fmtFundReturnRankingPct(x) {
     if (x === null || x === undefined || Number.isNaN(x)) return "—";
     return (x >= 0 ? "+" : "") + x.toFixed(2) + "%";
@@ -6889,9 +6937,9 @@
         ranked.push({ short: entries[ei].short, fund: entries[ei].fund, r });
       }
       ranked.sort((a, b) => b.r - a.r || String(a.short).localeCompare(String(b.short), "ko"));
-      const parts = ranked.map((x) => x.short + " (" + fmtFundReturnRankingPct(x.r) + ")");
+      const parts = ranked.map((x) => fundOperatorTokenHtml(x.short, x.short + " (" + fmtFundReturnRankingPct(x.r) + ")"));
       const body = parts.length ? parts.join(", ") : "—";
-      h += "<tr><td class=\"name-cell\">" + escapeHtml(plab) + "</td><td class=\"fund-return-ranking__body\">" + escapeHtml(body) + "</td></tr>";
+      h += "<tr><td class=\"name-cell\">" + escapeHtml(plab) + "</td><td class=\"fund-return-ranking__body\">" + body + "</td></tr>";
     }
     h += "</tbody></table>";
     return h;
@@ -6934,9 +6982,9 @@
       for (let bi = 0; bi < banks.length; bi++) {
         const m = mRows[bi];
         const v = m && Object.prototype.hasOwnProperty.call(m, ak) ? m[ak] : null;
-        parts.push(banks[bi].short + " " + fmtCustodyEokPlain(v));
+        parts.push(fundOperatorTokenHtml(banks[bi].short, banks[bi].short + " " + fmtCustodyEokPlain(v)));
       }
-      h += "<tr><td class=\"name-cell\">" + escapeHtml(plab) + "</td><td class=\"fund-mo-six-custody__body\">" + escapeHtml(parts.join(", ")) + "</td></tr>";
+      h += "<tr><td class=\"name-cell\">" + escapeHtml(plab) + "</td><td class=\"fund-mo-six-custody__body\">" + parts.join(", ") + "</td></tr>";
     }
     h += "</tbody></table>";
     return h;
@@ -7153,13 +7201,13 @@
     let h = "<table class=\"fund-metric-table fund-metric-table--summary\"><thead><tr>";
     h += "<th class=\"name-cell\" rowspan=\"2\">펀드</th><th rowspan=\"2\">순자산<br><span class=\"subhead\">(기준일)</span></th>";
     h += "<th colspan=\"" + heads.length + "\">수탁고 변동</th>";
-    h += "<th colspan=\"" + heads.length + "\" class=\"fund-metric-group-start\">수익률</th>";
+    h += "<th colspan=\"" + heads.length + "\" class=\"fund-metric-group-start fund-ret-head\">수익률</th>";
     h += "</tr><tr>";
     heads.forEach(([lbl]) => {
       h += "<th class=\"subhead\">" + lbl + "</th>";
     });
     heads.forEach(([lbl], i) => {
-      h += "<th class=\"subhead" + (i === 0 ? " fund-metric-group-start" : "") + "\">" + lbl + "</th>";
+      h += "<th class=\"subhead fund-ret-sub" + (i === 0 ? " fund-metric-group-start" : "") + "\">" + lbl + "</th>";
     });
     h += "</tr></thead><tbody>";
     rows.forEach((m) => {
@@ -7478,6 +7526,7 @@
     }
     if (qIss) issuers = issuers.filter((i) => String(i).includes(qIss));
     const tenors = CP_TENOR_SPECS.map((spec) => spec.label);
+    const interp = CP_TENOR_SPECS.map((spec) => !!spec.interp);
     const body = [];
     for (const iss of issuers) {
       const cells = [];
@@ -7502,7 +7551,7 @@
       }
       if (any) body.push({ issuer: iss, category: sectorForIssuerCp(filtered, iss), cells });
     }
-    return { tenors, body };
+    return { tenors, interp, body };
   }
 
   function buildBondTermPivot(rows, ratingFilter, categoryFilter, issuerSearch) {
@@ -7568,6 +7617,7 @@
     }
     if (qIssBd) issuers = issuers.filter((i) => String(i).includes(qIssBd));
     const tenors = BOND_TENOR_ORDER.slice();
+    const interp = tenors.map((tenor) => !!BOND_TENOR_INTERP[tenor]);
     function bondDisplayedRate(issuer, tenor) {
       const spec = BOND_TENOR_INTERP[tenor];
       if (!spec) {
@@ -7594,26 +7644,27 @@
       }
       if (any) body.push({ issuer: iss, category: sectorForIssuerBond(filtered, iss, issuerSectorAll), cells });
     }
-    return { tenors, body };
+    return { tenors, interp, body };
   }
 
   function renderCpTermTable(pivot) {
     if (!termCpTableWrap) return;
-    const { tenors, body } = pivot;
+    const { tenors, interp, body } = pivot;
     if (!tenors.length || !body.length) {
       termCpTableWrap.innerHTML = "<p class=\"fund-summary__note\">조건에 맞는 CP 데이터가 없습니다. 등급(E/F)·카테고리 필터·CSV를 확인하세요.</p>";
       return;
     }
     let h = "<table class=\"term-structure-table\"><thead><tr><th class=\"term-col-issuer\">발행사</th>";
-    tenors.forEach((t) => {
-      h += "<th>" + escTermHtml(t) + "</th>";
+    tenors.forEach((t, i) => {
+      h += "<th class=\"" + (interp[i] ? "term-col-interp" : "") + "\">" + escTermHtml(t) + "</th>";
     });
     h += "</tr></thead><tbody>";
     body.forEach((row) => {
       h += "<tr><td class=\"term-col-issuer\">" + escTermHtml(row.issuer) + "</td>";
-      row.cells.forEach((cell) => {
+      row.cells.forEach((cell, i) => {
+        const cls = interp[i] ? " class=\"term-col-interp\"" : "";
         if (!cell || !cell.latest) {
-          h += "<td><span class=\"term-muted\">—</span></td>";
+          h += "<td" + cls + "><span class=\"term-muted\">—</span></td>";
           return;
         }
         const lr = cell.latest.rate;
@@ -7621,7 +7672,7 @@
         const t1d = cell.t1 && cell.t1.d ? String(cell.t1.d) : "";
         const t1Txt = Number.isFinite(r1) ? formatTermPctRate2(r1) : "—";
         const title = "전일(T-1): " + t1Txt + (t1d ? " (" + t1d + ")" : "");
-        h += "<td title=\"" + escTermHtml(title) + "\">";
+        h += "<td" + cls + " title=\"" + escTermHtml(title) + "\">";
         h += "<span class=\"term-cp-rate-cell\">" + escTermHtml(formatTermPctRate2(lr)) + "</span>";
         h += "(" + termBpTriangleHtml(lr, r1) + ")";
         h += "</td>";
@@ -7634,21 +7685,22 @@
 
   function renderBondTermTable(pivot) {
     if (!termBondTableWrap) return;
-    const { tenors, body } = pivot;
+    const { tenors, interp, body } = pivot;
     if (!tenors.length || !body.length) {
       termBondTableWrap.innerHTML = "<p class=\"fund-summary__note\">조건에 맞는 Bond term 데이터가 없습니다. 등급·CSV를 확인하세요.</p>";
       return;
     }
     let h = "<table class=\"term-structure-table\"><thead><tr><th class=\"term-col-issuer\">발행사</th>";
-    tenors.forEach((t) => {
-      h += "<th>" + escTermHtml(t) + "</th>";
+    tenors.forEach((t, i) => {
+      h += "<th class=\"" + (interp[i] ? "term-col-interp" : "") + "\">" + escTermHtml(t) + "</th>";
     });
     h += "</tr></thead><tbody>";
     body.forEach((row) => {
       h += "<tr><td class=\"term-col-issuer\">" + escTermHtml(row.issuer) + "</td>";
-      row.cells.forEach((rate) => {
-        if (!Number.isFinite(rate)) h += "<td><span class=\"term-muted\">—</span></td>";
-        else h += "<td><span class=\"term-rate-line\">" + escTermHtml(formatTermPctRate(rate)) + "</span></td>";
+      row.cells.forEach((rate, i) => {
+        const cls = interp[i] ? " class=\"term-col-interp\"" : "";
+        if (!Number.isFinite(rate)) h += "<td" + cls + "><span class=\"term-muted\">—</span></td>";
+        else h += "<td" + cls + "><span class=\"term-rate-line\">" + escTermHtml(formatTermPctRate(rate)) + "</span></td>";
       });
       h += "</tr>";
     });
@@ -7969,10 +8021,36 @@
     Plotly.react(el, traces, layout, { responsive: true });
   }
 
+  function renderFundOneDayReturnLine() {
+    const el = document.getElementById("fundOneDayReturnLine");
+    if (!el) return;
+    const entries = fundReturnRankingEntriesForKind("mo", getFundRangeStartYmd(), getFundMetricsAsOfYmd());
+    const ranked = [];
+    entries.forEach((e) => {
+      const r = e.metrics.r1d;
+      if (!Number.isFinite(r)) return;
+      ranked.push({ short: e.short, r });
+    });
+    ranked.sort((a, b) => b.r - a.r || String(a.short).localeCompare(String(b.short), "ko"));
+    if (!ranked.length) {
+      el.hidden = true;
+      el.innerHTML = "";
+      return;
+    }
+    let html = '<span class="fund-oneday-summary__label">1일 펀드 수익률:</span>';
+    ranked.forEach((x, i) => {
+      const text = x.short + " (" + fmtFundReturnRankingPct(x.r) + ")";
+      html += "<span>" + fundOperatorTokenHtml(x.short, text) + (i < ranked.length - 1 ? "," : "") + "</span>";
+    });
+    el.innerHTML = html;
+    el.hidden = false;
+  }
+
   function renderFundSummaryTables() {
     const preserved = getFundRangeStartYmd();
     const rangeStart = preserved;
     const metricsAsOfYmd = getFundMetricsAsOfYmd();
+    renderFundOneDayReturnLine();
     const mo = [];
     const ja = [];
     fundNameList.forEach((name) => {
@@ -9159,9 +9237,11 @@
     if (!tr) return;
     const tds = tr.querySelectorAll("td");
     const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
+    const wDurPrev = empEtfPrevDayWeightedDuration(rows, etfName, durationOverrides);
     const wYtm = empEtfWeightedYtm(rows, etfName);
     if (tds[7]) tds[7].textContent = empFmtDisplay(wDur, 2);
-    if (tds[8]) tds[8].textContent = empFmtDisplay(wYtm, 4);
+    if (tds[8]) tds[8].textContent = empFmtDisplay(wDurPrev, 2);
+    if (tds[9]) tds[9].textContent = empFmtDisplay(wYtm, 4);
     empRenderFundTableIfNotEditing();
   }
 
@@ -9888,6 +9968,45 @@
     return numerator / nav;
   }
 
+  function empGetEtfInfoPrevDateKey(etfName, dateKey) {
+    const byDate = empEtfInfoMap[etfName];
+    if (!byDate || !dateKey) return null;
+    const keys = empGetEtfInfoSortedDateKeys(byDate);
+    const idx = keys.indexOf(dateKey);
+    if (idx > 0) return keys[idx - 1];
+    for (let i = keys.length - 1; i >= 0; i--) {
+      if (keys[i] < dateKey) return keys[i];
+    }
+    return null;
+  }
+
+  function empEtfWeightedDurationForInfoDate(rows, etfName, infoDateKey, durationOverrides) {
+    if (!infoDateKey || !rows || !rows.length) return null;
+    const etfInfo = empEtfInfoMap[etfName] && empEtfInfoMap[etfName][infoDateKey];
+    if (!etfInfo) return null;
+    const nav = empNum(etfInfo.nav);
+    const shares = empNum(etfInfo.shares);
+    if (nav === null || nav <= 0 || shares === null) return null;
+    const cuMap = empLoadCuMap();
+    const divisor = empCuEvalDivisor(etfName, cuMap);
+    if (!divisor || divisor <= 0) return null;
+    let numerator = 0;
+    rows.forEach((r) => {
+      const prevEval = r._prevEval != null ? empNum(r._prevEval) : null;
+      if (prevEval === null) return;
+      const evalAmt = (prevEval * shares) / 1000 / divisor;
+      const dur = empRowDuration(r, durationOverrides);
+      if (!Number.isFinite(evalAmt) || evalAmt <= 0 || dur === null) return;
+      numerator += evalAmt * dur;
+    });
+    return numerator / nav;
+  }
+
+  function empEtfPrevDayWeightedDuration(rows, etfName, durationOverrides) {
+    const prevDate = empGetEtfInfoPrevDateKey(etfName, empViewDate || (rows && rows[0] && rows[0].일자) || "");
+    return empEtfWeightedDurationForInfoDate(rows, etfName, prevDate, durationOverrides);
+  }
+
   function empEtfWeightedYtm(rows, etfName) {
     const nav = empNum(empEtfNavMap[etfName]);
     if (nav === null || nav <= 0) return null;
@@ -9913,12 +10032,13 @@
     const locked = empSummaryIsLocked();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
     let h =
-      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율(bp)</th><th>괴리율(-1)</th><th>CU</th><th>1CU</th><th>순자산총액(억)</th><th>듀레이션</th><th>YTM</th></tr></thead><tbody>';
+      '<table class="emp-summary-table"><colgroup><col class="emp-col-name" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /><col class="emp-col-data" /></colgroup><thead><tr><th>ETF명</th><th>기준가</th><th>괴리율(bp)</th><th>괴리율(-1)</th><th>CU</th><th>1CU</th><th>순자산총액(억)</th><th>듀레이션</th><th>듀레이션(-1)</th><th>YTM</th></tr></thead><tbody>';
     etfNames.forEach((etfName) => {
       const rows = byEtf.get(etfName);
       const meta = empEtfMetaMap[etfName] || {};
       const nav = empEtfNavMap[etfName];
       const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
+      const wDurPrev = empEtfPrevDayWeightedDuration(rows, etfName, durationOverrides);
       const wYtm = empEtfWeightedYtm(rows, etfName);
       const cuVal = cuSaved[etfName] != null ? String(cuSaved[etfName]) : "";
       const oneCu = empCalcOneCu(meta.basePrice, cuVal);
@@ -9951,6 +10071,7 @@
       h += '<td class="emp-onecu-cell">' + empFmtDisplay(oneCu, 0) + "</td>";
       h += "<td>" + empFmtNavEok(nav) + "</td>";
       h += "<td>" + empFmtDisplay(wDur, 2) + "</td>";
+      h += "<td>" + empFmtDisplay(wDurPrev, 2) + "</td>";
       h += "<td>" + empFmtDisplay(wYtm, 4) + "</td>";
       h += "</tr>";
     });
@@ -10024,12 +10145,13 @@
     const durationOverrides = empLoadFuturesDurations();
     const cuSaved = empLoadCuMap();
     const { byEtf, etfNames } = empGetSortedEtfGroups();
-    const lines = ["ETF명\t기준가\t괴리율(bp)\t괴리율(-1)\tCU\t1CU\t순자산총액(억)\t듀레이션\tYTM"];
+    const lines = ["ETF명\t기준가\t괴리율(bp)\t괴리율(-1)\tCU\t1CU\t순자산총액(억)\t듀레이션\t듀레이션(-1)\tYTM"];
     etfNames.forEach((etfName) => {
         const rows = byEtf.get(etfName);
         const meta = empEtfMetaMap[etfName] || {};
         const nav = empEtfNavMap[etfName];
         const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
+        const wDurPrev = empEtfPrevDayWeightedDuration(rows, etfName, durationOverrides);
         const wYtm = empEtfWeightedYtm(rows, etfName);
         const cu = cuSaved[etfName];
         const oneCu = empCalcOneCu(meta.basePrice, cu);
@@ -10043,6 +10165,7 @@
             empFmtDisplay(oneCu, 0),
             empFmtNavEok(nav),
             empFmtDisplay(wDur, 2),
+            empFmtDisplay(wDurPrev, 2),
             empFmtDisplay(wYtm, 4),
           ].join("\t")
         );
@@ -10070,7 +10193,7 @@
     h +=
       '<table style="border-collapse:collapse;font-family:Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:12px;">';
     h += "<thead><tr>";
-    ["ETF명", "기준가", "괴리율(bp)", "괴리율(-1)", "CU", "1CU", "순자산총액(억)", "듀레이션", "YTM"].forEach((col, i) => {
+    ["ETF명", "기준가", "괴리율(bp)", "괴리율(-1)", "CU", "1CU", "순자산총액(억)", "듀레이션", "듀레이션(-1)", "YTM"].forEach((col, i) => {
       h += '<th style="' + thStyle + (i === 0 ? "text-align:left;" : "") + '">' + escapeHtml(col) + "</th>";
     });
     h += "</tr></thead><tbody>";
@@ -10079,6 +10202,7 @@
       const meta = empEtfMetaMap[etfName] || {};
       const nav = empEtfNavMap[etfName];
       const wDur = empEtfWeightedDuration(rows, etfName, durationOverrides);
+      const wDurPrev = empEtfPrevDayWeightedDuration(rows, etfName, durationOverrides);
       const wYtm = empEtfWeightedYtm(rows, etfName);
       const cu = cuSaved[etfName];
       const oneCu = empCalcOneCu(meta.basePrice, cu);
@@ -10096,6 +10220,7 @@
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(oneCu, 0)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtNavEok(nav)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wDur, 2)) + "</td>";
+      h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wDurPrev, 2)) + "</td>";
       h += '<td style="' + tdStyle + '">' + escapeHtml(empFmtDisplay(wYtm, 4)) + "</td>";
       h += "</tr>";
     });
@@ -11230,6 +11355,11 @@
         if (fundTableJaWrap) fundTableJaWrap.innerHTML = "";
         if (fundMoSixCustodyWrap) fundMoSixCustodyWrap.innerHTML = "";
         if (fundReturnRankingWrap) fundReturnRankingWrap.innerHTML = "";
+        const fundOneDayReturnLine = document.getElementById("fundOneDayReturnLine");
+        if (fundOneDayReturnLine) {
+          fundOneDayReturnLine.hidden = true;
+          fundOneDayReturnLine.innerHTML = "";
+        }
         const gMo = document.getElementById("fundCompareMoChart");
         const gJa = document.getElementById("fundCompareJaChart");
         try {
