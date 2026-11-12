@@ -3739,6 +3739,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script src="firebase_overview_config.js"></script>
+  <script src="matching_preview_client.js"></script>
   <script>
 (function () {
   const PREFERRED_ORDER = [
@@ -14316,24 +14317,73 @@
     if (meta) meta.textContent = "기준일 " + (preview.asof || "—") + " · matching_data.csv";
   }
 
+  function matchingLooksLikeHtml(text) {
+    const t = String(text || "").trimStart().slice(0, 32).toLowerCase();
+    return t.charAt(0) === "<" || t.indexOf("<!doctype") === 0 || t.indexOf("<html") === 0;
+  }
+
+  async function matchingFetchPreviewClient(inputs) {
+    if (!window.MatchingPreviewClient) {
+      throw new Error("matching_preview_client.js 로드 실패");
+    }
+    matchingSetStatus("정적 모드: matching_data.csv로 미리보기 계산 중…");
+    const series = await MatchingPreviewClient.loadSeries();
+    const preview = MatchingPreviewClient.buildPreview(series, inputs);
+    matchingApplyPreview(preview);
+    const staticNote =
+      window.MatchingPreviewClient.isStaticHost && MatchingPreviewClient.isStaticHost()
+        ? " · GitHub Pages(정적) — PPTX는 로컬 serve_dashboard.py 필요"
+        : " · 브라우저 계산(API 없음)";
+    matchingSetStatus("미리보기 갱신 완료" + staticNote, "ok");
+  }
+
   async function matchingFetchPreview() {
     matchingSetStatus("미리보기 계산 중…");
     const inputs = matchingCollectInputs();
+    // GitHub Pages 등 정적 호스팅은 API가 없으므로 바로 클라이언트 계산
+    if (window.MatchingPreviewClient && MatchingPreviewClient.isStaticHost()) {
+      try {
+        await matchingFetchPreviewClient(inputs);
+      } catch (err) {
+        matchingSetStatus(
+          "미리보기 실패: " + (err && err.message ? err.message : err),
+          "warn"
+        );
+      }
+      return;
+    }
     try {
       const res = await fetch(MATCHING_PREVIEW_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inputs }),
       });
-      const data = await res.json();
+      const raw = await res.text();
+      if (matchingLooksLikeHtml(raw)) {
+        await matchingFetchPreviewClient(inputs);
+        return;
+      }
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (_) {
+        await matchingFetchPreviewClient(inputs);
+        return;
+      }
       if (!res.ok || !data.ok) throw new Error((data && data.error) || res.statusText);
       matchingApplyPreview(data.preview);
       matchingSetStatus("미리보기 갱신 완료", "ok");
     } catch (err) {
-      matchingSetStatus(
-        "미리보기 실패: " + (err && err.message ? err.message : err) + " (serve_dashboard.py 실행 여부 확인)",
-        "warn"
-      );
+      try {
+        await matchingFetchPreviewClient(inputs);
+      } catch (err2) {
+        matchingSetStatus(
+          "미리보기 실패: " +
+            (err2 && err2.message ? err2.message : err2) +
+            " (로컬은 serve_dashboard.py 실행)",
+          "warn"
+        );
+      }
     }
   }
 
@@ -14343,6 +14393,13 @@
     try {
       localStorage.setItem(MATCHING_INPUTS_KEY, JSON.stringify(inputs));
     } catch (_) {}
+    if (window.MatchingPreviewClient && MatchingPreviewClient.isStaticHost()) {
+      matchingSetStatus(
+        "GitHub Pages에서는 PPTX 생성이 불가합니다. 로컬에서 python serve_dashboard.py 실행 후 다운로드하세요.",
+        "warn"
+      );
+      return;
+    }
     try {
       const res = await fetch(MATCHING_PPTX_API, {
         method: "POST",
@@ -14350,12 +14407,15 @@
         body: JSON.stringify({ inputs }),
       });
       const ctype = res.headers.get("Content-Type") || "";
-      if (!res.ok || ctype.indexOf("application/json") >= 0) {
+      if (!res.ok || ctype.indexOf("application/json") >= 0 || (ctype.indexOf("text/html") >= 0)) {
         let msg = res.statusText;
         try {
           const data = await res.json();
           if (data && data.error) msg = data.error;
-        } catch (_) {}
+        } catch (_) {
+          msg =
+            "PPTX API를 사용할 수 없습니다. 로컬에서 python serve_dashboard.py 를 실행하세요.";
+        }
         throw new Error(msg);
       }
       const blob = await res.blob();
