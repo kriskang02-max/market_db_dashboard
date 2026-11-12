@@ -14172,11 +14172,12 @@
     const text = cell && cell.text != null && String(cell.text) !== "" ? String(cell.text) : "—";
     const colors = (cell && cell.line_colors) || [];
     const forceCharcoal = opts && opts.forceCharcoal;
+    const lightBg = opts && opts.lightBg;
     return text
       .split("\n")
       .map((line, i) => {
         let c = forceCharcoal ? "#1E293B" : colors[i];
-        if (!c && forceCharcoal) c = "#1E293B";
+        if (!c && (forceCharcoal || lightBg)) c = "#1E293B";
         const weight = i === 0 || forceCharcoal ? "700" : "600";
         const body = escapeHtml(line);
         return c
@@ -14193,14 +14194,18 @@
     const data = preview[kind] || {};
     // 01·02: 흰 배경 + 변동폭 글자색 / 03·04: 백분위 히트맵 + 차콜 텍스트
     const useHeat = kind === "credit" || kind === "curve";
-    let h = '<table class="matching-table"><thead><tr><th>섹터</th>';
+    let h =
+      '<table class="matching-table"><thead><tr><th style="background:#F1F5F9;color:#1E293B">섹터</th>';
     tenors.forEach((t) => {
-      h += "<th>" + escapeHtml(t) + "</th>";
+      h += '<th style="background:#F1F5F9;color:#1E293B">' + escapeHtml(t) + "</th>";
     });
     h += "</tr></thead><tbody>";
     sectors.forEach((label, i) => {
       const key = keys[i];
-      h += "<tr><td>" + escapeHtml(label) + "</td>";
+      h +=
+        '<tr><td style="background:#FFFFFF;color:#1E293B;font-weight:600">' +
+        escapeHtml(label) +
+        "</td>";
       tenors.forEach((t) => {
         const cell = data[key + "|" + t] || {};
         const fill = cell.fill || "#FFFFFF";
@@ -14209,7 +14214,7 @@
           "<td" +
           bg +
           ">" +
-          matchingCellHtml(cell, useHeat ? { forceCharcoal: true } : null) +
+          matchingCellHtml(cell, useHeat ? { forceCharcoal: true } : { lightBg: true }) +
           "</td>";
       });
       h += "</tr>";
@@ -14222,28 +14227,32 @@
     const scenHdrs = ["동결", "인상1회", "인상2회"];
     const scenIdx =
       highlightCol != null && highlightCol >= 0 && highlightCol <= 2 ? highlightCol : null;
-    let h = '<table class="matching-table"><thead><tr><th>만기</th><th>구성</th>';
+    // 다크 테마 페이지에서도 밝은 셀 배경 위 글씨가 보이도록 차콜/네이비 강제
+    let h =
+      '<table class="matching-table matching-table--cond"><thead><tr>' +
+      '<th style="background:#F1F5F9;color:#1E293B">만기</th>' +
+      '<th style="background:#F1F5F9;color:#1E293B">구성</th>';
     scenHdrs.forEach((label, j) => {
       const isScen = scenIdx === j;
       h +=
-        "<th style=\"" +
-        (isScen ? "background:#EFF6FF;color:#003876;font-weight:700" : "") +
-        '">' +
+        "<th style=\"background:" +
+        (isScen ? "#EFF6FF" : "#F1F5F9") +
+        ";color:#003876;font-weight:700\">" +
         escapeHtml(label) +
         "</th>";
     });
-    h += "<th>BEP</th></tr></thead><tbody>";
+    h += '<th style="background:#F1F5F9;color:#0F766E;font-weight:700">BEP</th></tr></thead><tbody>';
     (rows || []).forEach((r, i) => {
       const vals = r.vals || [];
       const isHi = highlightIdx != null && i === highlightIdx;
-      const rowBg = isHi ? "#EFF6FF" : "";
-      const txt = isHi ? "color:#003876;font-weight:700" : "";
+      const rowBg = isHi ? "#EFF6FF" : "#FFFFFF";
+      const txt = isHi ? "color:#003876;font-weight:700" : "color:#1E293B";
       const bepBg = isHi ? "#EFF6FF" : "#F8FAFC";
       const bepTxt = isHi ? "color:#003876;font-weight:700" : "color:#0F766E;font-weight:700";
-      const scenStyle = "background:#EFF6FF;color:#003876;font-weight:700";
+      const scenStyle = "color:#003876;font-weight:700";
       const td = (content, extra) =>
         "<td style=\"background:" +
-        (extra && extra.bg ? extra.bg : rowBg || "#FFFFFF") +
+        (extra && extra.bg ? extra.bg : rowBg) +
         ";" +
         (extra && extra.style ? extra.style : txt) +
         (extra && extra.align ? ";text-align:" + extra.align : "") +
