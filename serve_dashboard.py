@@ -18,6 +18,10 @@ STATE_FILE = "overview_state.json"
 EMP_EMAIL_TO = "chanhong.kang@shinhanamc.com"
 EMP_EMAIL_API = "/api/emp_summary_email"
 WEEKLY_EMAIL_API = "/api/weekly_report_email"
+MATCHING_PREVIEW_API = "/api/matching_preview"
+MATCHING_PPTX_API = "/api/matching_pptx"
+MATCHING_CSV = "matching_data.csv"
+MATCHING_TEMPLATE = "신한 매칭형 레포 채권펀드 주간 투자 제안서.pptx"
 
 
 def _truthy(val: str | None) -> bool:
@@ -198,6 +202,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if path == WEEKLY_EMAIL_API:
             self._handle_weekly_report_email()
             return
+        if path == MATCHING_PREVIEW_API:
+            self._handle_matching_preview()
+            return
+        if path == MATCHING_PPTX_API:
+            self._handle_matching_pptx()
+            return
         self.send_error(404)
 
     def _read_json_body(self) -> dict:
@@ -252,6 +262,73 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         self._send_json(200, {"ok": True, "to": EMP_EMAIL_TO})
 
+    def _handle_matching_preview(self) -> None:
+        try:
+            parsed = self._read_json_body()
+        except ValueError:
+            parsed = {}
+        try:
+            import traceback
+
+            import matching_pptx
+
+            csv_path = os.path.join(ROOT, MATCHING_CSV)
+            preview = matching_pptx.build_preview(
+                csv_path, parsed.get("inputs") if isinstance(parsed, dict) else None
+            )
+            self._send_json(200, {"ok": True, "preview": preview})
+        except Exception as exc:
+            try:
+                with open(os.path.join(ROOT, "_matching_api_error.txt"), "w", encoding="utf-8") as ef:
+                    ef.write(traceback.format_exc())
+            except Exception:
+                pass
+            try:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+            except Exception:
+                pass
+
+    def _handle_matching_pptx(self) -> None:
+        try:
+            parsed = self._read_json_body()
+        except ValueError:
+            self.send_error(400, "Invalid JSON")
+            return
+        try:
+            import matching_pptx
+
+            csv_path = os.path.join(ROOT, MATCHING_CSV)
+            template_path = os.path.join(ROOT, MATCHING_TEMPLATE)
+            if not os.path.isfile(csv_path):
+                self._send_json(500, {"ok": False, "error": f"CSV 없음: {MATCHING_CSV}"})
+                return
+            if not os.path.isfile(template_path):
+                self._send_json(500, {"ok": False, "error": f"템플릿 없음: {MATCHING_TEMPLATE}"})
+                return
+            inputs = parsed.get("inputs") if isinstance(parsed, dict) else None
+            data = matching_pptx.fill_pptx(template_path, csv_path, inputs)
+            asof = ""
+            if isinstance(inputs, dict):
+                asof = str(inputs.get("asof") or "")
+            from urllib.parse import quote
+
+            filename = matching_pptx.output_filename(asof)
+            payload = data
+            self.send_response(200)
+            self.send_header(
+                "Content-Type",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            )
+            self.send_header(
+                "Content-Disposition",
+                "attachment; filename=\"matching_proposal.pptx\"; filename*=UTF-8''" + quote(filename),
+            )
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+
     def _handle_weekly_report_email(self) -> None:
         try:
             parsed = self._read_json_body()
@@ -286,6 +363,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             args[0].startswith("POST /overview_state")
             or args[0].startswith(f"POST {EMP_EMAIL_API}")
             or args[0].startswith(f"POST {WEEKLY_EMAIL_API}")
+            or args[0].startswith(f"POST {MATCHING_PREVIEW_API}")
+            or args[0].startswith(f"POST {MATCHING_PPTX_API}")
         ):
             return
         super().log_message(fmt, *args)
@@ -299,6 +378,7 @@ def main() -> None:
     print(f"Overview 저장 파일: {os.path.join(ROOT, STATE_FILE)}")
     print(f"ETF 개요 메일 API: http://{host}:{port}{EMP_EMAIL_API}")
     print(f"Weekly Word 메일 API: http://{host}:{port}{WEEKLY_EMAIL_API}")
+    print(f"매칭형 PPTX API: http://{host}:{port}{MATCHING_PPTX_API}")
     if _use_outlook_email():
         print(f"메일 발송: Outlook → {EMP_EMAIL_TO}")
     elif os.environ.get("EMP_SMTP_HOST"):
