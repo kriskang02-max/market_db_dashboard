@@ -2690,6 +2690,176 @@
     #page-overview .overview-prevday-table .ovpd-btn-del:hover {
       background: rgba(248, 113, 113, 0.22);
     }
+    #page-matching .matching-outer {
+      padding: 1rem 1.25rem 2rem;
+      max-width: 1180px;
+      color: rgba(255,255,255,0.92);
+    }
+    #page-matching .matching-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      align-items: center;
+      margin-bottom: 0.85rem;
+    }
+    #page-matching .matching-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    #page-matching .matching-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 0.55rem;
+      align-items: center;
+      margin-left: auto;
+    }
+    #page-matching .matching-status {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.7);
+      min-height: 1.1em;
+    }
+    #page-matching .matching-status.is-warn { color: #fbbf24; }
+    #page-matching .matching-status.is-ok { color: #86efac; }
+    #page-matching .matching-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem 1rem;
+    }
+    @media (max-width: 980px) {
+      #page-matching .matching-grid { grid-template-columns: 1fr; }
+    }
+    #page-matching .matching-card {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      background: rgba(14,17,23,0.45);
+      padding: 0.7rem 0.8rem 0.85rem;
+    }
+    #page-matching .matching-card--wide { grid-column: 1 / -1; }
+    #page-matching .matching-card h3 {
+      margin: 0 0 0.45rem;
+      font-size: 0.95rem;
+      color: #fde68a;
+    }
+    #page-matching .matching-card .matching-note {
+      margin: 0 0 0.55rem;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.4;
+    }
+    #page-matching label.matching-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      font-size: 0.74rem;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 0.45rem;
+    }
+    #page-matching .matching-field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
+    #page-matching input[type="text"],
+    #page-matching input[type="number"],
+    #page-matching input[type="date"],
+    #page-matching select,
+    #page-matching textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 5px;
+      background: rgba(8,10,16,0.8);
+      color: #f8fafc;
+      padding: 0.28rem 0.4rem;
+      font-size: 0.78rem;
+    }
+    #page-matching textarea { min-height: 2.6rem; resize: vertical; }
+    #page-matching .matching-table-wrap {
+      overflow-x: auto;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+    }
+    #page-matching table.matching-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+    }
+    #page-matching table.matching-table th,
+    #page-matching table.matching-table td {
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 0.22rem 0.3rem;
+      text-align: center;
+      white-space: pre-line;
+      vertical-align: middle;
+    }
+    #page-matching table.matching-table th {
+      background: rgba(14,17,23,0.95);
+      color: rgba(255,255,255,0.82);
+    }
+    #page-matching table.matching-table td:first-child,
+    #page-matching table.matching-table th:first-child {
+      text-align: left;
+      white-space: nowrap;
+    }
+    #page-matching .matching-port-row {
+      display: grid;
+      grid-template-columns: 4.2rem 1.2fr 5.5rem 4.5rem 4.5rem;
+      gap: 0.3rem;
+      margin-bottom: 0.3rem;
+      align-items: center;
+    }
+    #page-matching table.matching-rate-path {
+      font-size: 0.68rem;
+    }
+    #page-matching table.matching-rate-path input[type="number"],
+    #page-matching table.matching-rate-path input[type="text"] {
+      width: 100%;
+      min-width: 3.2rem;
+      padding: 0.15rem 0.2rem;
+      font-size: 0.68rem;
+    }
+    #page-matching table.matching-rate-path th.matching-avg-col,
+    #page-matching table.matching-rate-path td.matching-avg-col {
+      background: rgba(59, 130, 246, 0.12);
+      font-weight: 600;
+    }
+    #page-matching #matchingRepoScenarioTable input[readonly] {
+      opacity: 0.85;
+      cursor: default;
+    }
+    #page-matching .matching-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.55rem;
+    }
+    #page-matching .sidebar.btn,
+    #page-matching .matching-toolbar > .sidebar.btn,
+    #page-matching .matching-actions > .sidebar.btn {
+      padding: 0.28rem 0.65rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.35;
+      color: #fff !important;
+    }
+    #page-matching .sidebar.btn-primary {
+      background: #2563eb !important;
+      color: #fff !important;
+    }
+    #page-matching .sidebar.btn-primary:hover {
+      background: #3b82f6 !important;
+    }
+    #page-matching .sidebar.btn-secondary {
+      background: rgba(255,255,255,0.14) !important;
+      color: #fff !important;
+      border: 1px solid rgba(255,255,255,0.28) !important;
+    }
+    #page-matching .sidebar.btn-secondary:hover {
+      background: rgba(255,255,255,0.22) !important;
+    }
   </style>
 </head>
 <body>
@@ -2711,6 +2881,8 @@
       <a href="#weekly" class="page-nav__link" id="navWeekly">Weekly</a>
       <span class="page-nav__sep" aria-hidden="true">|</span>
       <a href="#emp" class="page-nav__link" id="navEmp">EMP</a>
+      <span class="page-nav__sep" aria-hidden="true">|</span>
+      <a href="#matching" class="page-nav__link" id="navMatching">매칭형</a>
     </nav>
     <div id="spreadHeaderMeta" class="page-meta spread-header-asof">
       <p class="spread-header-asof__line">
@@ -3203,6 +3375,110 @@
           <div class="emp-holdings-filter__chips" id="empHoldingsFilterChips"></div>
         </div>
         <div class="emp-table-wrap" id="empTableWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-matching" class="page">
+    <div class="matching-outer">
+      <div class="matching-header">
+        <h2>매칭형 레포 주간 제안서</h2>
+        <span id="matchingMeta" class="emp-toolbar-meta">matching_data.csv → PPTX</span>
+        <div class="matching-toolbar">
+          <label class="matching-field" style="margin:0;min-width:9rem;">
+            <span>기준일</span>
+            <select id="matchingAsOfSelect" aria-label="매칭형 기준일"></select>
+          </label>
+          <button type="button" id="matchingPreviewBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">미리보기 갱신</button>
+          <button type="button" id="matchingSaveInputsBtn" class="sidebar btn btn-secondary ovpd-toolbar-act">입력 저장</button>
+          <button type="button" id="matchingGenerateBtn" class="sidebar btn btn-primary ovpd-toolbar-act">PPTX 생성</button>
+        </div>
+      </div>
+      <p id="matchingStatus" class="matching-status" role="status"></p>
+      <p class="matching-note" style="margin:0 0 0.75rem;font-size:0.75rem;color:rgba(255,255,255,0.55);">
+        01~05 표는 CSV로 자동 계산됩니다. 왼쪽 섹션·Repo 시나리오·06 포트폴리오 구성은 아래에서 수기 입력한 뒤 PPTX를 만드세요.
+        <strong>serve_dashboard.py</strong> 로 서버를 띄워야 생성 API가 동작합니다.
+      </p>
+      <div class="matching-grid">
+        <div class="matching-card">
+          <h3>왼쪽 · 펀드 개요 / 수급 / RV</h3>
+          <div class="matching-field-row">
+            <label class="matching-field">운용전략<input id="matchingFundStrategy" type="text" /></label>
+            <label class="matching-field">편입섹터<input id="matchingFundSector" type="text" /></label>
+          </div>
+          <div class="matching-field-row">
+            <label class="matching-field">레버리지<input id="matchingFundLev" type="text" /></label>
+            <label class="matching-field">기준금리<input id="matchingBaseRate" type="text" /></label>
+          </div>
+          <label class="matching-field">현 1일물 Repo<input id="matchingRepoSpot" type="text" placeholder="비우면 CSV로 자동" /></label>
+          <label class="matching-field">은행채 수급<textarea id="matchingSupplyBank"></textarea></label>
+          <label class="matching-field">여전채 수급<textarea id="matchingSupplyNbfc"></textarea></label>
+          <label class="matching-field">CURVE RV<input id="matchingRvCurve" type="text" /></label>
+          <label class="matching-field">CREDIT RV<textarea id="matchingRvCredit"></textarea></label>
+          <label class="matching-field">현금성 자산<input id="matchingRvCash" type="text" /></label>
+          <label class="matching-field">상단 날짜 문구<input id="matchingDateLine" type="text" placeholder="비우면 기준일로 자동" /></label>
+        </div>
+        <div class="matching-card">
+          <h3>05 · Repo 금리 시나리오</h3>
+          <p class="matching-note">하단 기준금리 경로에서 자동 산출됩니다(평균+10bp → 1Y평균). 타이틀·최종·Repo·1Y평균은 경로와 연동됩니다.</p>
+          <div class="matching-table-wrap">
+            <table class="matching-table" id="matchingRepoScenarioTable">
+              <thead><tr><th>시나리오</th><th>최종금리</th><th>Repo</th><th>1Y평균</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <h3 style="margin-top:0.85rem;">06 · 추천 포트폴리오 상세 (수기)</h3>
+          <div class="matching-field-row">
+            <label class="matching-field">카드 제목<input id="matchingPortTitle" type="text" /></label>
+            <label class="matching-field">구성 요약<input id="matchingPortComposition" type="text" /></label>
+          </div>
+          <div id="matchingPortRows"></div>
+          <div class="matching-actions">
+            <button type="button" id="matchingAddPortRow" class="sidebar btn btn-secondary ovpd-toolbar-act">행 추가</button>
+          </div>
+        </div>
+        <div class="matching-card matching-card--wide">
+          <h3>자동 미리보기 · 01 민평 / 02 기대 / 03 크레딧SP / 04 커브SP</h3>
+          <div class="matching-field-row">
+            <div>
+              <p class="matching-note">01 민평수익률</p>
+              <div class="matching-table-wrap" id="matchingPreviewMinpyeong"></div>
+            </div>
+            <div>
+              <p class="matching-note">02 기대수익률</p>
+              <div class="matching-table-wrap" id="matchingPreviewExpected"></div>
+            </div>
+          </div>
+          <div class="matching-field-row" style="margin-top:0.55rem;">
+            <div>
+              <p class="matching-note">03 크레딧 SP</p>
+              <div class="matching-table-wrap" id="matchingPreviewCredit"></div>
+            </div>
+            <div>
+              <p class="matching-note">04 커브 SP</p>
+              <div class="matching-table-wrap" id="matchingPreviewCurve"></div>
+            </div>
+          </div>
+        </div>
+        <div class="matching-card matching-card--wide">
+          <h3>자동 미리보기 · 05 조건별 포트폴리오 / 06 요약</h3>
+          <div class="matching-field-row">
+            <div>
+              <p class="matching-note">레버리지 100%</p>
+              <div class="matching-table-wrap" id="matchingPreviewCond100"></div>
+            </div>
+            <div>
+              <p class="matching-note">레버리지 200%</p>
+              <div class="matching-table-wrap" id="matchingPreviewCond200"></div>
+            </div>
+          </div>
+          <p class="matching-note" id="matchingPortSummary" style="margin-top:0.65rem;">06 요약: —</p>
+        </div>
+        <div class="matching-card matching-card--wide">
+          <h3>기준금리 경로 (현재월 ~ +12개월)</h3>
+          <p class="matching-note">행 타이틀·월별 기준금리를 입력하면 평균(+10bp)이 위 Repo 시나리오의 1Y평균·최종금리·Repo에 자동 반영됩니다. 인하기조로 바뀔 때는 행 타이틀만 수정하면 됩니다.</p>
+          <div class="matching-table-wrap" id="matchingRatePathWrap"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -3739,6 +4015,7 @@
   const navReport = document.getElementById("navReport");
   const navWeekly = document.getElementById("navWeekly");
   const navEmp = document.getElementById("navEmp");
+  const navMatching = document.getElementById("navMatching");
   const weeklyDateLabel = document.getElementById("weeklyDateLabel");
   const weeklyEndDateInput = document.getElementById("weeklyEndDateInput");
   const weeklyEndDateAutoHint = document.getElementById("weeklyEndDateAutoHint");
@@ -3763,6 +4040,7 @@
   const pageReportEl = document.getElementById("page-report");
   const pageWeeklyEl = document.getElementById("page-weekly");
   const pageEmpEl = document.getElementById("page-emp");
+  const pageMatchingEl = document.getElementById("page-matching");
   const empMetaLabel = document.getElementById("empMetaLabel");
   const empStatus = document.getElementById("empStatus");
   const empTableWrap = document.getElementById("empTableWrap");
@@ -8097,6 +8375,7 @@
     const isReport = page === "report";
     const isWeekly = page === "weekly";
     const isEmp = page === "emp";
+    const isMatching = page === "matching";
     if (pageSpreadEl) pageSpreadEl.classList.toggle("is-active", isSpread);
     if (pageRatesEl) pageRatesEl.classList.toggle("is-active", isRates);
     if (pageFundEl) pageFundEl.classList.toggle("is-active", isFund);
@@ -8105,6 +8384,7 @@
     if (pageReportEl) pageReportEl.classList.toggle("is-active", isReport);
     if (pageWeeklyEl) pageWeeklyEl.classList.toggle("is-active", isWeekly);
     if (pageEmpEl) pageEmpEl.classList.toggle("is-active", isEmp);
+    if (pageMatchingEl) pageMatchingEl.classList.toggle("is-active", isMatching);
     if (spreadHeaderMeta) spreadHeaderMeta.hidden = !isSpread;
     if (navSpread) navSpread.classList.toggle("is-current", isSpread);
     if (navRates) navRates.classList.toggle("is-current", isRates);
@@ -8114,6 +8394,7 @@
     if (navReport) navReport.classList.toggle("is-current", isReport);
     if (navWeekly) navWeekly.classList.toggle("is-current", isWeekly);
     if (navEmp) navEmp.classList.toggle("is-current", isEmp);
+    if (navMatching) navMatching.classList.toggle("is-current", isMatching);
     let title = "스프레드 분석";
     if (isFund) title = "펀드 분석";
     else if (isRates) title = "금리 분석";
@@ -8122,6 +8403,7 @@
     else if (isReport) title = "Report";
     else if (isWeekly) title = "Weekly";
     else if (isEmp) title = "EMP";
+    else if (isMatching) title = "매칭형";
     document.title = title;
     if (isFund) {
       ensureFundData();
@@ -8164,6 +8446,7 @@
     if (isReport) renderReportPage();
     if (isWeekly) renderWeeklyPage();
     if (isEmp) renderEmpPage();
+    if (isMatching) matchingEnsureLoaded();
   }
 
   function reportTodayTagKst() {
@@ -13278,8 +13561,658 @@
     });
   }
 
-  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 → 펀드 → Overview → Report → Weekly → EMP (순환) */
-  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview", "report", "weekly", "emp"];
+  const MATCHING_INPUTS_KEY = "market_db_dashboard_matching_inputs_v1";
+  const MATCHING_PREVIEW_API = "/api/matching_preview";
+  const MATCHING_PPTX_API = "/api/matching_pptx";
+  let matchingPreviewCache = null;
+  let matchingLoadedOnce = false;
+
+  function matchingDefaultInputs() {
+    return {
+      asof: "",
+      date_line: "",
+      fund: {
+        strategy: "1~3년 매칭 형 + Repo 전략",
+        sector: "은행 · 카드 · 캐피탈 · CD",
+        leverage: "Repo 매도 0 ~ 200%",
+        base_rate: "3.00%",
+        repo_spot: "",
+      },
+      supply: {
+        bank: "• 은행채: 시중 유동성 및 수요 확대로 수급 양호",
+        nbfc: "• 여전채: 2~3년 카드·캐피탈 매수 우위 기조 지속",
+      },
+      rv: {
+        curve: "2.0Y 롤다운 극대화",
+        credit: "특은AAA(+42bp, 99%) 및 캐피탈AA- 10년 분포 상단",
+        cash: "6M AAA CD 40%",
+      },
+      repo_scenarios: [
+        { label: "동결", final_rate: 3.0, repo: 3.1, avg_1y: 3.1 },
+        { label: "1회 인상", final_rate: 3.25, repo: 3.35, avg_1y: 3.35 },
+        { label: "2회 인상", final_rate: 3.5, repo: 3.6, avg_1y: 3.54 },
+        { label: "3회 인상", final_rate: 3.75, repo: 3.85, avg_1y: 3.68 },
+      ],
+      rate_path: {
+        titles: ["동결", "1회 인상", "2회 인상", "3회 인상"],
+        rates: [
+          [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+          [3.25, 3.25, 3.25, 3.25, 3.25, 3.25, 3.25, 3.25, 3.25, 3.25, 3.25, 3.25, 3.25],
+          [3.25, 3.25, 3.25, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5],
+          [3.25, 3.25, 3.25, 3.5, 3.5, 3.75, 3.75, 3.75, 3.75, 3.75, 3.75, 3.75, 3.75],
+        ],
+        repo_spread: 0.1,
+      },
+      portfolio: {
+        title: "2.0년 · 차입 200%",
+        composition: "2Y특은 160% + 2Y캐피탈 100% + 6M CD 40%",
+        rows: [
+          { kind: "채권", name: "2년 특수은행채 AAA", sector: "특은", tenor: "2년", weight: 160 },
+          { kind: "채권", name: "2년 캐피탈채 AA-", sector: "캐피탈", tenor: "2년", weight: 100 },
+          { kind: "CD", name: "6개월 AAA 은행 CD", sector: "CD", tenor: "6개월", weight: 40 },
+          { kind: "Repo", name: "1일물 Repo (조달)", sector: "REPO", tenor: "", weight: -200 },
+        ],
+      },
+    };
+  }
+
+  const MATCHING_REPO_SPREAD = 0.1;
+
+  function matchingMonthLabels(asof) {
+    const labels = [];
+    let y = NaN;
+    let m = NaN;
+    if (asof && /^\d{4}-\d{2}/.test(asof)) {
+      y = parseInt(asof.slice(0, 4), 10);
+      m = parseInt(asof.slice(5, 7), 10);
+    } else {
+      const now = new Date();
+      y = now.getFullYear();
+      m = now.getMonth() + 1;
+    }
+    for (let i = 0; i < 13; i++) {
+      let mm = m + i;
+      let yy = y;
+      while (mm > 12) {
+        mm -= 12;
+        yy += 1;
+      }
+      labels.push(i === 0 ? mm + "월" : "+" + i + "m\n" + mm + "월");
+    }
+    return labels;
+  }
+
+  function matchingRatePathAvg(row) {
+    const nums = (row || [])
+      .slice(0, 13)
+      .map((x) => parseFloat(x))
+      .filter((x) => Number.isFinite(x));
+    if (!nums.length) return null;
+    return nums.reduce((a, b) => a + b, 0) / nums.length;
+  }
+
+  function matchingSyncScenariosFromPath(inputs) {
+    const path = (inputs && inputs.rate_path) || {};
+    const titles = path.titles || [];
+    const rates = path.rates || [];
+    const spread =
+      path.repo_spread != null && Number.isFinite(Number(path.repo_spread))
+        ? Number(path.repo_spread)
+        : MATCHING_REPO_SPREAD;
+    const scen = Array.isArray(inputs.repo_scenarios) ? inputs.repo_scenarios.slice() : [];
+    while (scen.length < 4) scen.push({ label: "", final_rate: null, repo: null, avg_1y: null });
+    for (let i = 0; i < 4; i++) {
+      const sc = Object.assign({}, scen[i] || {});
+      if (titles[i]) sc.label = String(titles[i]).trim();
+      const row = rates[i] || [];
+      const nums = row
+        .slice(0, 13)
+        .map((x) => parseFloat(x))
+        .filter((x) => Number.isFinite(x));
+      if (nums.length) {
+        const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+        sc.avg_1y = Math.round((avg + spread) * 10000) / 10000;
+        sc.final_rate = nums[nums.length - 1];
+        sc.repo = Math.round((nums[nums.length - 1] + spread) * 10000) / 10000;
+      }
+      scen[i] = sc;
+    }
+    inputs.repo_scenarios = scen;
+    return inputs;
+  }
+
+  function matchingLoadSavedInputs() {
+    try {
+      const raw = localStorage.getItem(MATCHING_INPUTS_KEY);
+      if (!raw) return matchingDefaultInputs();
+      const parsed = JSON.parse(raw);
+      const base = matchingDefaultInputs();
+      if (!parsed || typeof parsed !== "object") return base;
+      const merged = Object.assign(base, parsed, {
+        fund: Object.assign({}, base.fund, parsed.fund || {}),
+        supply: Object.assign({}, base.supply, parsed.supply || {}),
+        rv: Object.assign({}, base.rv, parsed.rv || {}),
+        portfolio: Object.assign({}, base.portfolio, parsed.portfolio || {}),
+        rate_path: Object.assign({}, base.rate_path, parsed.rate_path || {}),
+        repo_scenarios: Array.isArray(parsed.repo_scenarios) ? parsed.repo_scenarios : base.repo_scenarios,
+      });
+      if (!Array.isArray(merged.rate_path.titles) || !merged.rate_path.titles.length) {
+        merged.rate_path.titles = base.rate_path.titles.slice();
+      }
+      if (!Array.isArray(merged.rate_path.rates) || !merged.rate_path.rates.length) {
+        merged.rate_path.rates = base.rate_path.rates.map((r) => r.slice());
+      }
+      return matchingSyncScenariosFromPath(merged);
+    } catch (_) {
+      return matchingDefaultInputs();
+    }
+  }
+
+  function matchingSetStatus(msg, kind) {
+    const el = document.getElementById("matchingStatus");
+    if (!el) return;
+    el.textContent = msg || "";
+    el.classList.toggle("is-warn", kind === "warn");
+    el.classList.toggle("is-ok", kind === "ok");
+  }
+
+  function matchingRenderRepoScenarioInputs(scenarios) {
+    const tbody = document.querySelector("#matchingRepoScenarioTable tbody");
+    if (!tbody) return;
+    tbody.innerHTML = (scenarios || [])
+      .map((sc, i) => {
+        return (
+          "<tr>" +
+          '<td><input type="text" data-matching-scen="' +
+          i +
+          '" data-k="label" readonly value="' +
+          escapeHtml(sc.label || "") +
+          '" /></td>' +
+          '<td><input type="number" step="0.01" data-matching-scen="' +
+          i +
+          '" data-k="final_rate" readonly value="' +
+          (sc.final_rate != null ? sc.final_rate : "") +
+          '" /></td>' +
+          '<td><input type="number" step="0.01" data-matching-scen="' +
+          i +
+          '" data-k="repo" readonly value="' +
+          (sc.repo != null ? sc.repo : "") +
+          '" /></td>' +
+          '<td><input type="number" step="0.01" data-matching-scen="' +
+          i +
+          '" data-k="avg_1y" readonly value="' +
+          (sc.avg_1y != null ? sc.avg_1y : "") +
+          '" /></td>' +
+          "</tr>"
+        );
+      })
+      .join("");
+  }
+
+  function matchingRenderRatePath(path, asof) {
+    const wrap = document.getElementById("matchingRatePathWrap");
+    if (!wrap) return;
+    const titles = (path && path.titles) || ["동결", "1회 인상", "2회 인상", "3회 인상"];
+    const rates = (path && path.rates) || [[], [], [], []];
+    const months = matchingMonthLabels(asof);
+    let h =
+      '<table class="matching-table matching-rate-path"><thead><tr><th>시나리오</th>';
+    months.forEach((lab) => {
+      h += "<th>" + escapeHtml(lab) + "</th>";
+    });
+    h += '<th class="matching-avg-col">평균</th><th class="matching-avg-col">1Y Repo</th></tr></thead><tbody>';
+    for (let i = 0; i < 4; i++) {
+      const row = rates[i] || [];
+      const avg = matchingRatePathAvg(row);
+      const repoAvg =
+        avg != null ? Math.round((avg + MATCHING_REPO_SPREAD) * 10000) / 10000 : null;
+      h +=
+        "<tr><td><input type=\"text\" data-matching-path-title=\"" +
+        i +
+        '" value="' +
+        escapeHtml(titles[i] || "") +
+        '" /></td>';
+      for (let c = 0; c < 13; c++) {
+        const v = row[c] != null && row[c] !== "" ? row[c] : "";
+        h +=
+          '<td><input type="number" step="0.01" data-matching-path-rate="' +
+          i +
+          '" data-m="' +
+          c +
+          '" value="' +
+          v +
+          '" /></td>';
+      }
+      h +=
+        '<td class="matching-avg-col" data-matching-path-avg="' +
+        i +
+        '">' +
+        (avg != null ? avg.toFixed(2) : "—") +
+        "</td>";
+      h +=
+        '<td class="matching-avg-col" data-matching-path-repoavg="' +
+        i +
+        '">' +
+        (repoAvg != null ? repoAvg.toFixed(2) : "—") +
+        "</td></tr>";
+    }
+    h += "</tbody></table>";
+    wrap.innerHTML = h;
+  }
+
+  function matchingCollectRatePath() {
+    const titles = [];
+    const rates = [];
+    for (let i = 0; i < 4; i++) {
+      const titleEl = document.querySelector('[data-matching-path-title="' + i + '"]');
+      titles.push(titleEl ? String(titleEl.value || "").trim() : "");
+      const row = [];
+      for (let c = 0; c < 13; c++) {
+        const inp = document.querySelector(
+          '[data-matching-path-rate="' + i + '"][data-m="' + c + '"]'
+        );
+        const v = inp ? parseFloat(inp.value) : NaN;
+        row.push(Number.isFinite(v) ? v : null);
+      }
+      rates.push(row);
+      const avg = matchingRatePathAvg(row);
+      const avgEl = document.querySelector('[data-matching-path-avg="' + i + '"]');
+      const repoEl = document.querySelector('[data-matching-path-repoavg="' + i + '"]');
+      if (avgEl) avgEl.textContent = avg != null ? avg.toFixed(2) : "—";
+      if (repoEl)
+        repoEl.textContent =
+          avg != null ? (Math.round((avg + MATCHING_REPO_SPREAD) * 10000) / 10000).toFixed(2) : "—";
+    }
+    return { titles, rates, repo_spread: MATCHING_REPO_SPREAD };
+  }
+
+  function matchingOnRatePathChange() {
+    const inputs = matchingCollectInputs();
+    matchingRenderRepoScenarioInputs(inputs.repo_scenarios || []);
+  }
+
+  function matchingRenderPortRows(rows) {
+    const wrap = document.getElementById("matchingPortRows");
+    if (!wrap) return;
+    const sectors = ["특은", "특수시은", "카드", "캐피탈", "국고", "CD", "REPO"];
+    const tenors = ["", "6개월", "1년", "1.5년", "2년", "2.5년", "3년"];
+    wrap.innerHTML = (rows || [])
+      .map((r, i) => {
+        const sectorOpts = sectors
+          .map((s) => '<option value="' + s + '"' + (r.sector === s ? " selected" : "") + ">" + s + "</option>")
+          .join("");
+        const tenorOpts = tenors
+          .map((t) => '<option value="' + t + '"' + (r.tenor === t ? " selected" : "") + ">" + (t || "—") + "</option>")
+          .join("");
+        return (
+          '<div class="matching-port-row" data-matching-port="' +
+          i +
+          '">' +
+          '<input type="text" data-k="kind" value="' +
+          escapeHtml(r.kind || "") +
+          '" title="구분" />' +
+          '<input type="text" data-k="name" value="' +
+          escapeHtml(r.name || "") +
+          '" title="편입자산" />' +
+          "<select data-k=\"sector\">" +
+          sectorOpts +
+          "</select>" +
+          "<select data-k=\"tenor\">" +
+          tenorOpts +
+          "</select>" +
+          '<input type="number" step="1" data-k="weight" value="' +
+          (r.weight != null ? r.weight : "") +
+          '" title="비중%" />' +
+          "</div>"
+        );
+      })
+      .join("");
+  }
+
+  function matchingFillForm(inputs) {
+    const set = (id, v) => {
+      const el = document.getElementById(id);
+      if (el) el.value = v == null ? "" : String(v);
+    };
+    set("matchingFundStrategy", inputs.fund && inputs.fund.strategy);
+    set("matchingFundSector", inputs.fund && inputs.fund.sector);
+    set("matchingFundLev", inputs.fund && inputs.fund.leverage);
+    set("matchingBaseRate", inputs.fund && inputs.fund.base_rate);
+    set("matchingRepoSpot", inputs.fund && inputs.fund.repo_spot);
+    set("matchingSupplyBank", inputs.supply && inputs.supply.bank);
+    set("matchingSupplyNbfc", inputs.supply && inputs.supply.nbfc);
+    set("matchingRvCurve", inputs.rv && inputs.rv.curve);
+    set("matchingRvCredit", inputs.rv && inputs.rv.credit);
+    set("matchingRvCash", inputs.rv && inputs.rv.cash);
+    set("matchingDateLine", inputs.date_line);
+    set("matchingPortTitle", inputs.portfolio && inputs.portfolio.title);
+    set("matchingPortComposition", inputs.portfolio && inputs.portfolio.composition);
+    matchingSyncScenariosFromPath(inputs);
+    matchingRenderRatePath(inputs.rate_path || {}, inputs.asof || "");
+    matchingRenderRepoScenarioInputs(inputs.repo_scenarios || []);
+    matchingRenderPortRows((inputs.portfolio && inputs.portfolio.rows) || []);
+    const sel = document.getElementById("matchingAsOfSelect");
+    if (sel && inputs.asof) sel.value = inputs.asof;
+  }
+
+  function matchingCollectInputs() {
+    const val = (id) => {
+      const el = document.getElementById(id);
+      return el ? String(el.value || "").trim() : "";
+    };
+    const rate_path = matchingCollectRatePath();
+    const scen = [];
+    document.querySelectorAll("#matchingRepoScenarioTable tbody tr").forEach((tr) => {
+      const get = (k) => {
+        const inp = tr.querySelector('[data-k="' + k + '"]');
+        return inp ? inp.value : "";
+      };
+      scen.push({
+        label: get("label"),
+        final_rate: parseFloat(get("final_rate")),
+        repo: parseFloat(get("repo")),
+        avg_1y: parseFloat(get("avg_1y")),
+      });
+    });
+    const rows = [];
+    document.querySelectorAll("#matchingPortRows .matching-port-row").forEach((row) => {
+      const get = (k) => {
+        const inp = row.querySelector('[data-k="' + k + '"]');
+        return inp ? inp.value : "";
+      };
+      rows.push({
+        kind: get("kind"),
+        name: get("name"),
+        sector: get("sector"),
+        tenor: get("tenor"),
+        weight: parseFloat(get("weight")),
+      });
+    });
+    const inputs = {
+      asof: val("matchingAsOfSelect"),
+      date_line: val("matchingDateLine"),
+      fund: {
+        strategy: val("matchingFundStrategy"),
+        sector: val("matchingFundSector"),
+        leverage: val("matchingFundLev"),
+        base_rate: val("matchingBaseRate"),
+        repo_spot: val("matchingRepoSpot"),
+      },
+      supply: {
+        bank: val("matchingSupplyBank"),
+        nbfc: val("matchingSupplyNbfc"),
+      },
+      rv: {
+        curve: val("matchingRvCurve"),
+        credit: val("matchingRvCredit"),
+        cash: val("matchingRvCash"),
+      },
+      rate_path,
+      repo_scenarios: scen,
+      portfolio: {
+        title: val("matchingPortTitle"),
+        composition: val("matchingPortComposition"),
+        rows,
+      },
+    };
+    return matchingSyncScenariosFromPath(inputs);
+  }
+
+  function matchingSaveInputsLocal() {
+    const inputs = matchingCollectInputs();
+    try {
+      localStorage.setItem(MATCHING_INPUTS_KEY, JSON.stringify(inputs));
+      matchingSetStatus("입력을 브라우저에 저장했습니다.", "ok");
+    } catch (_) {
+      matchingSetStatus("입력 저장 실패", "warn");
+    }
+  }
+
+  function matchingCellHtml(cell, opts) {
+    const text = cell && cell.text != null && String(cell.text) !== "" ? String(cell.text) : "—";
+    const colors = (cell && cell.line_colors) || [];
+    const pctBlack = opts && opts.pctBlack;
+    return text
+      .split("\n")
+      .map((line, i) => {
+        let c = colors[i];
+        // 히트맵 셀: 백분위(2번째 줄)는 다크모드에서도 보이도록 검정
+        if (pctBlack && i === 1) c = "#111827";
+        const body = escapeHtml(line);
+        return c ? '<span style="color:' + escapeHtml(c) + ';font-weight:600">' + body + "</span>" : body;
+      })
+      .join("<br>");
+  }
+
+  function matchingGridHtml(preview, kind) {
+    const sectors = preview.sectors || [];
+    const keys = preview.sector_keys || [];
+    const tenors = preview.tenors || [];
+    const data = preview[kind] || {};
+    const useHeat = kind === "credit" || kind === "curve";
+    let h = '<table class="matching-table"><thead><tr><th>섹터</th>';
+    tenors.forEach((t) => {
+      h += "<th>" + escapeHtml(t) + "</th>";
+    });
+    h += "</tr></thead><tbody>";
+    sectors.forEach((label, i) => {
+      const key = keys[i];
+      h += "<tr><td>" + escapeHtml(label) + "</td>";
+      tenors.forEach((t) => {
+        const cell = data[key + "|" + t] || {};
+        const bg =
+          useHeat && cell.fill
+            ? ' style="background:' + escapeHtml(cell.fill) + ';color:#111827"'
+            : "";
+        h +=
+          "<td" +
+          bg +
+          ">" +
+          matchingCellHtml(cell, useHeat ? { pctBlack: true } : null) +
+          "</td>";
+      });
+      h += "</tr>";
+    });
+    h += "</tbody></table>";
+    return h;
+  }
+
+  function matchingCondHtml(rows) {
+    let h =
+      '<table class="matching-table"><thead><tr><th>만기</th><th>구성</th><th>동결</th><th>인상1회</th><th>인상2회</th><th>BEP</th></tr></thead><tbody>';
+    (rows || []).forEach((r) => {
+      const vals = r.vals || [];
+      h +=
+        "<tr><td>" +
+        escapeHtml(r.tenor || "") +
+        "</td><td style=\"text-align:left\">" +
+        escapeHtml(r.label || "") +
+        "</td><td>" +
+        escapeHtml(vals[0] || "—") +
+        "</td><td>" +
+        escapeHtml(vals[1] || "—") +
+        "</td><td>" +
+        escapeHtml(vals[2] || "—") +
+        "</td><td>" +
+        escapeHtml(r.bep || "—") +
+        "</td></tr>";
+    });
+    h += "</tbody></table>";
+    return h;
+  }
+
+  function matchingApplyPreview(preview) {
+    matchingPreviewCache = preview;
+    const sel = document.getElementById("matchingAsOfSelect");
+    if (sel && Array.isArray(preview.dates)) {
+      const cur = sel.value || preview.asof || "";
+      sel.innerHTML = preview.dates
+        .map((d) => '<option value="' + d + '"' + (d === cur || (!cur && d === preview.asof) ? " selected" : "") + ">" + d + "</option>")
+        .join("");
+      if (preview.asof) sel.value = preview.asof;
+    }
+    const setHtml = (id, html) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = html;
+    };
+    setHtml("matchingPreviewMinpyeong", matchingGridHtml(preview, "minpyeong"));
+    setHtml("matchingPreviewExpected", matchingGridHtml(preview, "expected"));
+    setHtml("matchingPreviewCredit", matchingGridHtml(preview, "credit"));
+    setHtml("matchingPreviewCurve", matchingGridHtml(preview, "curve"));
+    setHtml("matchingPreviewCond100", matchingCondHtml(preview.cond100));
+    setHtml("matchingPreviewCond200", matchingCondHtml(preview.cond200));
+    const sum = document.getElementById("matchingPortSummary");
+    const port = preview.portfolio || {};
+    if (sum) {
+      sum.textContent =
+        "06 요약: 기대수익 " +
+        (port.total_text || "—") +
+        " · BEP " +
+        (port.bep_text || "—") +
+        " · 전주비교일 " +
+        (preview.prev_week || "—");
+    }
+    const meta = document.getElementById("matchingMeta");
+    if (meta) meta.textContent = "기준일 " + (preview.asof || "—") + " · matching_data.csv";
+  }
+
+  async function matchingFetchPreview() {
+    matchingSetStatus("미리보기 계산 중…");
+    const inputs = matchingCollectInputs();
+    try {
+      const res = await fetch(MATCHING_PREVIEW_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error((data && data.error) || res.statusText);
+      matchingApplyPreview(data.preview);
+      matchingSetStatus("미리보기 갱신 완료", "ok");
+    } catch (err) {
+      matchingSetStatus(
+        "미리보기 실패: " + (err && err.message ? err.message : err) + " (serve_dashboard.py 실행 여부 확인)",
+        "warn"
+      );
+    }
+  }
+
+  async function matchingGeneratePptx() {
+    matchingSetStatus("PPTX 생성 중…");
+    const inputs = matchingCollectInputs();
+    try {
+      localStorage.setItem(MATCHING_INPUTS_KEY, JSON.stringify(inputs));
+    } catch (_) {}
+    try {
+      const res = await fetch(MATCHING_PPTX_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs }),
+      });
+      const ctype = res.headers.get("Content-Type") || "";
+      if (!res.ok || ctype.indexOf("application/json") >= 0) {
+        let msg = res.statusText;
+        try {
+          const data = await res.json();
+          if (data && data.error) msg = data.error;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const asofTag = String(inputs.asof || "")
+        .replace(/-/g, "")
+        .replace(/[^\d]/g, "");
+      const tag = asofTag || (() => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, "0");
+        const da = String(d.getDate()).padStart(2, "0");
+        return "" + y + mo + da;
+      })();
+      // 브라우저가 Content-Disposition의 filename= ASCII 폴백만 읽는 경우가 있어 클라이언트에서 확정
+      let filename = "신한 매칭형 레포펀드 주간 제안서_" + tag + ".pptx";
+      const xName = res.headers.get("X-Matching-Filename");
+      if (xName) {
+        try {
+          filename = decodeURIComponent(xName);
+        } catch (_) {}
+      } else {
+        const cd = res.headers.get("Content-Disposition") || "";
+        const star = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(cd);
+        if (star && star[1]) {
+          try {
+            filename = decodeURIComponent(star[1].trim().replace(/^"|"$/g, ""));
+          } catch (_) {}
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      matchingSetStatus("PPTX 다운로드 완료: " + filename, "ok");
+    } catch (err) {
+      matchingSetStatus(
+        "PPTX 생성 실패: " + (err && err.message ? err.message : err) + " (serve_dashboard.py 필요)",
+        "warn"
+      );
+    }
+  }
+
+  function matchingEnsureLoaded() {
+    if (!pageMatchingEl) return;
+    if (!matchingLoadedOnce) {
+      matchingLoadedOnce = true;
+      matchingFillForm(matchingLoadSavedInputs());
+      const previewBtn = document.getElementById("matchingPreviewBtn");
+      const saveBtn = document.getElementById("matchingSaveInputsBtn");
+      const genBtn = document.getElementById("matchingGenerateBtn");
+      const addBtn = document.getElementById("matchingAddPortRow");
+      const asofSel = document.getElementById("matchingAsOfSelect");
+      if (previewBtn) previewBtn.addEventListener("click", () => matchingFetchPreview());
+      if (saveBtn) saveBtn.addEventListener("click", () => matchingSaveInputsLocal());
+      if (genBtn) genBtn.addEventListener("click", () => matchingGeneratePptx());
+      if (addBtn) {
+        addBtn.addEventListener("click", () => {
+          const inputs = matchingCollectInputs();
+          inputs.portfolio.rows.push({ kind: "채권", name: "", sector: "특은", tenor: "2년", weight: 0 });
+          matchingRenderPortRows(inputs.portfolio.rows);
+        });
+      }
+      if (asofSel) {
+        asofSel.addEventListener("change", () => {
+          const path = matchingCollectRatePath();
+          matchingRenderRatePath(path, asofSel.value || "");
+          matchingOnRatePathChange();
+          matchingFetchPreview();
+        });
+      }
+      const pathWrap = document.getElementById("matchingRatePathWrap");
+      if (pathWrap) {
+        pathWrap.addEventListener("input", (e) => {
+          const t = e.target;
+          if (!t) return;
+          if (t.hasAttribute("data-matching-path-rate") || t.hasAttribute("data-matching-path-title")) {
+            matchingOnRatePathChange();
+          }
+        });
+        pathWrap.addEventListener("change", (e) => {
+          const t = e.target;
+          if (!t) return;
+          if (t.hasAttribute("data-matching-path-rate") || t.hasAttribute("data-matching-path-title")) {
+            matchingOnRatePathChange();
+          }
+        });
+      }
+    }
+    matchingFetchPreview();
+  }
+
+  /** Alt+방향키 순서: 금리 분석 → Term → 스프레드 → 펀드 → Overview → Report → Weekly → EMP → 매칭형 (순환) */
+  const PAGE_CYCLE_ORDER = ["rates", "term", "spread", "fund", "overview", "report", "weekly", "emp", "matching"];
 
   function applyHashPage() {
     const h = (location.hash || "#rates").slice(1);
@@ -13291,6 +14224,7 @@
     else if (h === "report") setPage("report");
     else if (h === "weekly") setPage("weekly");
     else if (h === "emp") setPage("emp");
+    else if (h === "matching") setPage("matching");
     else setPage("rates");
   }
   window.addEventListener("hashchange", applyHashPage);
@@ -13333,6 +14267,7 @@
     if (slug === "report") return "report";
     if (slug === "weekly") return "weekly";
     if (slug === "emp") return "emp";
+    if (slug === "matching") return "matching";
     return null;
   }
   document.addEventListener("click", (e) => {

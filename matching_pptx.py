@@ -9,6 +9,7 @@ import csv
 import io
 import math
 import os
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
@@ -16,6 +17,8 @@ from typing import Any
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
+from pptx.oxml import parse_xml
+from pptx.oxml.ns import qn
 from pptx.util import Pt
 
 FONT_DATA = "원신한 Light"
@@ -55,6 +58,12 @@ IDX_REC_TITLE = 88
 IDX_REC_COMPOSITION = 83
 IDX_REC_RETURN = 89
 IDX_REC_BEP = 90
+IDX_NOTE_MINPYEONG = 115
+IDX_NOTE_EXPECTED = 117
+IDX_NOTE_CREDIT = 119
+IDX_NOTE_CURVE = 121
+FOOTNOTE_NUDGE_EMU = 70000  # 01·02 각주
+FOOTNOTE_NUDGE_EMU_BOTTOM = 55000  # 03·04 각주
 
 SECTOR_ROWS = [
     ("국고채", "국고"),
@@ -79,13 +88,18 @@ PREV_TENOR = {
     "2.5년": "2년",
     "3년": "2.5년",
 }
-PREV_DUR = {
-    "1년": 0.5,
-    "1.5년": 1.0,
-    "2년": 1.5,
-    "2.5년": 2.0,
-    "3년": 2.5,
+# 기대수익률용: 1년 전 만기 커브 SP, 롤다운 듀레이션 = 만기−1년
+PREV_TENOR_1Y = {
+    "1년": None,
+    "1.5년": "6개월",
+    "2년": "1년",
+    "2.5년": "1.5년",
+    "3년": "2년",
 }
+NOTE_EXPECTED = "* 기대수익률 = YTM + 커브SP x (듀레이션-1년) (1년 보유 기준)"
+NOTE_MINPYEONG = "* 시가평가 3사 평균 민평금리 기준 (괄호 없이 bp는 전주 대비 변동폭)"
+NOTE_CREDIT = "* 동일 만기 국고채 대비 스프레드 및 최근 10개년 백분위"
+NOTE_CURVE = "* 커브 SP = 당해 만기 YTM - 직전(-0.5Y) 만기 YTM (1년은 1Y-6M 기준)"
 INST_MAP = {
     "국고": "시가평가 3사평균 국고채권",
     "특은": "시가평가 3사평균 산업은행",
@@ -220,12 +234,21 @@ def curve_sp(series: dict, sector_key: str, tenor: str, date: str) -> float | No
 
 
 def expected_return(series: dict, sector_key: str, tenor: str, date: str) -> float | None:
+    """YTM + (YTM−YTM_1Y전) × (만기년−1). 1년 이하는 YTM만."""
     ytm = sector_rate(series, sector_key, tenor, date)
-    csp = curve_sp(series, sector_key, tenor, date)
-    dur = PREV_DUR.get(tenor)
-    if ytm is None or csp is None or dur is None:
+    ty = tenor_years(tenor)
+    if ytm is None or ty is None:
         return None
-    return ytm + csp * dur
+    roll_dur = ty - 1.0
+    if roll_dur <= 0:
+        return ytm
+    prev_t = PREV_TENOR_1Y.get(tenor)
+    if not prev_t:
+        return ytm
+    prev_ytm = sector_rate(series, sector_key, prev_t, date)
+    if prev_ytm is None:
+        return None
+    return ytm + (ytm - prev_ytm) * roll_dur
 
 
 def credit_sp(series: dict, sector_key: str, tenor: str, date: str) -> float | None:
@@ -299,12 +322,12 @@ def fmt_pct(v: float | None, digits: int = 2) -> str:
 
 
 def fmt_chg_bp(chg_pct: float | None) -> str:
-    """수익률 변동(%p) → 정수 bp 문자열 (괄호 없음)."""
+    """수익률 변동(%p) → 정수 bp 문자열 (+/- 기호, 괄호 없음)."""
     if chg_pct is None or not math.isfinite(chg_pct):
         return ""
     bp = int(round(chg_pct * 100.0))
     if bp > 0:
-        return f"{bp}bp"
+        return f"+{bp}bp"
     if bp < 0:
         return f"{bp}bp"
     return "0bp"
@@ -353,6 +376,60 @@ def sign_color(v: float | None) -> RGBColor | None:
     if v is None or not math.isfinite(v) or v == 0:
         return None
     return COLOR_UP if v > 0 else COLOR_DOWN
+
+
+def _lerp_byte(a: int, b: int, t: float) -> int:
+    return int(round(a + (b - a) * t))
+
+
+def heatmap_rgb(pct: float | None) -> RGBColor | None:
+    """백분위 0→붉은색, 50→흰색, 100→파란색 (셀 배경용 연한 톤)."""
+    if pct is None or not math.isfinite(pct):
+        return None
+    t = max(0.0, min(100.0, float(pct))) / 100.0
+    red = (252, 165, 165)  # #FCA5A5
+    mid = (255, 255, 255)
+    blue = (147, 197, 253)  # #93C5FD
+    if t <= 0.5:
+        u = t * 2.0
+        r = _lerp_byte(red[0], mid[0], u)
+        g = _lerp_byte(red[1], mid[1], u)
+        b = _lerp_byte(red[2], mid[2], u)
+    else:
+        u = (t - 0.5) * 2.0
+        r = _lerp_byte(mid[0], blue[0], u)
+        g = _lerp_byte(mid[1], blue[1], u)
+        b = _lerp_byte(mid[2], blue[2], u)
+    return RGBColor(r, g, b)
+
+
+def rgb_to_hex(c: RGBColor | None, with_hash: bool = True) -> str | None:
+    if c is None:
+        return None
+    try:
+        hx = f"{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}"
+    except Exception:
+        return None
+    return f"#{hx}" if with_hash else hx
+
+
+def set_cell_fill(cell, fill: RGBColor | None) -> None:
+    """표 셀 배경색 설정 (히트맵)."""
+    if fill is None:
+        return
+    hx = rgb_to_hex(fill, with_hash=False)
+    if not hx:
+        return
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    for child in list(tcPr):
+        if child.tag == qn("a:solidFill"):
+            tcPr.remove(child)
+    solid = parse_xml(
+        f'<a:solidFill xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        f'<a:srgbClr val="{hx}"/></a:solidFill>'
+    )
+    tcPr.append(solid)
 
 
 def tenor_years(tenor: str) -> float | None:
@@ -430,11 +507,13 @@ def build_grids(series: dict, asof: str) -> dict[str, Any]:
             }
             csp = credit_sp(series, key, tenor, asof)
             csp_pct = percentile_rank(hist_metric(series, key, tenor, asof, "credit"), csp) if csp is not None else None
+            credit_fill = heatmap_rgb(csp_pct) if key != "국고" else None
             credit[(key, tenor)] = {
                 "bp": csp,
                 "pct": csp_pct,
                 "text": fmt_bp_pct(csp, csp_pct) if key != "국고" else "",
                 "line_colors": [sign_color(csp), None] if key != "국고" else [None, None],
+                "fill": credit_fill,
             }
             cv = curve_sp(series, key, tenor, asof)
             cv_bp = cv * 100.0 if cv is not None else None
@@ -444,6 +523,7 @@ def build_grids(series: dict, asof: str) -> dict[str, Any]:
                 "pct": cv_pct,
                 "text": fmt_curve_cell(cv_bp, cv_pct),
                 "line_colors": [sign_color(cv_bp), None],
+                "fill": heatmap_rgb(cv_pct),
             }
     return {
         "asof": asof,
@@ -476,11 +556,22 @@ def default_inputs() -> dict[str, Any]:
             "cash": "6M AAA CD 40%",
         },
         "repo_scenarios": [
-            {"label": "동결 (현 수준)", "final_rate": 3.00, "repo": 3.10, "avg_1y": 3.10},
-            {"label": "1회 (11월)", "final_rate": 3.25, "repo": 3.35, "avg_1y": 3.35},
-            {"label": "2회 (11월·2월)", "final_rate": 3.50, "repo": 3.60, "avg_1y": 3.54},
-            {"label": "3회 (11·2·4월)", "final_rate": 3.75, "repo": 3.85, "avg_1y": 3.68},
+            {"label": "동결", "final_rate": 3.00, "repo": 3.10, "avg_1y": 3.10},
+            {"label": "1회 인상", "final_rate": 3.25, "repo": 3.35, "avg_1y": 3.35},
+            {"label": "2회 인상", "final_rate": 3.50, "repo": 3.60, "avg_1y": 3.54},
+            {"label": "3회 인상", "final_rate": 3.75, "repo": 3.85, "avg_1y": 3.68},
         ],
+        # 현재월~+12개월(13칸) 기준금리 경로 → 평균(+10bp)이 Repo 1Y평균에 연동
+        "rate_path": {
+            "titles": ["동결", "1회 인상", "2회 인상", "3회 인상"],
+            "rates": [
+                [3.00] * 13,
+                [3.25] * 13,
+                [3.25, 3.25, 3.25, 3.50, 3.50, 3.50, 3.50, 3.50, 3.50, 3.50, 3.50, 3.50, 3.50],
+                [3.25, 3.25, 3.25, 3.50, 3.50, 3.75, 3.75, 3.75, 3.75, 3.75, 3.75, 3.75, 3.75],
+            ],
+            "repo_spread": 0.10,
+        },
         "portfolio": {
             "title": "2.0년 · 차입 200%",
             "composition": "2Y특은 160% + 2Y캐피탈 100% + 6M CD 40%",
@@ -506,7 +597,50 @@ def merge_inputs(user: dict | None) -> dict[str, Any]:
             base[k] = merged
         else:
             base[k] = v
+    apply_rate_path_to_scenarios(base)
     return base
+
+
+REPO_SPREAD_DEFAULT = 0.10
+
+
+def apply_rate_path_to_scenarios(inputs: dict) -> None:
+    """기준금리 경로 평균(+스프레드) → repo_scenarios.avg_1y / final / repo 동기화."""
+    path = inputs.get("rate_path") or {}
+    titles = path.get("titles") or []
+    rates = path.get("rates") or []
+    spread = _num(path.get("repo_spread"))
+    if spread is None:
+        spread = REPO_SPREAD_DEFAULT
+    scenarios = list(inputs.get("repo_scenarios") or [])
+    while len(scenarios) < 4:
+        scenarios.append({"label": "", "final_rate": None, "repo": None, "avg_1y": None})
+    for i in range(4):
+        sc = dict(scenarios[i] or {})
+        if i < len(titles) and titles[i]:
+            sc["label"] = str(titles[i]).strip()
+        row = rates[i] if i < len(rates) else []
+        nums = [_num(x) for x in (row or [])[:13]]
+        nums = [x for x in nums if x is not None]
+        if nums:
+            avg_policy = sum(nums) / len(nums)
+            sc["avg_1y"] = round(avg_policy + spread, 4)
+            sc["final_rate"] = nums[-1]
+            sc["repo"] = round(nums[-1] + spread, 4)
+        scenarios[i] = sc
+    inputs["repo_scenarios"] = scenarios
+
+
+def scenario_header_label(label: str) -> str:
+    s = (label or "").strip()
+    if not s:
+        return ""
+    if "동결" in s:
+        return "동결"
+    m = re.search(r"(\d+)\s*회", s)
+    if m:
+        return f"{m.group(1)}회 인상"
+    return s.split("(")[0].strip() or s
 
 
 def cd_rate(series: dict, tenor_label: str, date: str) -> float | None:
@@ -635,11 +769,15 @@ def portfolio_metrics(series: dict, grids: dict, inputs: dict) -> dict[str, Any]
     # scenario returns for selected tenor buckets using portfolio bonds only
     scen_headers = []
     for sc in scenarios[:4]:
-        label = sc.get("label") or ""
+        short = scenario_header_label(sc.get("label") or "")
         fr = _num(sc.get("final_rate"))
+        # 헤더 Repo 줄 = 1Y 평균(포트폴리오 시나리오 수익 산출에 사용)
         avg = _num(sc.get("avg_1y"))
+        if avg is None:
+            avg = _num(sc.get("repo"))
         scen_headers.append(
-            f"{fmt_pct(fr) if fr is not None else ''} ({label})\nRepo {fmt_pct(avg) if avg is not None else ''}"
+            f"{short} ({fmt_pct(fr) if fr is not None else ''})\n"
+            f"Repo {fmt_pct(avg) if avg is not None else ''}"
         )
     scen_vals = []
     for sc in scenarios[:4]:
@@ -724,8 +862,7 @@ def _apply_run_style(run, color: RGBColor | None = None, font_name: str = FONT_D
     except Exception:
         pass
     try:
-        if run.font.size is None:
-            run.font.size = Pt(8)
+        run.font.size = Pt(6)
     except Exception:
         pass
     if color is not None:
@@ -768,11 +905,13 @@ def fill_grid_table(table, grid: dict, value_key: str = "text") -> None:
     for ri, (_label, key) in enumerate(SECTOR_ROWS, start=1):
         for ci, tenor in enumerate(TENORS, start=1):
             cell = grid.get((key, tenor), {})
+            tc = table.cell(ri, ci)
             set_cell_text(
-                table.cell(ri, ci),
+                tc,
                 cell.get(value_key, "") or "",
                 line_colors=cell.get("line_colors"),
             )
+            set_cell_fill(tc, cell.get("fill"))
 
 
 def fill_cond_table(table, rows: list[dict]) -> None:
@@ -801,11 +940,25 @@ def build_preview(csv_path: str, inputs: dict | None = None) -> dict[str, Any]:
     cond100 = combo_returns(grids, COMBOS_100, inp.get("repo_scenarios") or [])
     cond200 = combo_returns(grids, COMBOS_200, inp.get("repo_scenarios") or [])
     port = portfolio_metrics(series, grids, inp)
-    # serialize grids for UI
+    # serialize grids for UI (RGBColor → #RRGGBB)
+    def _color_hex(c):
+        if c is None:
+            return None
+        try:
+            return f"#{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}"
+        except Exception:
+            return None
+
     def ser(g):
-        return {
-            f"{k[0]}|{k[1]}": v for k, v in g.items()
-        }
+        out = {}
+        for k, v in g.items():
+            item = dict(v)
+            if "line_colors" in item:
+                item["line_colors"] = [_color_hex(c) for c in (item.get("line_colors") or [])]
+            if "fill" in item:
+                item["fill"] = _color_hex(item.get("fill"))
+            out[f"{k[0]}|{k[1]}"] = item
+        return out
 
     return {
         "asof": asof,
@@ -889,6 +1042,16 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     fill_cond_table(shapes[IDX_COND_100].table, cond100)
     fill_cond_table(shapes[IDX_COND_200].table, cond200)
 
+    # 01~04 각주: 표와 겹치지 않게 소폭 하향, 기대수익률 산식 문구 갱신
+    try:
+        shapes[IDX_NOTE_MINPYEONG].top = shapes[IDX_NOTE_MINPYEONG].top + FOOTNOTE_NUDGE_EMU
+        shapes[IDX_NOTE_EXPECTED].top = shapes[IDX_NOTE_EXPECTED].top + FOOTNOTE_NUDGE_EMU
+        shapes[IDX_NOTE_CREDIT].top = shapes[IDX_NOTE_CREDIT].top + FOOTNOTE_NUDGE_EMU_BOTTOM
+        shapes[IDX_NOTE_CURVE].top = shapes[IDX_NOTE_CURVE].top + FOOTNOTE_NUDGE_EMU_BOTTOM
+        set_shape_text(shapes[IDX_NOTE_EXPECTED], NOTE_EXPECTED)
+    except Exception:
+        pass
+
     # repo scenario table
     scen_tbl = shapes[IDX_REPO_SCENARIO].table
     for i, sc in enumerate(inp.get("repo_scenarios") or []):
@@ -944,4 +1107,4 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
 
 def output_filename(asof: str) -> str:
     tag = (asof or "").replace("-", "") or datetime.now().strftime("%Y%m%d")
-    return f"신한_매칭형_레포_주간제안서_{tag}.pptx"
+    return f"신한 매칭형 레포펀드 주간 제안서_{tag}.pptx"

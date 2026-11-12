@@ -25,10 +25,17 @@ $addFiles = @(
     "term_table_long.csv",
     "bond_db_ktb.csv",
     "bond_db_msb.csv",
+    "matching_data.csv",
     "overview_state.json"
 )
 if (Test-Path -LiteralPath (Join-Path $Root "ETF_Worksheet.xlsx") -PathType Leaf) {
     $addFiles += "ETF_Worksheet.xlsx"
+}
+if (Test-Path -LiteralPath (Join-Path $Root "matching_pptx.py") -PathType Leaf) {
+    $addFiles += "matching_pptx.py"
+}
+if (Test-Path -LiteralPath (Join-Path $Root "serve_dashboard.py") -PathType Leaf) {
+    $addFiles += "serve_dashboard.py"
 }
 
 & git -C $Root add @addFiles
@@ -47,9 +54,9 @@ if (-not $hasChanges) {
         Write-Host "취소되었습니다."
         exit 0
     }
-    & git -C $Root commit --allow-empty -m "chore: update dashboard CSV, overview_state, and ETF_Worksheet"
+    & git -C $Root commit --allow-empty -m "chore: update dashboard CSV, matching_data, overview_state, and ETF_Worksheet"
 } else {
-    & git -C $Root commit -m "chore: update dashboard CSV, overview_state, and ETF_Worksheet"
+    & git -C $Root commit -m "chore: update dashboard CSV, matching_data, overview_state, and ETF_Worksheet"
 }
 
 if ($LASTEXITCODE -ne 0) {

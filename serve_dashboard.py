@@ -262,6 +262,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         self._send_json(200, {"ok": True, "to": EMP_EMAIL_TO})
 
+    def _load_matching_pptx(self):
+        """요청마다 최신 matching_pptx.py 를 다시 로드한다."""
+        import importlib
+        import matching_pptx
+
+        return importlib.reload(matching_pptx)
+
     def _handle_matching_preview(self) -> None:
         try:
             parsed = self._read_json_body()
@@ -270,8 +277,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         try:
             import traceback
 
-            import matching_pptx
-
+            matching_pptx = self._load_matching_pptx()
             csv_path = os.path.join(ROOT, MATCHING_CSV)
             preview = matching_pptx.build_preview(
                 csv_path, parsed.get("inputs") if isinstance(parsed, dict) else None
@@ -295,8 +301,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(400, "Invalid JSON")
             return
         try:
-            import matching_pptx
-
+            matching_pptx = self._load_matching_pptx()
             csv_path = os.path.join(ROOT, MATCHING_CSV)
             template_path = os.path.join(ROOT, MATCHING_TEMPLATE)
             if not os.path.isfile(csv_path):
@@ -313,6 +318,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             from urllib.parse import quote
 
             filename = matching_pptx.output_filename(asof)
+            # ASCII fallback + RFC5987 filename* (한글/공백 파일명)
+            ascii_name = "Shinhan_Matching_Repo_" + (asof or "").replace("-", "") + ".pptx"
+            if ascii_name.endswith("_.pptx"):
+                ascii_name = "Shinhan_Matching_Repo.pptx"
             payload = data
             self.send_response(200)
             self.send_header(
@@ -321,8 +330,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             )
             self.send_header(
                 "Content-Disposition",
-                "attachment; filename=\"matching_proposal.pptx\"; filename*=UTF-8''" + quote(filename),
+                "attachment; filename=\""
+                + ascii_name
+                + "\"; filename*=UTF-8''"
+                + quote(filename),
             )
+            self.send_header("X-Matching-Filename", quote(filename))
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
