@@ -3435,7 +3435,7 @@
             </table>
           </div>
           <h3 style="margin-top:0.85rem;">06 · 추천 포트폴리오 상세 (수기 · 민평수익률)</h3>
-          <p class="matching-note">섹터·만기 선택 시 오른쪽 민평이 01표 기준으로 표시됩니다. Repo는 아래 시나리오를 선택해 적용합니다(기본 동결).</p>
+          <p class="matching-note">섹터·만기·비중 변경 시 편입자산명·구성 요약이 자동 반영됩니다(직접 수정도 가능). Repo 시나리오는 아래에서 선택합니다.</p>
           <div class="matching-field-row">
             <label class="matching-field">카드 제목<input id="matchingPortTitle" type="text" /></label>
             <label class="matching-field">구성 요약<input id="matchingPortComposition" type="text" /></label>
@@ -13933,6 +13933,93 @@
     });
   }
 
+  function matchingAssetNameFromSelection(sector, tenor, kind) {
+    const sec = String(sector || "");
+    const ten = String(tenor || "");
+    const kn = String(kind || "");
+    if (sec === "REPO" || kn === "Repo") return "1일물 Repo (조달)";
+    if (sec === "CD" || kn === "CD") return (ten || "6개월") + " AAA 은행 CD";
+    const labels = {
+      특은: "특수은행채 AAA",
+      특수시은: "특수/시은 AAA",
+      카드: "카드채 AA",
+      캐피탈: "캐피탈채 AA-",
+      국고: "국고채",
+    };
+    const body = labels[sec] || sec;
+    return (ten ? ten + " " : "") + body;
+  }
+
+  function matchingKindFromSector(sector) {
+    if (sector === "REPO") return "Repo";
+    if (sector === "CD") return "CD";
+    return "채권";
+  }
+
+  function matchingShortTenorLabel(tenor) {
+    if (!tenor) return "";
+    if (tenor === "6개월") return "6M";
+    if (String(tenor).endsWith("년")) return String(tenor).replace("년", "Y");
+    return String(tenor);
+  }
+
+  function matchingShortSectorLabel(sector) {
+    const m = {
+      특은: "특은",
+      특수시은: "특수/시은",
+      카드: "카드",
+      캐피탈: "캐피탈",
+      국고: "국고",
+      CD: "CD",
+      REPO: "Repo",
+    };
+    return m[sector] || sector || "";
+  }
+
+  function matchingBuildCompositionSummary() {
+    const parts = [];
+    document.querySelectorAll("#matchingPortRows .matching-port-row").forEach((row) => {
+      const get = (k) => {
+        const inp = row.querySelector('[data-k="' + k + '"]');
+        return inp ? inp.value : "";
+      };
+      const sector = get("sector");
+      const tenor = get("tenor");
+      const weight = get("weight");
+      const kind = get("kind");
+      if (sector === "REPO" || kind === "Repo") return;
+      if (!sector && !tenor) return;
+      const head = matchingShortTenorLabel(tenor) + matchingShortSectorLabel(sector);
+      const w = weight !== "" && weight != null ? " " + weight + "%" : "";
+      if (head || w) parts.push(head + w);
+    });
+    return parts.join(" + ");
+  }
+
+  function matchingSyncPortDerivedFields(opts) {
+    const syncName = !opts || opts.name !== false;
+    const syncComp = !opts || opts.composition !== false;
+    const syncKind = !opts || opts.kind !== false;
+    document.querySelectorAll("#matchingPortRows .matching-port-row").forEach((row) => {
+      const getEl = (k) => row.querySelector('[data-k="' + k + '"]');
+      const sectorEl = getEl("sector");
+      const tenorEl = getEl("tenor");
+      const kindEl = getEl("kind");
+      const nameEl = getEl("name");
+      const sector = sectorEl ? sectorEl.value : "";
+      const tenor = tenorEl ? tenorEl.value : "";
+      if (syncKind && kindEl) kindEl.value = matchingKindFromSector(sector);
+      if (syncName && nameEl) {
+        nameEl.value = matchingAssetNameFromSelection(sector, tenor, kindEl ? kindEl.value : "");
+      }
+    });
+    if (syncComp) {
+      const comp = document.getElementById("matchingPortComposition");
+      if (comp) comp.value = matchingBuildCompositionSummary();
+    }
+    matchingUpdatePortRateDisplays();
+  }
+
   function matchingRenderPortRows(rows) {
     const wrap = document.getElementById("matchingPortRows");
     if (!wrap) return;
@@ -13956,7 +14043,7 @@
           '" title="구분" />' +
           '<input type="text" data-k="name" value="' +
           escapeHtml(r.name || "") +
-          '" title="편입자산" />' +
+          '" title="편입자산 (드롭다운 반영·수정 가능)" />' +
           "<select data-k=\"sector\">" +
           sectorOpts +
           "</select>" +
@@ -14302,9 +14389,15 @@
       if (addBtn) {
         addBtn.addEventListener("click", () => {
           const inputs = matchingCollectInputs();
-          inputs.portfolio.rows.push({ kind: "채권", name: "", sector: "특은", tenor: "2년", weight: 0 });
+          inputs.portfolio.rows.push({
+            kind: "채권",
+            name: matchingAssetNameFromSelection("특은", "2년", "채권"),
+            sector: "특은",
+            tenor: "2년",
+            weight: 0,
+          });
           matchingRenderPortRows(inputs.portfolio.rows);
-          matchingUpdatePortRateDisplays();
+          matchingSyncPortDerivedFields({ name: false, composition: true, kind: false });
         });
       }
       const portWrap = document.getElementById("matchingPortRows");
@@ -14313,7 +14406,20 @@
           const t = e.target;
           if (!t || !t.getAttribute) return;
           const k = t.getAttribute("data-k");
-          if (k === "sector" || k === "tenor" || k === "kind") matchingUpdatePortRateDisplays();
+          if (k === "sector" || k === "tenor") {
+            matchingSyncPortDerivedFields({ name: true, composition: true, kind: true });
+          } else if (k === "weight") {
+            matchingSyncPortDerivedFields({ name: false, composition: true, kind: false });
+          } else if (k === "kind") {
+            matchingUpdatePortRateDisplays();
+          }
+        });
+        portWrap.addEventListener("input", (e) => {
+          const t = e.target;
+          if (!t || !t.getAttribute) return;
+          if (t.getAttribute("data-k") === "weight") {
+            matchingSyncPortDerivedFields({ name: false, composition: true, kind: false });
+          }
         });
       }
       const portRepoSel = document.getElementById("matchingPortRepoScenario");

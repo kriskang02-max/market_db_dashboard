@@ -73,6 +73,7 @@ FOOTNOTE_NUDGE_EMU_BOTTOM = 55000  # 03·04 각주
 COLOR_ACCENT = RGBColor(0x1D, 0x4E, 0xD8)  # 06 강조 블루
 COLOR_PORT_TOTAL_FILL = RGBColor(0xFE, 0xF3, 0xC7)  # 합계행 하이라이트
 COLOR_PORT_RATE_FILL = RGBColor(0xEF, 0xF6, 0xFF)  # 수익률 열 연한 강조
+COLOR_SCEN_SELECT_FILL = RGBColor(0xFE, 0xF3, 0xC7)  # 선택 시나리오 열 음영
 
 SECTOR_ROWS = [
     ("국고채", "국고"),
@@ -1292,6 +1293,15 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     for i, v in enumerate(vals[:4]):
         if len(scen_ret.rows) > 2:
             set_cell_text(scen_ret.cell(2, i), v, font_size_pt=7, bold=True)
+    # 06에서 고른 Repo 시나리오 열(헤더+값) 음영
+    try:
+        sel_i = int(port.get("repo_scenario_idx") if port.get("repo_scenario_idx") is not None else 0)
+    except (TypeError, ValueError):
+        sel_i = 0
+    if 0 <= sel_i < 4:
+        set_cell_fill(scen_ret.cell(1, sel_i), COLOR_SCEN_SELECT_FILL)
+        if len(scen_ret.rows) > 2:
+            set_cell_fill(scen_ret.cell(2, sel_i), COLOR_SCEN_SELECT_FILL)
 
     # sensitivity
     sens_tbl = shapes[IDX_RATE_SENS].table
