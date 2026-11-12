@@ -2803,10 +2803,17 @@
     }
     #page-matching .matching-port-row {
       display: grid;
-      grid-template-columns: 4.2rem 1.2fr 5.5rem 4.5rem 4.5rem;
+      grid-template-columns: 4.2rem 1.2fr 5.5rem 4.5rem 4.2rem 5.2rem;
       gap: 0.3rem;
       margin-bottom: 0.3rem;
       align-items: center;
+    }
+    #page-matching .matching-port-rate {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #93c5fd;
+      white-space: nowrap;
+      text-align: right;
     }
     #page-matching table.matching-rate-path {
       font-size: 0.68rem;
@@ -3427,11 +3434,15 @@
               <tbody></tbody>
             </table>
           </div>
-          <h3 style="margin-top:0.85rem;">06 · 추천 포트폴리오 상세 (수기)</h3>
+          <h3 style="margin-top:0.85rem;">06 · 추천 포트폴리오 상세 (수기 · 민평수익률)</h3>
+          <p class="matching-note">섹터·만기 선택 시 오른쪽 민평이 01표 기준으로 표시됩니다. Repo는 아래 시나리오를 선택해 적용합니다(기본 동결).</p>
           <div class="matching-field-row">
             <label class="matching-field">카드 제목<input id="matchingPortTitle" type="text" /></label>
             <label class="matching-field">구성 요약<input id="matchingPortComposition" type="text" /></label>
           </div>
+          <label class="matching-field">Repo 시나리오 (06·04 카드 적용)
+            <select id="matchingPortRepoScenario" aria-label="06 Repo 시나리오"></select>
+          </label>
           <div id="matchingPortRows"></div>
           <div class="matching-actions">
             <button type="button" id="matchingAddPortRow" class="sidebar btn btn-secondary ovpd-toolbar-act">행 추가</button>
@@ -13612,6 +13623,7 @@
           { kind: "CD", name: "6개월 AAA 은행 CD", sector: "CD", tenor: "6개월", weight: 40 },
           { kind: "Repo", name: "1일물 Repo (조달)", sector: "REPO", tenor: "", weight: -200 },
         ],
+        repo_scenario_idx: 0,
       },
     };
   }
@@ -13829,6 +13841,96 @@
   function matchingOnRatePathChange() {
     const inputs = matchingCollectInputs();
     matchingRenderRepoScenarioInputs(inputs.repo_scenarios || []);
+    matchingRenderPortRepoScenarioSelect(
+      inputs.repo_scenarios || [],
+      inputs.portfolio && inputs.portfolio.repo_scenario_idx
+    );
+    matchingUpdatePortRateDisplays();
+  }
+
+  function matchingFormatPct(v) {
+    if (v == null || !Number.isFinite(Number(v))) return null;
+    return Number(v).toFixed(2) + "%";
+  }
+
+  function matchingSelectedRepoScenarioIdx() {
+    const el = document.getElementById("matchingPortRepoScenario");
+    const v = el ? parseInt(el.value, 10) : 0;
+    return Number.isFinite(v) ? v : 0;
+  }
+
+  function matchingRenderPortRepoScenarioSelect(scenarios, selectedIdx) {
+    const el = document.getElementById("matchingPortRepoScenario");
+    if (!el) return;
+    const list = scenarios || [];
+    let idx = selectedIdx != null ? parseInt(selectedIdx, 10) : 0;
+    if (!Number.isFinite(idx)) idx = 0;
+    if (list.length) idx = Math.max(0, Math.min(idx, list.length - 1));
+    el.innerHTML = list
+      .map((sc, i) => {
+        const avg = sc.avg_1y != null ? Number(sc.avg_1y).toFixed(2) + "%" : "—";
+        const lab = (sc.label || "시나리오 " + (i + 1)) + " · 1Y " + avg;
+        return (
+          '<option value="' +
+          i +
+          '"' +
+          (i === idx ? " selected" : "") +
+          ">" +
+          escapeHtml(lab) +
+          "</option>"
+        );
+      })
+      .join("");
+  }
+
+  function matchingLookupPortRate(sector, tenor, kind) {
+    const preview = matchingPreviewCache;
+    if (!preview) return null;
+    const sec = String(sector || "");
+    const kn = String(kind || "");
+    const detailRows = (preview.portfolio && preview.portfolio.detail_rows) || [];
+    const detailHit = detailRows.find(
+      (r) =>
+        String(r.sector || "") === sec &&
+        String(r.tenor || "") === String(tenor || "") &&
+        (!kn || String(r.kind || "") === kn || sec === "CD" || sec === "REPO")
+    );
+    if (detailHit && detailHit.rate_text) return detailHit.rate_text;
+    if (sec === "REPO" || kn === "Repo") {
+      const scen = (preview.inputs && preview.inputs.repo_scenarios) || [];
+      const idx = matchingSelectedRepoScenarioIdx();
+      const sc = scen[idx] || scen[0] || {};
+      const repo = sc.avg_1y != null ? sc.avg_1y : sc.repo;
+      return matchingFormatPct(repo);
+    }
+    if (sec === "CD" || kn === "CD") {
+      const byCd = detailRows.find((r) => r.sector === "CD" || r.kind === "CD");
+      return byCd && byCd.rate_text ? byCd.rate_text : null;
+    }
+    const key = sec === "여전" ? "캐피탈" : sec;
+    const cell = (preview.minpyeong || {})[key + "|" + tenor] || {};
+    if (cell.level != null) return matchingFormatPct(cell.level);
+    return null;
+  }
+
+  function matchingUpdatePortRateDisplays() {
+    const detailRows =
+      (matchingPreviewCache &&
+        matchingPreviewCache.portfolio &&
+        matchingPreviewCache.portfolio.detail_rows) ||
+      [];
+    document.querySelectorAll("#matchingPortRows .matching-port-row").forEach((row, i) => {
+      const el = row.querySelector("[data-matching-port-rate]");
+      if (!el) return;
+      const get = (k) => {
+        const inp = row.querySelector('[data-k="' + k + '"]');
+        return inp ? inp.value : "";
+      };
+      const live = matchingLookupPortRate(get("sector"), get("tenor"), get("kind"));
+      const fromIdx = detailRows[i] && detailRows[i].rate_text;
+      const rate = live || fromIdx || null;
+      el.textContent = rate ? "민평 " + rate : "민평 —";
+    });
   }
 
   function matchingRenderPortRows(rows) {
@@ -13844,6 +13946,7 @@
         const tenorOpts = tenors
           .map((t) => '<option value="' + t + '"' + (r.tenor === t ? " selected" : "") + ">" + (t || "—") + "</option>")
           .join("");
+        const rateTxt = matchingLookupPortRate(r.sector, r.tenor, r.kind);
         return (
           '<div class="matching-port-row" data-matching-port="' +
           i +
@@ -13863,6 +13966,9 @@
           '<input type="number" step="1" data-k="weight" value="' +
           (r.weight != null ? r.weight : "") +
           '" title="비중%" />' +
+          '<span class="matching-port-rate" data-matching-port-rate>' +
+          (rateTxt ? "민평 " + escapeHtml(rateTxt) : "민평 —") +
+          "</span>" +
           "</div>"
         );
       })
@@ -13890,6 +13996,10 @@
     matchingSyncScenariosFromPath(inputs);
     matchingRenderRatePath(inputs.rate_path || {}, inputs.asof || "");
     matchingRenderRepoScenarioInputs(inputs.repo_scenarios || []);
+    matchingRenderPortRepoScenarioSelect(
+      inputs.repo_scenarios || [],
+      inputs.portfolio && inputs.portfolio.repo_scenario_idx
+    );
     matchingRenderPortRows((inputs.portfolio && inputs.portfolio.rows) || []);
     const sel = document.getElementById("matchingAsOfSelect");
     if (sel && inputs.asof) sel.value = inputs.asof;
@@ -13952,6 +14062,7 @@
       portfolio: {
         title: val("matchingPortTitle"),
         composition: val("matchingPortComposition"),
+        repo_scenario_idx: matchingSelectedRepoScenarioIdx(),
         rows,
       },
     };
@@ -13972,12 +14083,14 @@
     const text = cell && cell.text != null && String(cell.text) !== "" ? String(cell.text) : "—";
     const colors = (cell && cell.line_colors) || [];
     const pctBlack = opts && opts.pctBlack;
+    const heatDark = opts && opts.heatDark;
     return text
       .split("\n")
       .map((line, i) => {
         let c = colors[i];
-        // 히트맵 셀: 백분위(2번째 줄)는 다크모드에서도 보이도록 검정
+        // 히트맵 셀: 백분위/레벨은 다크모드에서도 보이도록 검정 (부호색 있는 변동폭은 유지)
         if (pctBlack && i === 1) c = "#111827";
+        if (heatDark && !c) c = "#111827";
         const body = escapeHtml(line);
         return c ? '<span style="color:' + escapeHtml(c) + ';font-weight:600">' + body + "</span>" : body;
       })
@@ -13989,7 +14102,9 @@
     const keys = preview.sector_keys || [];
     const tenors = preview.tenors || [];
     const data = preview[kind] || {};
-    const useHeat = kind === "credit" || kind === "curve";
+    const useHeat =
+      kind === "credit" || kind === "curve" || kind === "minpyeong" || kind === "expected";
+    const pctBlack = kind === "credit" || kind === "curve";
     let h = '<table class="matching-table"><thead><tr><th>섹터</th>';
     tenors.forEach((t) => {
       h += "<th>" + escapeHtml(t) + "</th>";
@@ -14008,7 +14123,7 @@
           "<td" +
           bg +
           ">" +
-          matchingCellHtml(cell, useHeat ? { pctBlack: true } : null) +
+          matchingCellHtml(cell, useHeat ? { pctBlack: pctBlack, heatDark: true } : null) +
           "</td>";
       });
       h += "</tr>";
@@ -14065,13 +14180,22 @@
     const port = preview.portfolio || {};
     if (sum) {
       sum.textContent =
-        "06 요약: 기대수익 " +
-        (port.total_text || "—") +
+        "06 요약: " +
+        (port.return_text || "예상수익률 —") +
         " · BEP " +
         (port.bep_text || "—") +
         " · 전주비교일 " +
         (preview.prev_week || "—");
     }
+    if (preview.inputs && preview.inputs.repo_scenarios) {
+      matchingRenderPortRepoScenarioSelect(
+        preview.inputs.repo_scenarios,
+        (preview.inputs.portfolio && preview.inputs.portfolio.repo_scenario_idx) != null
+          ? preview.inputs.portfolio.repo_scenario_idx
+          : port.repo_scenario_idx
+      );
+    }
+    matchingUpdatePortRateDisplays();
     const meta = document.getElementById("matchingMeta");
     if (meta) meta.textContent = "기준일 " + (preview.asof || "—") + " · matching_data.csv";
   }
@@ -14180,6 +14304,23 @@
           const inputs = matchingCollectInputs();
           inputs.portfolio.rows.push({ kind: "채권", name: "", sector: "특은", tenor: "2년", weight: 0 });
           matchingRenderPortRows(inputs.portfolio.rows);
+          matchingUpdatePortRateDisplays();
+        });
+      }
+      const portWrap = document.getElementById("matchingPortRows");
+      if (portWrap) {
+        portWrap.addEventListener("change", (e) => {
+          const t = e.target;
+          if (!t || !t.getAttribute) return;
+          const k = t.getAttribute("data-k");
+          if (k === "sector" || k === "tenor" || k === "kind") matchingUpdatePortRateDisplays();
+        });
+      }
+      const portRepoSel = document.getElementById("matchingPortRepoScenario");
+      if (portRepoSel) {
+        portRepoSel.addEventListener("change", () => {
+          matchingUpdatePortRateDisplays();
+          matchingFetchPreview();
         });
       }
       if (asofSel) {
