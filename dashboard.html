@@ -3423,7 +3423,7 @@
           <label class="matching-field">CURVE RV<input id="matchingRvCurve" type="text" /></label>
           <label class="matching-field">CREDIT RV<textarea id="matchingRvCredit"></textarea></label>
           <label class="matching-field">현금성 자산<input id="matchingRvCash" type="text" /></label>
-          <label class="matching-field">상단 날짜 문구<input id="matchingDateLine" type="text" placeholder="비우면 기준일로 자동" /></label>
+          <label class="matching-field">상단 날짜 문구<input id="matchingDateLine" type="text" placeholder="비우면 작성일(오늘)로 자동" /></label>
         </div>
         <div class="matching-card">
           <h3>05 · Repo 금리 시나리오</h3>
@@ -13958,6 +13958,7 @@
 
   function matchingShortTenorLabel(tenor) {
     if (!tenor) return "";
+    if (tenor === "3개월") return "3M";
     if (tenor === "6개월") return "6M";
     if (String(tenor).endsWith("년")) return String(tenor).replace("년", "Y");
     return String(tenor);
@@ -14024,7 +14025,7 @@
     const wrap = document.getElementById("matchingPortRows");
     if (!wrap) return;
     const sectors = ["특은", "특수시은", "카드", "캐피탈", "국고", "CD", "REPO"];
-    const tenors = ["", "6개월", "1년", "1.5년", "2년", "2.5년", "3년"];
+    const tenors = ["", "3개월", "6개월", "1년", "1.5년", "2년", "2.5년", "3년"];
     wrap.innerHTML = (rows || [])
       .map((r, i) => {
         const sectorOpts = sectors
@@ -14169,17 +14170,17 @@
   function matchingCellHtml(cell, opts) {
     const text = cell && cell.text != null && String(cell.text) !== "" ? String(cell.text) : "—";
     const colors = (cell && cell.line_colors) || [];
-    const pctBlack = opts && opts.pctBlack;
-    const heatDark = opts && opts.heatDark;
+    const forceCharcoal = opts && opts.forceCharcoal;
     return text
       .split("\n")
       .map((line, i) => {
-        let c = colors[i];
-        // 히트맵 셀: 백분위/레벨은 다크모드에서도 보이도록 검정 (부호색 있는 변동폭은 유지)
-        if (pctBlack && i === 1) c = "#111827";
-        if (heatDark && !c) c = "#111827";
+        let c = forceCharcoal ? "#1E293B" : colors[i];
+        if (!c && forceCharcoal) c = "#1E293B";
+        const weight = i === 0 || forceCharcoal ? "700" : "600";
         const body = escapeHtml(line);
-        return c ? '<span style="color:' + escapeHtml(c) + ';font-weight:600">' + body + "</span>" : body;
+        return c
+          ? '<span style="color:' + escapeHtml(c) + ";font-weight:" + weight + '">' + body + "</span>"
+          : body;
       })
       .join("<br>");
   }
@@ -14189,9 +14190,8 @@
     const keys = preview.sector_keys || [];
     const tenors = preview.tenors || [];
     const data = preview[kind] || {};
-    const useHeat =
-      kind === "credit" || kind === "curve" || kind === "minpyeong" || kind === "expected";
-    const pctBlack = kind === "credit" || kind === "curve";
+    // 01·02: 흰 배경 + 변동폭 글자색 / 03·04: 백분위 히트맵 + 차콜 텍스트
+    const useHeat = kind === "credit" || kind === "curve";
     let h = '<table class="matching-table"><thead><tr><th>섹터</th>';
     tenors.forEach((t) => {
       h += "<th>" + escapeHtml(t) + "</th>";
@@ -14202,15 +14202,13 @@
       h += "<tr><td>" + escapeHtml(label) + "</td>";
       tenors.forEach((t) => {
         const cell = data[key + "|" + t] || {};
-        const bg =
-          useHeat && cell.fill
-            ? ' style="background:' + escapeHtml(cell.fill) + ';color:#111827"'
-            : "";
+        const fill = cell.fill || "#FFFFFF";
+        const bg = ' style="background:' + escapeHtml(useHeat ? fill : "#FFFFFF") + '"';
         h +=
           "<td" +
           bg +
           ">" +
-          matchingCellHtml(cell, useHeat ? { pctBlack: pctBlack, heatDark: true } : null) +
+          matchingCellHtml(cell, useHeat ? { forceCharcoal: true } : null) +
           "</td>";
       });
       h += "</tr>";
@@ -14219,25 +14217,52 @@
     return h;
   }
 
-  function matchingCondHtml(rows) {
-    let h =
-      '<table class="matching-table"><thead><tr><th>만기</th><th>구성</th><th>동결</th><th>인상1회</th><th>인상2회</th><th>BEP</th></tr></thead><tbody>';
-    (rows || []).forEach((r) => {
-      const vals = r.vals || [];
+  function matchingCondHtml(rows, highlightIdx, highlightCol) {
+    const scenHdrs = ["동결", "인상1회", "인상2회"];
+    const scenIdx =
+      highlightCol != null && highlightCol >= 0 && highlightCol <= 2 ? highlightCol : null;
+    let h = '<table class="matching-table"><thead><tr><th>만기</th><th>구성</th>';
+    scenHdrs.forEach((label, j) => {
+      const isScen = scenIdx === j;
       h +=
-        "<tr><td>" +
-        escapeHtml(r.tenor || "") +
-        "</td><td style=\"text-align:left\">" +
-        escapeHtml(r.label || "") +
-        "</td><td>" +
-        escapeHtml(vals[0] || "—") +
-        "</td><td>" +
-        escapeHtml(vals[1] || "—") +
-        "</td><td>" +
-        escapeHtml(vals[2] || "—") +
-        "</td><td>" +
-        escapeHtml(r.bep || "—") +
-        "</td></tr>";
+        "<th style=\"" +
+        (isScen ? "background:#EFF6FF;color:#003876;font-weight:700" : "") +
+        '">' +
+        escapeHtml(label) +
+        "</th>";
+    });
+    h += "<th>BEP</th></tr></thead><tbody>";
+    (rows || []).forEach((r, i) => {
+      const vals = r.vals || [];
+      const isHi = highlightIdx != null && i === highlightIdx;
+      const rowBg = isHi ? "#EFF6FF" : "";
+      const txt = isHi ? "color:#003876;font-weight:700" : "";
+      const bepBg = isHi ? "#EFF6FF" : "#F8FAFC";
+      const bepTxt = isHi ? "color:#003876;font-weight:700" : "color:#0F766E;font-weight:700";
+      const scenStyle = "background:#EFF6FF;color:#003876;font-weight:700";
+      const td = (content, extra) =>
+        "<td style=\"background:" +
+        (extra && extra.bg ? extra.bg : rowBg || "#FFFFFF") +
+        ";" +
+        (extra && extra.style ? extra.style : txt) +
+        (extra && extra.align ? ";text-align:" + extra.align : "") +
+        '">' +
+        content +
+        "</td>";
+      const valTd = (j) => {
+        const content = escapeHtml(vals[j] || "—");
+        if (scenIdx === j) return td(content, { bg: "#EFF6FF", style: scenStyle });
+        return td(content);
+      };
+      h +=
+        "<tr>" +
+        td(escapeHtml(r.tenor || "")) +
+        td(escapeHtml(r.label || ""), { align: "left" }) +
+        valTd(0) +
+        valTd(1) +
+        valTd(2) +
+        td(escapeHtml(r.bep || "—"), { bg: bepBg, style: bepTxt }) +
+        "</tr>";
     });
     h += "</tbody></table>";
     return h;
@@ -14261,8 +14286,12 @@
     setHtml("matchingPreviewExpected", matchingGridHtml(preview, "expected"));
     setHtml("matchingPreviewCredit", matchingGridHtml(preview, "credit"));
     setHtml("matchingPreviewCurve", matchingGridHtml(preview, "curve"));
-    setHtml("matchingPreviewCond100", matchingCondHtml(preview.cond100));
-    setHtml("matchingPreviewCond200", matchingCondHtml(preview.cond200));
+    const scenHi =
+      preview.portfolio && preview.portfolio.repo_scenario_idx != null
+        ? preview.portfolio.repo_scenario_idx
+        : null;
+    setHtml("matchingPreviewCond100", matchingCondHtml(preview.cond100, preview.cond100_hi, scenHi));
+    setHtml("matchingPreviewCond200", matchingCondHtml(preview.cond200, preview.cond200_hi, scenHi));
     const sum = document.getElementById("matchingPortSummary");
     const port = preview.portfolio || {};
     if (sum) {
@@ -14330,10 +14359,8 @@
         throw new Error(msg);
       }
       const blob = await res.blob();
-      const asofTag = String(inputs.asof || "")
-        .replace(/-/g, "")
-        .replace(/[^\d]/g, "");
-      const tag = asofTag || (() => {
+      // 파일명 날짜는 작성일(오늘) 기준
+      const tag = (() => {
         const d = new Date();
         const y = d.getFullYear();
         const mo = String(d.getMonth() + 1).padStart(2, "0");

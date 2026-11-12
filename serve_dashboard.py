@@ -312,16 +312,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 return
             inputs = parsed.get("inputs") if isinstance(parsed, dict) else None
             data = matching_pptx.fill_pptx(template_path, csv_path, inputs)
-            asof = ""
-            if isinstance(inputs, dict):
-                asof = str(inputs.get("asof") or "")
             from urllib.parse import quote
+            from datetime import datetime as _dt
 
-            filename = matching_pptx.output_filename(asof)
-            # ASCII fallback + RFC5987 filename* (한글/공백 파일명)
-            ascii_name = "Shinhan_Matching_Repo_" + (asof or "").replace("-", "") + ".pptx"
-            if ascii_name.endswith("_.pptx"):
-                ascii_name = "Shinhan_Matching_Repo.pptx"
+            filename = matching_pptx.output_filename()
+            # ASCII fallback + RFC5987 filename* (한글/공백 파일명) — 날짜는 오늘
+            today_tag = _dt.now().strftime("%Y%m%d")
+            ascii_name = "Shinhan_Matching_Repo_" + today_tag + ".pptx"
             payload = data
             self.send_response(200)
             self.send_header(

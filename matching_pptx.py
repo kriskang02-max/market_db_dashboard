@@ -22,9 +22,23 @@ from pptx.oxml.ns import qn
 from pptx.util import Pt
 
 FONT_DATA = "원신한 Light"
-COLOR_UP = RGBColor(0x3B, 0x82, 0xF6)  # 플러스 = 파란색
-COLOR_DOWN = RGBColor(0xEF, 0x44, 0x44)  # 마이너스 = 빨간색
-COLOR_DEFAULT = RGBColor(0x1E, 0x29, 0x3B)
+# 01·02 변동폭 텍스트: 상승=레드, 하락=블루 (배경 히트맵 대신)
+COLOR_CHG_UP = RGBColor(0xDC, 0x26, 0x26)
+COLOR_CHG_DOWN = RGBColor(0x25, 0x63, 0xEB)
+COLOR_CHG_FLAT = RGBColor(0x64, 0x74, 0x8B)
+COLOR_LEVEL = RGBColor(0x1E, 0x29, 0x3B)  # 절대금리/본문
+COLOR_WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+COLOR_HEADER_GRAY = RGBColor(0xF1, 0xF5, 0xF9)
+COLOR_SLATE_BG = RGBColor(0xF8, 0xFA, 0xFC)
+COLOR_SHINHAN_BG = RGBColor(0xEF, 0xF6, 0xFF)  # 연한 신한 블루
+COLOR_SHINHAN_NAVY = RGBColor(0x00, 0x38, 0x76)
+COLOR_TEAL = RGBColor(0x0F, 0x76, 0x6E)
+COLOR_SKY = RGBColor(0x38, 0xBD, 0xF8)
+COLOR_GOLD = RGBColor(0xFD, 0xE0, 0x47)
+COLOR_DEFAULT = COLOR_LEVEL
+# 하위 호환 별칭
+COLOR_UP = COLOR_CHG_UP
+COLOR_DOWN = COLOR_CHG_DOWN
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CSV = os.path.join(ROOT, "matching_data.csv")
@@ -70,10 +84,18 @@ IDX_NOTE_CREDIT = 119
 IDX_NOTE_CURVE = 121
 FOOTNOTE_NUDGE_EMU = 70000  # 01·02 각주
 FOOTNOTE_NUDGE_EMU_BOTTOM = 55000  # 03·04 각주
-COLOR_ACCENT = RGBColor(0x1D, 0x4E, 0xD8)  # 06 강조 블루
-COLOR_PORT_TOTAL_FILL = RGBColor(0xFE, 0xF3, 0xC7)  # 합계행 하이라이트
-COLOR_PORT_RATE_FILL = RGBColor(0xEF, 0xF6, 0xFF)  # 수익률 열 연한 강조
-COLOR_SCEN_SELECT_FILL = RGBColor(0xFE, 0xF3, 0xC7)  # 선택 시나리오 열 음영
+COLOR_ACCENT = COLOR_SHINHAN_NAVY
+COLOR_PORT_TOTAL_FILL = COLOR_SHINHAN_BG
+COLOR_PORT_RATE_FILL = COLOR_SHINHAN_BG
+COLOR_SCEN_SELECT_FILL = COLOR_SHINHAN_BG
+# 05 Repo 표: 템플릿이 밝은 글씨 → 어두운 배경 유지
+COLOR_REPO_HEADER = RGBColor(0x1E, 0x29, 0x3B)
+COLOR_REPO_ROW = RGBColor(0x0F, 0x17, 0x2A)
+COLOR_REPO_ROW_ALT = RGBColor(0x1E, 0x29, 0x3B)
+COLOR_REPO_AVG = RGBColor(0x0C, 0x4A, 0x6E)  # 1Y평균 열
+IDX_SIDE_TITLES = (78, 79, 82, 87, 91)  # 01~05 사이드바 소제목
+IDX_REC_CARD = 2
+IDX_REC_GOLD_BAR = 6  # 04 카드 좌측 포인트 바
 
 SECTOR_ROWS = [
     ("국고채", "국고"),
@@ -384,9 +406,22 @@ def fmt_minpyeong(level: float | None, chg: float | None) -> str:
 
 
 def sign_color(v: float | None) -> RGBColor | None:
+    """레거시: 양수=업컬러, 음수=다운컬러."""
     if v is None or not math.isfinite(v) or v == 0:
         return None
-    return COLOR_UP if v > 0 else COLOR_DOWN
+    return COLOR_CHG_UP if v > 0 else COLOR_CHG_DOWN
+
+
+def chg_text_color(chg_pct: float | None) -> RGBColor:
+    """01·02 둘째줄 변동폭: +레드 / -블루 / 0 그레이."""
+    if chg_pct is None or not math.isfinite(chg_pct):
+        return COLOR_CHG_FLAT
+    bp = int(round(chg_pct * 100.0))
+    if bp > 0:
+        return COLOR_CHG_UP
+    if bp < 0:
+        return COLOR_CHG_DOWN
+    return COLOR_CHG_FLAT
 
 
 def _lerp_byte(a: int, b: int, t: float) -> int:
@@ -394,23 +429,32 @@ def _lerp_byte(a: int, b: int, t: float) -> int:
 
 
 def heatmap_rgb(pct: float | None) -> RGBColor | None:
-    """백분위 0→붉은색, 50→흰색, 100→파란색 (셀 배경용 연한 톤)."""
+    """03·04 백분위 히트맵: 낮음=페일코랄, 중간=흰, 높음=소프트블루."""
     if pct is None or not math.isfinite(pct):
         return None
     t = max(0.0, min(100.0, float(pct))) / 100.0
-    red = (252, 165, 165)  # #FCA5A5
+    coral = (255, 241, 242)  # #FFF1F2
     mid = (255, 255, 255)
-    blue = (147, 197, 253)  # #93C5FD
+    soft_lo = (239, 246, 255)  # #EFF6FF
+    soft_hi = (191, 219, 254)  # #BFDBFE
     if t <= 0.5:
         u = t * 2.0
-        r = _lerp_byte(red[0], mid[0], u)
-        g = _lerp_byte(red[1], mid[1], u)
-        b = _lerp_byte(red[2], mid[2], u)
+        r = _lerp_byte(coral[0], mid[0], u)
+        g = _lerp_byte(coral[1], mid[1], u)
+        b = _lerp_byte(coral[2], mid[2], u)
     else:
         u = (t - 0.5) * 2.0
-        r = _lerp_byte(mid[0], blue[0], u)
-        g = _lerp_byte(mid[1], blue[1], u)
-        b = _lerp_byte(mid[2], blue[2], u)
+        # 50→70: 흰색→EFF6FF, 70→100: EFF6FF→BFDBFE
+        if u <= 0.4:
+            uu = u / 0.4
+            r = _lerp_byte(mid[0], soft_lo[0], uu)
+            g = _lerp_byte(mid[1], soft_lo[1], uu)
+            b = _lerp_byte(mid[2], soft_lo[2], uu)
+        else:
+            uu = (u - 0.4) / 0.6
+            r = _lerp_byte(soft_lo[0], soft_hi[0], uu)
+            g = _lerp_byte(soft_lo[1], soft_hi[1], uu)
+            b = _lerp_byte(soft_lo[2], soft_hi[2], uu)
     return RGBColor(r, g, b)
 
 
@@ -480,6 +524,8 @@ def set_cell_fill(cell, fill: RGBColor | None) -> None:
 
 def tenor_years(tenor: str) -> float | None:
     t = (tenor or "").strip()
+    if t == "3개월":
+        return 0.25
     if t == "6개월":
         return 0.5
     if t.endswith("년"):
@@ -540,8 +586,10 @@ def build_grids(series: dict, asof: str) -> dict[str, Any]:
                 "level": cur,
                 "chg": chg,
                 "text": fmt_minpyeong(cur, chg),
-                "line_colors": [None, sign_color(chg)],
-                "fill": None,
+                # 01: 배경 흰색, 1줄 차콜 볼드 / 2줄 변동폭 색
+                "line_colors": [COLOR_LEVEL, chg_text_color(chg)],
+                "line_bolds": [True, True],
+                "fill": COLOR_WHITE,
             }
             exp = expected_return(series, key, tenor, asof)
             exp_prv = expected_return(series, key, tenor, prev) if prev else None
@@ -550,17 +598,20 @@ def build_grids(series: dict, asof: str) -> dict[str, Any]:
                 "level": exp,
                 "chg": exp_chg,
                 "text": fmt_minpyeong(exp, exp_chg),
-                "line_colors": [None, sign_color(exp_chg)],
-                "fill": None,
+                "line_colors": [COLOR_LEVEL, chg_text_color(exp_chg)],
+                "line_bolds": [True, True],
+                "fill": COLOR_WHITE,
             }
             csp = credit_sp(series, key, tenor, asof)
             csp_pct = percentile_rank(hist_metric(series, key, tenor, asof, "credit"), csp) if csp is not None else None
-            credit_fill = heatmap_rgb(csp_pct) if key != "국고" else None
+            credit_fill = heatmap_rgb(csp_pct) if key != "국고" else COLOR_WHITE
             credit[(key, tenor)] = {
                 "bp": csp,
                 "pct": csp_pct,
                 "text": fmt_bp_pct(csp, csp_pct) if key != "국고" else "",
-                "line_colors": [sign_color(csp), None] if key != "국고" else [None, None],
+                # 03: 히트맵 유지, 텍스트는 전부 차콜
+                "line_colors": [COLOR_LEVEL, COLOR_LEVEL] if key != "국고" else [None, None],
+                "line_bolds": [True, False],
                 "fill": credit_fill,
             }
             cv = curve_sp(series, key, tenor, asof)
@@ -570,11 +621,10 @@ def build_grids(series: dict, asof: str) -> dict[str, Any]:
                 "bp": cv_bp,
                 "pct": cv_pct,
                 "text": fmt_curve_cell(cv_bp, cv_pct),
-                "line_colors": [sign_color(cv_bp), None],
-                "fill": heatmap_rgb(cv_pct),
+                "line_colors": [COLOR_LEVEL, COLOR_LEVEL],
+                "line_bolds": [True, False],
+                "fill": heatmap_rgb(cv_pct) if cv_pct is not None else COLOR_WHITE,
             }
-    apply_chg_heatmap(minpyeong)
-    apply_chg_heatmap(expected)
     return {
         "asof": asof,
         "prev_week": prev,
@@ -583,24 +633,6 @@ def build_grids(series: dict, asof: str) -> dict[str, Any]:
         "credit": credit,
         "curve": curve,
     }
-
-
-def apply_chg_heatmap(grid: dict) -> None:
-    """01·02: 전주 대비 변동폭 상대 순위로 히트맵 (하락=붉, 상승=파랑)."""
-    chgs = [v.get("chg") for v in grid.values() if v.get("chg") is not None and math.isfinite(v["chg"])]
-    if not chgs:
-        return
-    lo, hi = min(chgs), max(chgs)
-    for cell in grid.values():
-        chg = cell.get("chg")
-        if chg is None or not math.isfinite(chg):
-            cell["fill"] = None
-            continue
-        if hi == lo:
-            pct = 50.0
-        else:
-            pct = (chg - lo) / (hi - lo) * 100.0
-        cell["fill"] = heatmap_rgb(pct)
 
 
 def default_inputs() -> dict[str, Any]:
@@ -970,6 +1002,84 @@ def set_shape_text(shape, text: str, align: str | None = None) -> None:
             run.text = line
 
 
+def _ensure_para_runs(para, n: int):
+    while len(para.runs) < n:
+        para.add_run()
+    return list(para.runs)
+
+
+def _set_rec_metric_text(
+    shape,
+    prefix: str,
+    value: str,
+    suffix: str,
+    value_color: RGBColor,
+    *,
+    suffix_size_pt: float | None = 6.8,
+) -> None:
+    """04 카드 지표: 라벨은 연회색, 핵심 숫자는 강조색, 기준 문구는 소형."""
+    if not shape.has_text_frame:
+        return
+    para = shape.text_frame.paragraphs[0]
+    runs = _ensure_para_runs(para, 3)
+    parts = [
+        (prefix, RGBColor(0xCB, 0xD5, 0xE1), False, None),
+        (value, value_color, True, None),
+        (suffix, RGBColor(0xCB, 0xD5, 0xE1), False, suffix_size_pt),
+    ]
+    for i, (txt, col, bold, size) in enumerate(parts):
+        runs[i].text = txt
+        _apply_run_style(runs[i], col, FONT_DATA, font_size_pt=size, bold=bold)
+    for r in runs[3:]:
+        r.text = ""
+
+
+def _style_sidebar_title(shape) -> None:
+    """01~05 소제목: 하늘색 볼드, 밑줄 제거."""
+    if not shape.has_text_frame:
+        return
+    for para in shape.text_frame.paragraphs:
+        for run in para.runs:
+            try:
+                run.font.underline = False
+            except Exception:
+                pass
+            try:
+                rPr = run._r.get_or_add_rPr()
+                for child in list(rPr):
+                    if child.tag == qn("a:u"):
+                        rPr.remove(child)
+                if "u" in rPr.attrib:
+                    del rPr.attrib["u"]
+            except Exception:
+                pass
+            _apply_run_style(run, COLOR_SKY, FONT_DATA, font_size_pt=None, bold=True)
+
+
+def _set_shape_solid_fill(shape, color: RGBColor) -> None:
+    hx = rgb_to_hex(color, with_hash=False)
+    if not hx:
+        return
+    spPr = shape._element.spPr
+    solid = spPr.find(qn("a:solidFill"))
+    if solid is None:
+        from lxml.etree import Element, SubElement
+
+        solid = Element(qn("a:solidFill"))
+        srgb = SubElement(solid, qn("a:srgbClr"))
+        srgb.set("val", hx)
+        spPr.insert(0, solid)
+        return
+    srgb = solid.find(qn("a:srgbClr"))
+    if srgb is None:
+        from lxml.etree import SubElement
+
+        for child in list(solid):
+            solid.remove(child)
+        srgb = SubElement(solid, qn("a:srgbClr"))
+    srgb.set("val", hx)
+
+
 def _apply_run_style(
     run,
     color: RGBColor | None = None,
@@ -1007,6 +1117,7 @@ def set_cell_text(
     font_size_pt: float | None = 6,
     bold: bool | None = None,
     color: RGBColor | None = None,
+    line_bolds: list | None = None,
 ) -> None:
     lines = str(text).split("\n") if text is not None else [""]
     tf = cell.text_frame
@@ -1017,17 +1128,20 @@ def set_cell_text(
         line_color = color
         if line_colors and i < len(line_colors) and line_colors[i] is not None:
             line_color = line_colors[i]
+        line_bold = bold
+        if line_bolds and i < len(line_bolds) and line_bolds[i] is not None:
+            line_bold = line_bolds[i]
         if center:
             para.alignment = PP_ALIGN.CENTER
         if para.runs:
             para.runs[0].text = line
-            _apply_run_style(para.runs[0], line_color, font_name, font_size_pt, bold)
+            _apply_run_style(para.runs[0], line_color, font_name, font_size_pt, line_bold)
             for r in para.runs[1:]:
                 r.text = ""
         else:
             run = para.add_run()
             run.text = line
-            _apply_run_style(run, line_color, font_name, font_size_pt, bold)
+            _apply_run_style(run, line_color, font_name, font_size_pt, line_bold)
 
 
 def emphasize_shape_text(
@@ -1068,7 +1182,18 @@ def emphasize_shape_line(shape, color: RGBColor, width_pt: float = 2.25) -> None
 
 
 def fill_grid_table(table, grid: dict, value_key: str = "text") -> None:
+    # 헤더 행: 쿨그레이
+    try:
+        for ci in range(len(table.columns)):
+            set_cell_fill(table.cell(0, ci), COLOR_HEADER_GRAY)
+    except Exception:
+        pass
     for ri, (_label, key) in enumerate(SECTOR_ROWS, start=1):
+        # 섹터 라벨 열도 흰 유지
+        try:
+            set_cell_fill(table.cell(ri, 0), COLOR_WHITE)
+        except Exception:
+            pass
         for ci, tenor in enumerate(TENORS, start=1):
             cell = grid.get((key, tenor), {})
             tc = table.cell(ri, ci)
@@ -1076,20 +1201,127 @@ def fill_grid_table(table, grid: dict, value_key: str = "text") -> None:
                 tc,
                 cell.get(value_key, "") or "",
                 line_colors=cell.get("line_colors"),
+                line_bolds=cell.get("line_bolds"),
             )
-            set_cell_fill(tc, cell.get("fill"))
+            set_cell_fill(tc, cell.get("fill") if cell.get("fill") is not None else COLOR_WHITE)
 
 
-def fill_cond_table(table, rows: list[dict], font_size_pt: float = 7) -> None:
-    # rows 1..9 map to combo rows; col0/1/2 labels already in template
+def match_combo_row_index(combos: list[dict], portfolio_rows: list[dict]) -> int | None:
+    """06 포트폴리오 채권 레그와 동일한 05 조합 행 인덱스."""
+    legs: list[tuple[str, float]] = []
+    tenor = None
+    for r in portfolio_rows or []:
+        sector = r.get("sector") or ""
+        kind = r.get("kind") or ""
+        if sector == "REPO" or kind == "Repo" or sector == "CD" or kind == "CD":
+            continue
+        key = "캐피탈" if sector == "여전" else sector
+        w = (_num(r.get("weight")) or 0.0) / 100.0
+        legs.append((key, round(w, 4)))
+        if r.get("tenor"):
+            tenor = r.get("tenor")
+    if not legs or not tenor:
+        return None
+    legs_s = sorted(legs)
+    for i, combo in enumerate(combos):
+        if combo.get("tenor") != tenor:
+            continue
+        c_legs = sorted(
+            [
+                ("캐피탈" if s == "여전" else s, round(float(w), 4))
+                for s, w in (combo.get("legs") or [])
+                if s != "CD"
+            ]
+        )
+        if c_legs == legs_s:
+            return i
+    return None
+
+
+def fill_cond_table(
+    table,
+    rows: list[dict],
+    font_size_pt: float = 7,
+    highlight_row: int | None = None,
+    highlight_col: int | None = None,
+) -> None:
+    """05 조건별 표: 흰 배경, BEP 슬레이트, 추천 행·06 시나리오 열 강조."""
+    # highlight_col: 시나리오 인덱스 0=동결→열3, 1→열4, 2→열5
+    scen_ci = (3 + int(highlight_col)) if highlight_col is not None and 0 <= int(highlight_col) <= 2 else None
+    ncols = len(table.columns)
+    for ci in range(ncols):
+        try:
+            is_scen_hdr = scen_ci is not None and ci == scen_ci
+            set_cell_fill(table.cell(0, ci), COLOR_SHINHAN_BG if is_scen_hdr else COLOR_HEADER_GRAY)
+            if is_scen_hdr:
+                hdr = table.cell(0, ci)
+                set_cell_text(
+                    hdr,
+                    (hdr.text_frame.text or "").strip(),
+                    font_size_pt=font_size_pt,
+                    bold=True,
+                    color=COLOR_SHINHAN_NAVY,
+                )
+        except Exception:
+            pass
     for i, row in enumerate(rows):
         ri = i + 1
         if ri >= len(table.rows):
             break
+        is_hi = highlight_row is not None and i == highlight_row
+        for ci in range(ncols):
+            if is_hi or (scen_ci is not None and ci == scen_ci):
+                fill = COLOR_SHINHAN_BG
+            elif ci == 6:
+                fill = COLOR_SLATE_BG
+            else:
+                fill = COLOR_WHITE
+            try:
+                set_cell_fill(table.cell(ri, ci), fill)
+            except Exception:
+                pass
         vals = row.get("vals") or []
+        txt_color = COLOR_SHINHAN_NAVY if is_hi else COLOR_LEVEL
+        hi_bold = True if is_hi else None
+        set_cell_text(
+            table.cell(ri, 0),
+            row.get("tenor") or "",
+            font_size_pt=font_size_pt,
+            bold=hi_bold,
+            color=txt_color,
+        )
+        set_cell_text(
+            table.cell(ri, 1),
+            row.get("label") or "",
+            center=False,
+            font_size_pt=font_size_pt,
+            bold=hi_bold,
+            color=txt_color,
+        )
+        set_cell_text(
+            table.cell(ri, 2),
+            row.get("rwa") or "",
+            font_size_pt=font_size_pt,
+            bold=hi_bold,
+            color=txt_color,
+        )
         for j, v in enumerate(vals[:3]):
-            set_cell_text(table.cell(ri, 3 + j), v, font_size_pt=font_size_pt)
-        set_cell_text(table.cell(ri, 6), row.get("bep") or "", font_size_pt=font_size_pt)
+            ci = 3 + j
+            is_scen = scen_ci is not None and ci == scen_ci
+            set_cell_text(
+                table.cell(ri, ci),
+                v,
+                font_size_pt=font_size_pt,
+                bold=True if (is_hi or is_scen) else None,
+                color=COLOR_SHINHAN_NAVY if is_scen else txt_color,
+            )
+        set_cell_text(
+            table.cell(ri, 6),
+            row.get("bep") or "",
+            font_size_pt=font_size_pt,
+            bold=True,
+            color=COLOR_TEAL if not is_hi else COLOR_SHINHAN_NAVY,
+        )
 
 
 def build_preview(csv_path: str, inputs: dict | None = None) -> dict[str, Any]:
@@ -1110,6 +1342,9 @@ def build_preview(csv_path: str, inputs: dict | None = None) -> dict[str, Any]:
         grids, COMBOS_200, inp.get("repo_scenarios") or [], series=series, asof=asof
     )
     port = portfolio_metrics(series, grids, inp)
+    pf_rows = (inp.get("portfolio") or {}).get("rows") or []
+    hi100 = match_combo_row_index(COMBOS_100, pf_rows)
+    hi200 = match_combo_row_index(COMBOS_200, pf_rows)
     # serialize grids for UI (RGBColor → #RRGGBB)
     def _color_hex(c):
         if c is None:
@@ -1140,6 +1375,8 @@ def build_preview(csv_path: str, inputs: dict | None = None) -> dict[str, Any]:
         "curve": ser(grids["curve"]),
         "cond100": cond100,
         "cond200": cond200,
+        "cond100_hi": hi100,
+        "cond200_hi": hi200,
         "portfolio": port,
         "inputs": inp,
         "sectors": [x[0] for x in SECTOR_ROWS],
@@ -1170,12 +1407,13 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     slide = prs.slides[0]
     shapes = list(slide.shapes)
 
-    # date line
-    dt = _ymd(asof)
+    # date line: 작성일(오늘) 기준
     weekdays = "월화수목금토일"
-    auto_date = ""
-    if dt:
-        auto_date = f"{dt.year}.{dt.month:02d}.{dt.day:02d} ({weekdays[dt.weekday()]}) | 신한자산운용 채권운용2팀 강찬홍"
+    today = datetime.now()
+    auto_date = (
+        f"{today.year}.{today.month:02d}.{today.day:02d} "
+        f"({weekdays[today.weekday()]}) | 신한자산운용 채권운용2팀 강찬홍"
+    )
     set_shape_text(shapes[IDX_DATE_LINE], inp.get("date_line") or auto_date)
 
     fund = inp.get("fund") or {}
@@ -1216,16 +1454,52 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     pf = inp.get("portfolio") or {}
     set_shape_text(shapes[IDX_REC_TITLE], pf.get("title") or "")
     set_shape_text(shapes[IDX_REC_COMPOSITION], pf.get("composition") or "")
-    set_shape_text(shapes[IDX_REC_RETURN], port.get("return_text") or "")
-    set_shape_text(shapes[IDX_REC_BEP], f"BEP {port.get('bep_text')}" if port.get("bep_text") else "BEP [X.XX]%")
+    # 04 카드: 예상수익률 숫자는 골드, BEP 값은 시안
+    _set_rec_metric_text(
+        shapes[IDX_REC_RETURN],
+        prefix="예상수익률 ",
+        value=port.get("total_text") or "[X.XX]%",
+        suffix=f" ({port.get('repo_scenario_label') or '동결'} 기준)",
+        value_color=COLOR_GOLD,
+    )
+    _set_rec_metric_text(
+        shapes[IDX_REC_BEP],
+        prefix="BEP ",
+        value=port.get("bep_text") or "[X.XX]%",
+        suffix="",
+        value_color=COLOR_SKY,
+    )
+    # 01~05 사이드바 소제목: 밑줄 제거 + 하늘색 볼드
+    for tidx in IDX_SIDE_TITLES:
+        try:
+            _style_sidebar_title(shapes[tidx])
+        except Exception:
+            pass
+    # 04 카드 좌측 골드 포인트 바 (약 3px)
+    try:
+        bar = shapes[IDX_REC_GOLD_BAR]
+        bar.width = 38100
+        _set_shape_solid_fill(bar, COLOR_GOLD)
+    except Exception:
+        pass
 
     # grids
     fill_grid_table(shapes[IDX_MINPYEONG].table, grids["minpyeong"])
     fill_grid_table(shapes[IDX_EXPECTED].table, grids["expected"])
     fill_grid_table(shapes[IDX_CREDIT_SP].table, grids["credit"])
     fill_grid_table(shapes[IDX_CURVE_SP].table, grids["curve"])
-    fill_cond_table(shapes[IDX_COND_100].table, cond100, font_size_pt=7)
-    fill_cond_table(shapes[IDX_COND_200].table, cond200, font_size_pt=7)
+    hi100 = match_combo_row_index(COMBOS_100, pf.get("rows") or [])
+    hi200 = match_combo_row_index(COMBOS_200, pf.get("rows") or [])
+    try:
+        scen_hi = int(port.get("repo_scenario_idx") if port.get("repo_scenario_idx") is not None else 0)
+    except (TypeError, ValueError):
+        scen_hi = 0
+    fill_cond_table(
+        shapes[IDX_COND_100].table, cond100, font_size_pt=7, highlight_row=hi100, highlight_col=scen_hi
+    )
+    fill_cond_table(
+        shapes[IDX_COND_200].table, cond200, font_size_pt=7, highlight_row=hi200, highlight_col=scen_hi
+    )
 
     # 01~04 각주: 표와 겹치지 않게 소폭 하향, 기대수익률 산식 문구 갱신
     try:
@@ -1237,16 +1511,35 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     except Exception:
         pass
 
-    # repo scenario table
+    # repo scenario table (사이드바 05) — 전체 6.4pt
     scen_tbl = shapes[IDX_REPO_SCENARIO].table
+    repo_fs = 6.4
+    for ci in range(len(scen_tbl.columns)):
+        try:
+            set_cell_fill(scen_tbl.cell(0, ci), COLOR_REPO_HEADER)
+            hdr = scen_tbl.cell(0, ci)
+            set_cell_text(
+                hdr,
+                (hdr.text_frame.text or "").strip(),
+                font_size_pt=repo_fs,
+                bold=True,
+            )
+        except Exception:
+            pass
     for i, sc in enumerate(inp.get("repo_scenarios") or []):
         ri = i + 1
         if ri >= len(scen_tbl.rows):
             break
-        set_cell_text(scen_tbl.cell(ri, 0), sc.get("label") or "", center=False, font_size_pt=7)
-        set_cell_text(scen_tbl.cell(ri, 1), fmt_pct(_num(sc.get("final_rate"))), font_size_pt=7)
-        set_cell_text(scen_tbl.cell(ri, 2), fmt_pct(_num(sc.get("repo"))), font_size_pt=7)
-        set_cell_text(scen_tbl.cell(ri, 3), fmt_pct(_num(sc.get("avg_1y"))), font_size_pt=7)
+        row_fill = COLOR_REPO_ROW_ALT if i % 2 else COLOR_REPO_ROW
+        for ci in range(len(scen_tbl.columns)):
+            try:
+                set_cell_fill(scen_tbl.cell(ri, ci), COLOR_REPO_AVG if ci == 3 else row_fill)
+            except Exception:
+                pass
+        set_cell_text(scen_tbl.cell(ri, 0), sc.get("label") or "", center=False, font_size_pt=repo_fs)
+        set_cell_text(scen_tbl.cell(ri, 1), fmt_pct(_num(sc.get("final_rate"))), font_size_pt=repo_fs)
+        set_cell_text(scen_tbl.cell(ri, 2), fmt_pct(_num(sc.get("repo"))), font_size_pt=repo_fs)
+        set_cell_text(scen_tbl.cell(ri, 3), fmt_pct(_num(sc.get("avg_1y"))), font_size_pt=repo_fs)
 
     # 06 섹션 강조 (제목·카드 테두리)
     try:
@@ -1262,62 +1555,119 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
 
     # portfolio detail (01 민평수익률 기준)
     det = shapes[IDX_PORTFOLIO_DETAIL].table
-    set_cell_text(det.cell(0, 2), "민평수익률", font_size_pt=7, bold=True, color=COLOR_ACCENT)
-    set_cell_text(det.cell(0, 4), "기여수익률", font_size_pt=7, bold=True, color=COLOR_ACCENT)
+    set_cell_text(det.cell(0, 2), "민평수익률", font_size_pt=7, bold=True, color=COLOR_SHINHAN_NAVY)
+    set_cell_text(det.cell(0, 4), "기여수익률", font_size_pt=7, bold=True, color=COLOR_SHINHAN_NAVY)
+    for ci in range(len(det.columns)):
+        try:
+            set_cell_fill(det.cell(0, ci), COLOR_HEADER_GRAY)
+        except Exception:
+            pass
     detail_rows = port.get("detail_rows") or []
+    sel_label = port.get("repo_scenario_label") or "동결"
     for i, r in enumerate(detail_rows[:4]):
         ri = i + 1
-        set_cell_text(det.cell(ri, 0), r.get("kind") or "", center=False, font_size_pt=7, bold=True)
-        set_cell_text(det.cell(ri, 1), r.get("name") or "", center=False, font_size_pt=7, bold=True)
-        set_cell_text(det.cell(ri, 2), r.get("rate_text") or "", font_size_pt=7, bold=True, color=COLOR_ACCENT)
-        set_cell_text(det.cell(ri, 3), r.get("weight_text") or "", font_size_pt=7, bold=True)
-        set_cell_text(det.cell(ri, 4), r.get("contrib_text") or "", font_size_pt=7, bold=True, color=COLOR_ACCENT)
-        set_cell_fill(det.cell(ri, 2), COLOR_PORT_RATE_FILL)
-        set_cell_fill(det.cell(ri, 4), COLOR_PORT_RATE_FILL)
-    # total row: 민평·기여 합계, 투자비중 100%
+        kind = r.get("kind") or ""
+        name = r.get("name") or ""
+        sector = r.get("sector") or ""
+        # Repo 라벨에 선택 시나리오 명시
+        if kind == "Repo" or sector == "REPO":
+            kind = "Repo"
+            name = f"Repo ({sel_label})"
+        set_cell_text(det.cell(ri, 0), kind, center=False, font_size_pt=7, bold=True, color=COLOR_LEVEL)
+        set_cell_text(det.cell(ri, 1), name, center=False, font_size_pt=7, bold=True, color=COLOR_LEVEL)
+        set_cell_text(det.cell(ri, 2), r.get("rate_text") or "", font_size_pt=7, bold=True, color=COLOR_LEVEL)
+        set_cell_text(det.cell(ri, 3), r.get("weight_text") or "", font_size_pt=7, bold=True, color=COLOR_LEVEL)
+        set_cell_text(det.cell(ri, 4), r.get("contrib_text") or "", font_size_pt=7, bold=True, color=COLOR_LEVEL)
+        for ci in range(5):
+            set_cell_fill(det.cell(ri, ci), COLOR_WHITE)
+    # total row: 신한 블루 배경 + 네이비 볼드
     if len(det.rows) > 5:
         total_txt = port.get("total_text") or ""
-        set_cell_text(det.cell(5, 0), "합계 (보수 차감 전)", center=False, font_size_pt=7, bold=True)
-        set_cell_text(det.cell(5, 2), total_txt, font_size_pt=7, bold=True, color=COLOR_ACCENT)
-        set_cell_text(det.cell(5, 3), "100%", font_size_pt=7, bold=True)
-        set_cell_text(det.cell(5, 4), total_txt, font_size_pt=7, bold=True, color=COLOR_ACCENT)
+        set_cell_text(
+            det.cell(5, 0), "합계 (보수 차감 전)", center=False, font_size_pt=7, bold=True, color=COLOR_SHINHAN_NAVY
+        )
+        set_cell_text(det.cell(5, 2), total_txt, font_size_pt=7, bold=True, color=COLOR_SHINHAN_NAVY)
+        set_cell_text(det.cell(5, 3), "100%", font_size_pt=7, bold=True, color=COLOR_SHINHAN_NAVY)
+        set_cell_text(det.cell(5, 4), total_txt, font_size_pt=7, bold=True, color=COLOR_SHINHAN_NAVY)
         for ci in range(5):
-            set_cell_fill(det.cell(5, ci), COLOR_PORT_TOTAL_FILL)
+            set_cell_fill(det.cell(5, ci), COLOR_SHINHAN_BG)
 
-    # scenario return table (3x4) — header row1 already has scenario labels; fill row2
+    # scenario return table — 상단·헤더 쿨그레이, Base(선택 시나리오) 열만 신한 블루
     scen_ret = shapes[IDX_SCENARIO_RET].table
     headers = port.get("scen_headers") or []
-    for i, h in enumerate(headers[:4]):
-        set_cell_text(scen_ret.cell(1, i), h, font_size_pt=7)
-    vals = port.get("scen_vals") or []
-    for i, v in enumerate(vals[:4]):
-        if len(scen_ret.rows) > 2:
-            set_cell_text(scen_ret.cell(2, i), v, font_size_pt=7, bold=True)
-    # 06에서 고른 Repo 시나리오 열(헤더+값) 음영
     try:
         sel_i = int(port.get("repo_scenario_idx") if port.get("repo_scenario_idx") is not None else 0)
     except (TypeError, ValueError):
         sel_i = 0
-    if 0 <= sel_i < 4:
-        set_cell_fill(scen_ret.cell(1, sel_i), COLOR_SCEN_SELECT_FILL)
-        if len(scen_ret.rows) > 2:
-            set_cell_fill(scen_ret.cell(2, sel_i), COLOR_SCEN_SELECT_FILL)
+    for ci in range(len(scen_ret.columns)):
+        try:
+            set_cell_fill(scen_ret.cell(0, ci), COLOR_HEADER_GRAY)
+        except Exception:
+            pass
+    for i, h in enumerate(headers[:4]):
+        is_base = i == sel_i
+        set_cell_text(
+            scen_ret.cell(1, i),
+            h,
+            font_size_pt=7,
+            bold=True if is_base else None,
+            color=COLOR_SHINHAN_NAVY if is_base else COLOR_LEVEL,
+        )
+        set_cell_fill(scen_ret.cell(1, i), COLOR_SHINHAN_BG if is_base else COLOR_HEADER_GRAY)
+    vals = port.get("scen_vals") or []
+    for i, v in enumerate(vals[:4]):
+        if len(scen_ret.rows) <= 2:
+            break
+        is_base = i == sel_i
+        set_cell_text(
+            scen_ret.cell(2, i),
+            v,
+            font_size_pt=7,
+            bold=True,
+            color=COLOR_SHINHAN_NAVY if is_base else COLOR_LEVEL,
+        )
+        set_cell_fill(scen_ret.cell(2, i), COLOR_SHINHAN_BG if is_base else COLOR_WHITE)
 
-    # sensitivity
+    # sensitivity — 헤더 쿨그레이, +0.0% Base 열만 신한 블루
     sens_tbl = shapes[IDX_RATE_SENS].table
     shocks = port.get("shocks") or []
+    if len(sens_tbl.rows) > 0:
+        for ci in range(len(sens_tbl.columns)):
+            try:
+                set_cell_fill(sens_tbl.cell(0, ci), COLOR_HEADER_GRAY)
+            except Exception:
+                pass
     for i, sh in enumerate(shocks[:7]):
         sign = "+" if sh > 0 else ""
-        set_cell_text(sens_tbl.cell(1, i), f"{sign}{sh:.1f}%", font_size_pt=7)
+        is_base = abs(float(sh)) < 1e-12
+        set_cell_text(
+            sens_tbl.cell(1, i),
+            f"{sign}{sh:.1f}%",
+            font_size_pt=7,
+            bold=True if is_base else None,
+            color=COLOR_SHINHAN_NAVY if is_base else COLOR_LEVEL,
+        )
+        set_cell_fill(sens_tbl.cell(1, i), COLOR_SHINHAN_BG if is_base else COLOR_HEADER_GRAY)
     for i, v in enumerate((port.get("sens_vals") or [])[:7]):
-        if len(sens_tbl.rows) > 2:
-            set_cell_text(sens_tbl.cell(2, i), v, font_size_pt=7, bold=True)
+        if len(sens_tbl.rows) <= 2:
+            break
+        sh = shocks[i] if i < len(shocks) else None
+        is_base = sh is not None and abs(float(sh)) < 1e-12
+        set_cell_text(
+            sens_tbl.cell(2, i),
+            v,
+            font_size_pt=7,
+            bold=True,
+            color=COLOR_SHINHAN_NAVY if is_base else COLOR_LEVEL,
+        )
+        set_cell_fill(sens_tbl.cell(2, i), COLOR_SHINHAN_BG if is_base else COLOR_WHITE)
 
     buf = io.BytesIO()
     prs.save(buf)
     return buf.getvalue()
 
 
-def output_filename(asof: str) -> str:
-    tag = (asof or "").replace("-", "") or datetime.now().strftime("%Y%m%d")
+def output_filename(asof: str | None = None) -> str:
+    """다운로드 파일명 날짜는 작성일(오늘) 기준."""
+    tag = datetime.now().strftime("%Y%m%d")
     return f"신한 매칭형 레포펀드 주간 제안서_{tag}.pptx"
