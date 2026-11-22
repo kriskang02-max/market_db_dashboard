@@ -65,13 +65,15 @@ IDX_BASE_RATE = 101
 IDX_REPO_SPOT = 103
 IDX_SUPPLY_BANK = 80
 IDX_SUPPLY_NBFC = 81
-# RV 코멘트: 제목 아래 한 줄(넓은 상자). 라벨 옆 짧은 칸은 비움
+# RV 코멘트: 제목 아래 넓은 상자. 라벨 옆 짧은 칸은 비움
 IDX_RV_CURVE = 104
 IDX_RV_CREDIT = 105
 IDX_RV_CASH = 106
 IDX_RV_CURVE_TAG = 109
 IDX_RV_CREDIT_TAG = 111
 IDX_RV_CASH_TAG = 113
+SUPPLY_SPECIAL_SHAPE_NAME = "MatchingSupplySpecial"
+RV_CREDIT_MIN_HEIGHT_EMU = 210000  # 크레딧 RV 2줄
 IDX_REC_TITLE = 88
 IDX_REC_COMPOSITION = 83
 IDX_REC_RETURN = 89
@@ -366,6 +368,16 @@ def fmt_chg_bp(chg_pct: float | None) -> str:
     return "0bp"
 
 
+def fmt_signed_pct(v: float | None, digits: int = 2) -> str:
+    """부호 포함 % (동결·BEP 열과 동일 자릿수)."""
+    if v is None or not math.isfinite(v):
+        return ""
+    eps = 0.5 * (10 ** (-digits))
+    if abs(v) < eps:
+        return f"{0:.{digits}f}%"
+    return f"{v:+.{digits}f}%"
+
+
 def fmt_curve_bp(bp: float | None) -> str:
     """커브 SP bp → 반올림 정수 xbp."""
     if bp is None or not math.isfinite(bp):
@@ -648,6 +660,7 @@ def default_inputs() -> dict[str, Any]:
         },
         "supply": {
             "bank": "• 은행채: 시중 유동성 및 수요 확대로 수급 양호",
+            "special": "• 특수채: 공사채 발행 안정, 스프레드 축소재 우위",
             "nbfc": "• 여전채: 2~3년 카드·캐피탈 매수 우위 기조 지속",
         },
         "rv": {
@@ -775,43 +788,70 @@ def repo_spot(series: dict, date: str) -> float | None:
     return None
 
 
+def _combo_asset_er(
+    grids: dict,
+    combo: dict,
+    series: dict | None,
+    asof: str,
+) -> tuple[float | None, float, float]:
+    """조합의 (자산기대ER, asset비중합, bond비중합). 실패 시 (None, …)."""
+    minpyeong = grids.get("minpyeong") or {}
+    tenor = combo["tenor"]
+    asset = 0.0
+    bond_w = 0.0
+    er = 0.0
+    for sector, w in combo["legs"]:
+        if sector == "CD":
+            rate = cd_rate(series or {}, "6개월", asof) if series else None
+            if rate is None:
+                return None, 0.0, 0.0
+            asset += w
+            er += w * rate
+            continue
+        key = "캐피탈" if sector == "여전" else sector
+        cell = minpyeong.get((key, tenor))
+        if not cell or cell["level"] is None:
+            return None, 0.0, 0.0
+        asset += w
+        bond_w += w
+        er += w * cell["level"]
+    return er, asset, bond_w
+
+
 def combo_returns(
     grids: dict,
     combos: list[dict],
     scenarios: list[dict],
     series: dict | None = None,
     asof: str | None = None,
+    prev_grids: dict | None = None,
 ) -> list[dict]:
-    """05 조건별 수익. 채권은 01 민평, CD는 시장 CD (06과 동일 기준)."""
-    minpyeong = grids["minpyeong"]
+    """05 조건별 수익. 채권은 01 민평, CD는 시장 CD (06과 동일 기준).
+
+    wow: 동결 시나리오 기대수익률의 전주 대비 변동(부호 포함 %, 예: -0.04%).
+    """
     asof = asof or grids.get("asof") or ""
+    prev_asof = (prev_grids or {}).get("asof") or ""
+    freeze_repo = None
+    if scenarios:
+        freeze_repo = _num(scenarios[0].get("avg_1y"))
+        if freeze_repo is None:
+            freeze_repo = _num(scenarios[0].get("repo"))
     rows = []
     for combo in combos:
         tenor = combo["tenor"]
-        asset = 0.0
-        bond_w = 0.0
-        er = 0.0
-        ok = True
-        for sector, w in combo["legs"]:
-            if sector == "CD":
-                rate = cd_rate(series or {}, "6개월", asof) if series else None
-                if rate is None:
-                    ok = False
-                    break
-                asset += w
-                er += w * rate
-                continue
-            # 여전 → 캐피탈 민평; 06과 동일
-            key = "캐피탈" if sector == "여전" else sector
-            cell = minpyeong.get((key, tenor))
-            if not cell or cell["level"] is None:
-                ok = False
-                break
-            asset += w
-            bond_w += w
-            er += w * cell["level"]
-        if not ok:
-            rows.append({"tenor": tenor, "label": combo["label"], "rwa": combo["rwa"], "vals": ["", "", ""], "bep": ""})
+        er, asset, bond_w = _combo_asset_er(grids, combo, series, asof)
+        if er is None:
+            rows.append(
+                {
+                    "tenor": tenor,
+                    "label": combo["label"],
+                    "rwa": combo["rwa"],
+                    "vals": ["", "", ""],
+                    "bep": "",
+                    "wow": "",
+                }
+            )
             continue
         repo_w = 1.0 - asset  # negative
         vals = []
@@ -819,19 +859,38 @@ def combo_returns(
         for i, sc in enumerate(scenarios[:3]):
             repo = _num(sc.get("avg_1y"))
             if repo is None:
+                repo = _num(sc.get("repo"))
+            if repo is None:
                 vals.append("")
                 continue
             ret = er + repo_w * repo
             vals.append(fmt_pct(ret))
             if i == 0:
                 freeze_ret = ret
-        # BEP: 동결수익 / 매칭듀레이션(채권 레그만, CD 제외)
+                if freeze_repo is None:
+                    freeze_repo = repo
         bep = ""
         dur = matching_duration(tenor, bond_w)
         if freeze_ret is not None and dur and dur != 0:
-            bep_pct = freeze_ret / dur
-            bep = fmt_pct(bep_pct)
-        rows.append({"tenor": tenor, "label": combo["label"], "rwa": combo["rwa"], "vals": vals, "bep": bep})
+            bep = fmt_pct(freeze_ret / dur)
+        wow = ""
+        if freeze_ret is not None and prev_grids and prev_asof:
+            er_p, asset_p, _bw = _combo_asset_er(prev_grids, combo, series, prev_asof)
+            if er_p is not None:
+                # 동일 동결 Repo 가정으로 전주 동결 기대수익률 재산출
+                repo_for_wow = freeze_repo if freeze_repo is not None else 0.0
+                prev_freeze = er_p + (1.0 - asset_p) * repo_for_wow
+                wow = fmt_signed_pct(freeze_ret - prev_freeze)
+        rows.append(
+            {
+                "tenor": tenor,
+                "label": combo["label"],
+                "rwa": combo["rwa"],
+                "vals": vals,
+                "bep": bep,
+                "wow": wow,
+            }
+        )
     return rows
 
 
@@ -1238,6 +1297,80 @@ def match_combo_row_index(combos: list[dict], portfolio_rows: list[dict]) -> int
     return None
 
 
+def ensure_cond_wow_column(table) -> None:
+    """05 표에 BEP 옆 '전주대비' 열이 없으면 추가하고, 모든 행 셀 수를 8로 맞춘다."""
+    from copy import deepcopy
+
+    from lxml.etree import QName
+
+    tbl = table._tbl
+    tblGrid = tbl.tblGrid
+    grid_cols = list(tblGrid.gridCol_lst)
+    if len(grid_cols) < 7:
+        return
+    if len(grid_cols) < 8:
+        new_gc = deepcopy(grid_cols[-1])
+        tblGrid.append(new_gc)
+        grid_cols = list(tblGrid.gridCol_lst)
+    # 만기,구성,RWA,동결,인상1,인상2,BEP,전주대비
+    total_w = sum(int(gc.get("w") or 0) for gc in grid_cols) or 4500000
+    ratios = [0.09, 0.26, 0.09, 0.10, 0.10, 0.10, 0.12, 0.14]
+    widths = [max(200000, int(total_w * r)) for r in ratios]
+    widths[-1] += total_w - sum(widths)
+    for gc, w in zip(grid_cols[:8], widths):
+        gc.set("w", str(w))
+    for tr in tbl.tr_lst:
+        tcs = list(tr.tc_lst)
+        if not tcs:
+            continue
+        while len(tcs) < 8:
+            new_tc = deepcopy(tcs[-1])
+            for attr in ("gridSpan", "hMerge", "vMerge"):
+                if attr in new_tc.attrib:
+                    del new_tc.attrib[attr]
+            for child in list(new_tc):
+                tag = QName(child.tag).localname if isinstance(child.tag, str) else ""
+                if tag == "txBody":
+                    for p in child.findall(qn("a:p")):
+                        for r in p.findall(qn("a:r")):
+                            t = r.find(qn("a:t"))
+                            if t is not None:
+                                t.text = ""
+            tr.append(new_tc)
+            tcs = list(tr.tc_lst)
+
+
+def layout_cond_tables(shape100, shape200) -> None:
+    """05 레버리지 100%/200% 표가 겹치지 않도록 좌우 배치·동일 너비."""
+    slide_w = 12192000
+    left = 2420000
+    right_margin = 140000
+    gap = 140000
+    usable = slide_w - left - right_margin
+    w = max(3800000, (usable - gap) // 2)
+    try:
+        shape100.left = left
+        shape100.width = w
+        shape200.left = left + w + gap
+        shape200.width = w
+    except Exception:
+        pass
+    for shp in (shape100, shape200):
+        try:
+            ensure_cond_wow_column(shp.table)
+            # 열너비를 표 폭에 맞게 재적용
+            ratios = [0.09, 0.26, 0.09, 0.10, 0.10, 0.10, 0.12, 0.14]
+            tbl = shp.table
+            widths = [max(180000, int(w * r)) for r in ratios]
+            drift = w - sum(widths)
+            widths[-1] += drift
+            for ci, ww in enumerate(widths):
+                if ci < len(tbl.columns):
+                    tbl.columns[ci].width = ww
+        except Exception:
+            pass
+
+
 def fill_cond_table(
     table,
     rows: list[dict],
@@ -1245,23 +1378,34 @@ def fill_cond_table(
     highlight_row: int | None = None,
     highlight_col: int | None = None,
 ) -> None:
-    """05 조건별 표: 흰 배경, BEP 슬레이트, 추천 행·06 시나리오 열 강조."""
+    """05 조건별 표: 흰 배경, BEP·전주대비 슬레이트+틸 볼드(동일 서식)."""
+    ensure_cond_wow_column(table)
     # highlight_col: 시나리오 인덱스 0=동결→열3, 1→열4, 2→열5
     scen_ci = (3 + int(highlight_col)) if highlight_col is not None and 0 <= int(highlight_col) <= 2 else None
     ncols = len(table.columns)
-    for ci in range(ncols):
+    # 구성 열 헤더는 템플릿의 레버리지 표기 유지
+    try:
+        leverage_hdr = (table.cell(0, 1).text_frame.text or "").strip() or "구성"
+    except Exception:
+        leverage_hdr = "구성"
+    headers = ["만기", leverage_hdr, "RWA", "동결", "인상1회", "인상2회", "BEP", "전주대비"]
+    for ci in range(min(ncols, 8)):
         try:
             is_scen_hdr = scen_ci is not None and ci == scen_ci
-            set_cell_fill(table.cell(0, ci), COLOR_SHINHAN_BG if is_scen_hdr else COLOR_HEADER_GRAY)
-            if is_scen_hdr:
-                hdr = table.cell(0, ci)
-                set_cell_text(
-                    hdr,
-                    (hdr.text_frame.text or "").strip(),
-                    font_size_pt=font_size_pt,
-                    bold=True,
-                    color=COLOR_SHINHAN_NAVY,
-                )
+            is_metric = ci in (6, 7)  # BEP · 전주대비
+            set_cell_fill(
+                table.cell(0, ci),
+                COLOR_SHINHAN_BG if is_scen_hdr else COLOR_HEADER_GRAY,
+            )
+            set_cell_text(
+                table.cell(0, ci),
+                headers[ci],
+                font_size_pt=font_size_pt,
+                bold=True,
+                color=COLOR_SHINHAN_NAVY
+                if is_scen_hdr
+                else (COLOR_TEAL if is_metric else COLOR_LEVEL),
+            )
         except Exception:
             pass
     for i, row in enumerate(rows):
@@ -1269,10 +1413,10 @@ def fill_cond_table(
         if ri >= len(table.rows):
             break
         is_hi = highlight_row is not None and i == highlight_row
-        for ci in range(ncols):
+        for ci in range(min(ncols, 8)):
             if is_hi or (scen_ci is not None and ci == scen_ci):
                 fill = COLOR_SHINHAN_BG
-            elif ci == 6:
+            elif ci in (6, 7):
                 fill = COLOR_SLATE_BG
             else:
                 fill = COLOR_WHITE
@@ -1282,12 +1426,11 @@ def fill_cond_table(
                 pass
         vals = row.get("vals") or []
         txt_color = COLOR_SHINHAN_NAVY if is_hi else COLOR_LEVEL
-        hi_bold = True if is_hi else None
         set_cell_text(
             table.cell(ri, 0),
             row.get("tenor") or "",
             font_size_pt=font_size_pt,
-            bold=hi_bold,
+            bold=True,
             color=txt_color,
         )
         set_cell_text(
@@ -1295,14 +1438,14 @@ def fill_cond_table(
             row.get("label") or "",
             center=False,
             font_size_pt=font_size_pt,
-            bold=hi_bold,
+            bold=True,
             color=txt_color,
         )
         set_cell_text(
             table.cell(ri, 2),
             row.get("rwa") or "",
             font_size_pt=font_size_pt,
-            bold=hi_bold,
+            bold=True,
             color=txt_color,
         )
         for j, v in enumerate(vals[:3]):
@@ -1312,16 +1455,27 @@ def fill_cond_table(
                 table.cell(ri, ci),
                 v,
                 font_size_pt=font_size_pt,
-                bold=True if (is_hi or is_scen) else None,
+                bold=True,
                 color=COLOR_SHINHAN_NAVY if is_scen else txt_color,
             )
+        metric_color = COLOR_SHINHAN_NAVY if is_hi else COLOR_TEAL
         set_cell_text(
             table.cell(ri, 6),
             row.get("bep") or "",
             font_size_pt=font_size_pt,
             bold=True,
-            color=COLOR_TEAL if not is_hi else COLOR_SHINHAN_NAVY,
+            color=metric_color,
         )
+        if ncols > 7:
+            # BEP와 동일 서식(틸/% 볼드). 값 없으면 대시.
+            wow = (row.get("wow") or "").strip() or "—"
+            set_cell_text(
+                table.cell(ri, 7),
+                wow,
+                font_size_pt=font_size_pt,
+                bold=True,
+                color=metric_color,
+            )
 
 
 def build_preview(csv_path: str, inputs: dict | None = None) -> dict[str, Any]:
@@ -1335,11 +1489,14 @@ def build_preview(csv_path: str, inputs: dict | None = None) -> dict[str, Any]:
         asof = earlier[0] if earlier else dates[0]
     inp["asof"] = asof
     grids = build_grids(series, asof)
+    prev_asof = grids.get("prev_week") or ""
+    prev_grids = build_grids(series, prev_asof) if prev_asof else None
+    scen = inp.get("repo_scenarios") or []
     cond100 = combo_returns(
-        grids, COMBOS_100, inp.get("repo_scenarios") or [], series=series, asof=asof
+        grids, COMBOS_100, scen, series=series, asof=asof, prev_grids=prev_grids
     )
     cond200 = combo_returns(
-        grids, COMBOS_200, inp.get("repo_scenarios") or [], series=series, asof=asof
+        grids, COMBOS_200, scen, series=series, asof=asof, prev_grids=prev_grids
     )
     port = portfolio_metrics(series, grids, inp)
     pf_rows = (inp.get("portfolio") or {}).get("rows") or []
@@ -1396,11 +1553,14 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     inp["asof"] = asof
     grids = build_grids(series, asof)
     port = portfolio_metrics(series, grids, inp)
+    prev_asof = grids.get("prev_week") or ""
+    prev_grids = build_grids(series, prev_asof) if prev_asof else None
+    scen = inp.get("repo_scenarios") or []
     cond100 = combo_returns(
-        grids, COMBOS_100, inp.get("repo_scenarios") or [], series=series, asof=asof
+        grids, COMBOS_100, scen, series=series, asof=asof, prev_grids=prev_grids
     )
     cond200 = combo_returns(
-        grids, COMBOS_200, inp.get("repo_scenarios") or [], series=series, asof=asof
+        grids, COMBOS_200, scen, series=series, asof=asof, prev_grids=prev_grids
     )
 
     prs = Presentation(template_path)
@@ -1435,14 +1595,63 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     supply = inp.get("supply") or {}
     set_shape_text(shapes[IDX_SUPPLY_BANK], supply.get("bank") or "")
     set_shape_text(shapes[IDX_SUPPLY_NBFC], supply.get("nbfc") or "")
+    # 특수채 수급 코멘트 (여전채 아래 텍스트박스 확보)
+    try:
+        special_shape = None
+        for s in slide.shapes:
+            if getattr(s, "name", "") == SUPPLY_SPECIAL_SHAPE_NAME:
+                special_shape = s
+                break
+        if special_shape is None:
+            nbfc = shapes[IDX_SUPPLY_NBFC]
+            special_shape = slide.shapes.add_textbox(
+                nbfc.left,
+                nbfc.top + nbfc.height + 18000,
+                max(nbfc.width, 1800000),
+                nbfc.height,
+            )
+            special_shape.name = SUPPLY_SPECIAL_SHAPE_NAME
+            try:
+                for para in special_shape.text_frame.paragraphs:
+                    for run in para.runs:
+                        run.font.size = Pt(8)
+                        run.font.name = FONT_DATA
+            except Exception:
+                pass
+        special_txt = (supply.get("special") or "").strip()
+        if special_txt and not special_txt.lstrip().startswith("•"):
+            special_txt = "• 특수채: " + special_txt
+        set_shape_text(special_shape, special_txt, align="left")
+    except Exception:
+        pass
     rv = inp.get("rv") or {}
     curve_txt = (rv.get("curve") or "").strip()
     credit_txt = (rv.get("credit") or "").strip()
     cash_txt = (rv.get("cash") or "").strip()
-    # 제목 아래 넓은 칸에만 1줄 반영 (여러 줄이면 첫 줄)
-    set_shape_text(shapes[IDX_RV_CURVE], curve_txt.split("\n")[0] if curve_txt else "", align="left")
-    set_shape_text(shapes[IDX_RV_CREDIT], credit_txt.split("\n")[0] if credit_txt else "", align="left")
-    set_shape_text(shapes[IDX_RV_CASH], cash_txt.split("\n")[0] if cash_txt else "", align="left")
+
+    def _rv_lines(text: str, max_lines: int = 1) -> str:
+        lines = [ln.strip() for ln in str(text or "").split("\n") if ln.strip()]
+        return "\n".join(lines[:max_lines])
+
+    # 크레딧 RV: 2줄 가능하도록 높이 확보
+    try:
+        credit_box = shapes[IDX_RV_CREDIT]
+        if credit_box.height < RV_CREDIT_MIN_HEIGHT_EMU:
+            credit_box.height = RV_CREDIT_MIN_HEIGHT_EMU
+        # 현금성 박스와 겹치면 소폭 하향
+        cash_box = shapes[IDX_RV_CASH]
+        credit_bottom = credit_box.top + credit_box.height
+        if cash_box.top < credit_bottom + 20000:
+            cash_box.top = credit_bottom + 40000
+            try:
+                shapes[IDX_RV_CASH_TAG].top = cash_box.top - 120000
+            except Exception:
+                pass
+    except Exception:
+        pass
+    set_shape_text(shapes[IDX_RV_CURVE], _rv_lines(curve_txt, 1), align="left")
+    set_shape_text(shapes[IDX_RV_CREDIT], _rv_lines(credit_txt, 2), align="left")
+    set_shape_text(shapes[IDX_RV_CASH], _rv_lines(cash_txt, 1), align="left")
     # 라벨 옆 짧은 칸은 비워 중복 표시 방지
     try:
         set_shape_text(shapes[IDX_RV_CURVE_TAG], "", align="left")
@@ -1494,6 +1703,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
         scen_hi = int(port.get("repo_scenario_idx") if port.get("repo_scenario_idx") is not None else 0)
     except (TypeError, ValueError):
         scen_hi = 0
+    layout_cond_tables(shapes[IDX_COND_100], shapes[IDX_COND_200])
     fill_cond_table(
         shapes[IDX_COND_100].table, cond100, font_size_pt=7, highlight_row=hi100, highlight_col=scen_hi
     )
