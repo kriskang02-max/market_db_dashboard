@@ -1154,6 +1154,18 @@ def _apply_run_style(
         run.font.name = font_name
     except Exception:
         pass
+    # 한글 렌더링용 EA/CS 타입페이스도 동일 지정
+    try:
+        rPr = run._r.get_or_add_rPr()
+        for tag in ("a:latin", "a:ea", "a:cs"):
+            el = rPr.find(qn(tag))
+            if el is None:
+                from lxml.etree import SubElement
+
+                el = SubElement(rPr, qn(tag))
+            el.set("typeface", font_name)
+    except Exception:
+        pass
     if font_size_pt is not None:
         try:
             run.font.size = Pt(font_size_pt)
@@ -1301,6 +1313,12 @@ def match_combo_row_index(combos: list[dict], portfolio_rows: list[dict]) -> int
     return None
 
 
+def _cond_col_ratios(n: int = 8) -> list[float]:
+    """만기,구성,RWA,동결,인상1,인상2,BEP,전주대비 열 비율."""
+    ratios = [0.09, 0.24, 0.08, 0.10, 0.10, 0.10, 0.13, 0.16]
+    return ratios[:n]
+
+
 def ensure_cond_wow_column(table) -> None:
     """05 표에 BEP 옆 '전주대비' 열이 없으면 추가하고, 모든 행 셀 수를 8로 맞춘다."""
     from copy import deepcopy
@@ -1316,9 +1334,8 @@ def ensure_cond_wow_column(table) -> None:
         new_gc = deepcopy(grid_cols[-1])
         tblGrid.append(new_gc)
         grid_cols = list(tblGrid.gridCol_lst)
-    # 만기,구성,RWA,동결,인상1,인상2,BEP,전주대비
+    ratios = _cond_col_ratios(8)
     total_w = sum(int(gc.get("w") or 0) for gc in grid_cols) or 4500000
-    ratios = [0.09, 0.26, 0.09, 0.10, 0.10, 0.10, 0.12, 0.14]
     widths = [max(200000, int(total_w * r)) for r in ratios]
     widths[-1] += total_w - sum(widths)
     for gc, w in zip(grid_cols[:8], widths):
@@ -1327,6 +1344,8 @@ def ensure_cond_wow_column(table) -> None:
         tcs = list(tr.tc_lst)
         if not tcs:
             continue
+        # 중간 열(인상2회) 테두리를 마지막 열에 복제해 noFill 우측선 방지
+        border_src = tcs[min(5, len(tcs) - 1)]
         while len(tcs) < 8:
             new_tc = deepcopy(tcs[-1])
             for attr in ("gridSpan", "hMerge", "vMerge"):
@@ -1340,6 +1359,19 @@ def ensure_cond_wow_column(table) -> None:
                             t = r.find(qn("a:t"))
                             if t is not None:
                                 t.text = ""
+            try:
+                src_tcPr = border_src.find(qn("a:tcPr"))
+                dst_tcPr = new_tc.find(qn("a:tcPr"))
+                if src_tcPr is not None and dst_tcPr is not None:
+                    src_lnR = src_tcPr.find(qn("a:lnR"))
+                    dst_lnR = dst_tcPr.find(qn("a:lnR"))
+                    if src_lnR is not None:
+                        if dst_lnR is not None:
+                            dst_tcPr.remove(dst_lnR)
+                        # lnR는 lnL 다음
+                        dst_tcPr.insert(1, deepcopy(src_lnR))
+            except Exception:
+                pass
             tr.append(new_tc)
             tcs = list(tr.tc_lst)
 
@@ -1350,6 +1382,34 @@ def _parse_supply_body(raw: str, label: str) -> str:
     s = re.sub(r"^[•\-\*]+\s*", "", s)
     s = re.sub(rf"^{re.escape(label)}\s*[:：]\s*", "", s)
     return s.strip()
+
+
+def _copy_textbox_body_pr(src_shape, dst_shape) -> None:
+    """텍스트박스 bodyPr(여백·wrap·anchor)을 원본과 동일하게 맞춤."""
+    try:
+        src_body = src_shape._element.find(".//" + qn("a:bodyPr"))
+        dst_tf = dst_shape._element.find(".//" + qn("p:txBody"))
+        if src_body is None or dst_tf is None:
+            return
+        dst_body = dst_tf.find(qn("a:bodyPr"))
+        if dst_body is None:
+            dst_body = dst_tf.makeelement(qn("a:bodyPr"), {})
+            dst_tf.insert(0, dst_body)
+        for key in ("wrap", "lIns", "tIns", "rIns", "bIns", "anchor", "anchorCtr", "upright", "compatLnSpc"):
+            if key in src_body.attrib:
+                dst_body.set(key, src_body.get(key))
+            elif key in dst_body.attrib:
+                del dst_body.attrib[key]
+        # python-pptx margin 속성도 동기화
+        try:
+            dst_shape.text_frame.margin_left = src_shape.text_frame.margin_left
+            dst_shape.text_frame.margin_right = src_shape.text_frame.margin_right
+            dst_shape.text_frame.margin_top = src_shape.text_frame.margin_top
+            dst_shape.text_frame.margin_bottom = src_shape.text_frame.margin_bottom
+        except Exception:
+            pass
+    except Exception:
+        pass
 
 
 def _set_supply_comment(shape, label: str, body: str) -> None:
@@ -1394,6 +1454,7 @@ def _find_or_add_supply_special(slide, bank_shape, nbfc_shape):
         bank_shape.height,
     )
     box.name = SUPPLY_SPECIAL_SHAPE_NAME
+    _copy_textbox_body_pr(bank_shape, box)
     return box
 
 
@@ -1411,7 +1472,7 @@ def _layout_supply_comments(slide, shapes, supply: dict) -> None:
     special_body = _parse_supply_body(supply.get("special") or "", "특수채")
     nbfc_body = _parse_supply_body(supply.get("nbfc") or "", "여전채")
 
-    # 위치: 은행채 유지 → 특수채 → 여전채
+    # 위치: 은행채 유지 → 특수채 → 여전채 (왼쪽·너비·여백 동일)
     try:
         special.left = left
         special.width = width
@@ -1423,6 +1484,7 @@ def _layout_supply_comments(slide, shapes, supply: dict) -> None:
         nbfc.top = special.top + h + gap
     except Exception:
         pass
+    _copy_textbox_body_pr(bank, special)
 
     _set_supply_comment(bank, "은행채", bank_body)
     _set_supply_comment(special, "특수채", special_body)
@@ -1480,32 +1542,115 @@ def _group_display_top(group) -> int:
         return int(group.top)
 
 
-def _ensure_footnote_below_tables(slide, shapes, shape100, shape200) -> None:
-    """05 하단 각주가 표를 가리지 않도록 간격 확보 + 표 z-order를 앞으로."""
-    try:
-        foot = shapes[IDX_FOOTNOTE_GROUP]
-    except Exception:
+def _nudge_group_absolute(group, delta_y: int) -> None:
+    """그룹 off·chOff·자식 y를 같은 만큼 이동 (표시·절대좌표 모두 반영)."""
+    if not delta_y:
         return
+    try:
+        xfrm = group._element.grpSpPr.xfrm
+        off = xfrm.off
+        ch_off = xfrm.chOff
+        off.set("y", str(int(off.get("y")) + delta_y))
+        ch_off.set("y", str(int(ch_off.get("y")) + delta_y))
+    except Exception:
+        try:
+            group.top = int(group.top) + delta_y
+        except Exception:
+            return
+    try:
+        for c in group.shapes:
+            c.top = int(c.top) + delta_y
+    except Exception:
+        pass
+
+
+def _find_footnote_group(slide, shapes):
+    """05 하단 민평/백분위/BEP 각주 그룹을 찾는다."""
+    from pptx.enum.shapes import MSO_SHAPE_TYPE
+
+    def _is_foot(s) -> bool:
+        try:
+            if s.shape_type != MSO_SHAPE_TYPE.GROUP:
+                return False
+            for c in s.shapes:
+                if not c.has_text_frame:
+                    continue
+                tx = "".join(r.text for p in c.text_frame.paragraphs for r in p.runs)
+                if "민평금리" in tx or "BEP 정의" in tx:
+                    return True
+        except Exception:
+            return False
+        return False
+
+    try:
+        cand = shapes[IDX_FOOTNOTE_GROUP]
+        if _is_foot(cand):
+            return cand
+    except Exception:
+        pass
+    try:
+        for s in slide.shapes:
+            if _is_foot(s):
+                return s
+    except Exception:
+        pass
+    return None
+
+
+def _ensure_footnote_below_tables(slide, shapes, shape100, shape200) -> None:
+    """05 표·각주 겹침 제거: 표를 위로, 각주를 아래로, 표 z-order 최상단."""
+    foot = _find_footnote_group(slide, shapes)
+    if foot is None:
+        return
+    try:
+        # 표·각주 사이 공간을 위해 05 표를 소폭 상향
+        lift = 180000
+        min_top = 4100000
+        if shape100.top - lift >= min_top:
+            shape100.top = int(shape100.top) - lift
+        if shape200.top - lift >= min_top:
+            shape200.top = int(shape200.top) - lift
+        # 05 제목도 함께 이동
+        for s in slide.shapes:
+            try:
+                if not s.has_text_frame:
+                    continue
+                t = "".join(r.text for p in s.text_frame.paragraphs for r in p.runs)
+                if t.startswith("05 ") and "조건별" in t and s.left > 2000000:
+                    if s.top - lift >= min_top - 200000:
+                        s.top = int(s.top) - lift
+                    break
+            except Exception:
+                pass
+    except Exception:
+        pass
     try:
         bottom = max(shape100.top + shape100.height, shape200.top + shape200.height)
     except Exception:
         return
     try:
-        display_top = _group_display_top(foot)
         gap = 100000
         slide_h = 6858000
-        target = bottom + gap
-        # 슬라이드 밖으로 나가지 않게
-        max_top = slide_h - int(foot.height) - 30000
-        if target > max_top:
-            target = max_top
-        delta = target - display_top
-        if delta > 1000:
-            foot.top = int(foot.top) + int(delta)
+        display_top = _group_display_top(foot)
+        try:
+            abs_top = min(int(c.top) for c in foot.shapes)
+        except Exception:
+            abs_top = display_top
+        need = bottom + gap
+        delta = max(need - display_top, need - abs_top, 0)
+        # 그룹 전체 높이를 자식 기준으로 재산정
+        try:
+            content_h = max(int(c.top) + int(c.height) for c in foot.shapes) - abs_top
+        except Exception:
+            content_h = int(foot.height)
+        max_delta = max(0, slide_h - content_h - 40000 - display_top)
+        if delta > max_delta:
+            delta = max_delta
+        if delta > 500:
+            _nudge_group_absolute(foot, int(delta))
     except Exception:
         pass
-    # 각주는 뒤로, 05 표는 맨 앞으로 (겹침 시 표가 우선)
-    _send_shape_backward(slide, foot)
+    # 표가 각주보다 위에 그려지도록
     _bring_shape_to_front(slide, shape100)
     _bring_shape_to_front(slide, shape200)
 
@@ -1528,8 +1673,8 @@ def layout_cond_tables(shape100, shape200) -> None:
     for shp in (shape100, shape200):
         try:
             ensure_cond_wow_column(shp.table)
-            # 열너비를 표 폭에 맞게 재적용
-            ratios = [0.09, 0.26, 0.09, 0.10, 0.10, 0.10, 0.12, 0.14]
+            # 열너비를 표 폭에 맞게 재적용 (전주대비 열 충분히 확보)
+            ratios = _cond_col_ratios(8)
             tbl = shp.table
             widths = [max(180000, int(w * r)) for r in ratios]
             drift = w - sum(widths)
@@ -1537,6 +1682,11 @@ def layout_cond_tables(shape100, shape200) -> None:
             for ci, ww in enumerate(widths):
                 if ci < len(tbl.columns):
                     tbl.columns[ci].width = ww
+            # shape 폭과 grid 합 동기화
+            try:
+                shp.width = w
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -1636,9 +1786,15 @@ def fill_cond_table(
             bold=True,
             color=metric_color,
         )
-        if ncols > 7:
-            # BEP와 동일 서식(틸/% 볼드). 값 없으면 대시.
+        # 전주대비: BEP와 동일 서식. 열 추가 실패 시에도 재시도.
+        try:
+            if len(table.columns) < 8:
+                ensure_cond_wow_column(table)
             wow = (row.get("wow") or "").strip() or "—"
+            set_cell_fill(
+                table.cell(ri, 7),
+                COLOR_SHINHAN_BG if is_hi else COLOR_SLATE_BG,
+            )
             set_cell_text(
                 table.cell(ri, 7),
                 wow,
@@ -1646,6 +1802,8 @@ def fill_cond_table(
                 bold=True,
                 color=metric_color,
             )
+        except Exception:
+            pass
 
 
 def build_preview(csv_path: str, inputs: dict | None = None) -> dict[str, Any]:
