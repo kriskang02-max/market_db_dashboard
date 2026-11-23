@@ -74,6 +74,10 @@ IDX_RV_CREDIT_TAG = 111
 IDX_RV_CASH_TAG = 113
 SUPPLY_SPECIAL_SHAPE_NAME = "MatchingSupplySpecial"
 RV_CREDIT_MIN_HEIGHT_EMU = 210000  # 크레딧 RV 2줄
+COLOR_SUPPLY = RGBColor(0xCB, 0xD5, 0xE1)  # 사이드바 수급 코멘트
+SUPPLY_FONT_PT = 6.75
+IDX_TITLE_03 = 82
+IDX_FOOTNOTE_GROUP = 86
 IDX_REC_TITLE = 88
 IDX_REC_COMPOSITION = 83
 IDX_REC_RETURN = 89
@@ -1340,6 +1344,172 @@ def ensure_cond_wow_column(table) -> None:
             tcs = list(tr.tc_lst)
 
 
+def _parse_supply_body(raw: str, label: str) -> str:
+    """'• 은행채: 본문' / '은행채: 본문' / '본문' → 본문만."""
+    s = (raw or "").strip()
+    s = re.sub(r"^[•\-\*]+\s*", "", s)
+    s = re.sub(rf"^{re.escape(label)}\s*[:：]\s*", "", s)
+    return s.strip()
+
+
+def _set_supply_comment(shape, label: str, body: str) -> None:
+    """사이드바 수급 1줄: • 라벨: 본문 (은행채/여전채와 동일 3-run)."""
+    if not shape.has_text_frame:
+        return
+    body = (body or "").strip()
+    tf = shape.text_frame
+    try:
+        tf.word_wrap = False
+    except Exception:
+        pass
+    para = tf.paragraphs[0]
+    try:
+        para.alignment = PP_ALIGN.LEFT
+    except Exception:
+        pass
+    for p in tf.paragraphs[1:]:
+        for r in p.runs:
+            r.text = ""
+    runs = _ensure_para_runs(para, 3)
+    parts = [
+        ("• ", COLOR_SUPPLY, False),
+        (f"{label}:", COLOR_SUPPLY, True),
+        (f" {body}" if body else "", COLOR_SUPPLY, False),
+    ]
+    for i, (txt, col, bold) in enumerate(parts):
+        runs[i].text = txt
+        _apply_run_style(runs[i], col, FONT_DATA, font_size_pt=SUPPLY_FONT_PT, bold=bold)
+    for r in runs[3:]:
+        r.text = ""
+
+
+def _find_or_add_supply_special(slide, bank_shape, nbfc_shape):
+    for s in slide.shapes:
+        if getattr(s, "name", "") == SUPPLY_SPECIAL_SHAPE_NAME:
+            return s
+    box = slide.shapes.add_textbox(
+        bank_shape.left,
+        bank_shape.top + bank_shape.height + 18000,
+        max(bank_shape.width, nbfc_shape.width),
+        bank_shape.height,
+    )
+    box.name = SUPPLY_SPECIAL_SHAPE_NAME
+    return box
+
+
+def _layout_supply_comments(slide, shapes, supply: dict) -> None:
+    """은행채 → 특수채 → 여전채 순으로 동일 서식·간격 배치."""
+    bank = shapes[IDX_SUPPLY_BANK]
+    nbfc = shapes[IDX_SUPPLY_NBFC]
+    special = _find_or_add_supply_special(slide, bank, nbfc)
+    gap = 18000
+    h = bank.height
+    left = bank.left
+    width = max(bank.width, nbfc.width)
+
+    bank_body = _parse_supply_body(supply.get("bank") or "", "은행채")
+    special_body = _parse_supply_body(supply.get("special") or "", "특수채")
+    nbfc_body = _parse_supply_body(supply.get("nbfc") or "", "여전채")
+
+    # 위치: 은행채 유지 → 특수채 → 여전채
+    try:
+        special.left = left
+        special.width = width
+        special.height = h
+        special.top = bank.top + h + gap
+        nbfc.left = left
+        nbfc.width = width
+        nbfc.height = h
+        nbfc.top = special.top + h + gap
+    except Exception:
+        pass
+
+    _set_supply_comment(bank, "은행채", bank_body)
+    _set_supply_comment(special, "특수채", special_body)
+    _set_supply_comment(nbfc, "여전채", nbfc_body)
+
+    # 03 제목과 겹치면 RV 블록을 아래로 밀기 (특수채 박스 포함)
+    try:
+        title03 = shapes[IDX_TITLE_03]
+        need_top = nbfc.top + nbfc.height + 50000
+        if title03.top < need_top:
+            delta = need_top - title03.top
+            for s in slide.shapes:
+                try:
+                    if s.left < 2300000 and s.top >= title03.top - 5000:
+                        s.top = s.top + delta
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+
+def _bring_shape_to_front(slide, shape) -> None:
+    try:
+        spTree = slide.shapes._spTree
+        el = shape._element
+        spTree.remove(el)
+        spTree.append(el)
+    except Exception:
+        pass
+
+
+def _send_shape_backward(slide, shape) -> None:
+    """도형을 spTree 앞쪽(뒤 z-order)으로 보낸다."""
+    try:
+        spTree = slide.shapes._spTree
+        el = shape._element
+        spTree.remove(el)
+        # [0]=nvGrpSpPr 등 예약 노드 뒤를 Prefer
+        spTree.insert(2, el)
+    except Exception:
+        pass
+
+
+def _group_display_top(group) -> int:
+    """그룹 콘텐츠의 슬라이드 기준 최상단 Y (자식 좌표는 child-space)."""
+    try:
+        xfrm = group._element.grpSpPr.xfrm
+        off_y = int(xfrm.off.get("y"))
+        ch_y = int(xfrm.chOff.get("y"))
+        child_tops = [c.top for c in group.shapes]
+        if not child_tops:
+            return off_y
+        return off_y + (min(child_tops) - ch_y)
+    except Exception:
+        return int(group.top)
+
+
+def _ensure_footnote_below_tables(slide, shapes, shape100, shape200) -> None:
+    """05 하단 각주가 표를 가리지 않도록 간격 확보 + 표 z-order를 앞으로."""
+    try:
+        foot = shapes[IDX_FOOTNOTE_GROUP]
+    except Exception:
+        return
+    try:
+        bottom = max(shape100.top + shape100.height, shape200.top + shape200.height)
+    except Exception:
+        return
+    try:
+        display_top = _group_display_top(foot)
+        gap = 100000
+        slide_h = 6858000
+        target = bottom + gap
+        # 슬라이드 밖으로 나가지 않게
+        max_top = slide_h - int(foot.height) - 30000
+        if target > max_top:
+            target = max_top
+        delta = target - display_top
+        if delta > 1000:
+            foot.top = int(foot.top) + int(delta)
+    except Exception:
+        pass
+    # 각주는 뒤로, 05 표는 맨 앞으로 (겹침 시 표가 우선)
+    _send_shape_backward(slide, foot)
+    _bring_shape_to_front(slide, shape100)
+    _bring_shape_to_front(slide, shape200)
+
+
 def layout_cond_tables(shape100, shape200) -> None:
     """05 레버리지 100%/200% 표가 겹치지 않도록 좌우 배치·동일 너비."""
     slide_w = 12192000
@@ -1593,37 +1763,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     set_shape_text(shapes[IDX_REPO_SPOT], spot)
 
     supply = inp.get("supply") or {}
-    set_shape_text(shapes[IDX_SUPPLY_BANK], supply.get("bank") or "")
-    set_shape_text(shapes[IDX_SUPPLY_NBFC], supply.get("nbfc") or "")
-    # 특수채 수급 코멘트 (여전채 아래 텍스트박스 확보)
-    try:
-        special_shape = None
-        for s in slide.shapes:
-            if getattr(s, "name", "") == SUPPLY_SPECIAL_SHAPE_NAME:
-                special_shape = s
-                break
-        if special_shape is None:
-            nbfc = shapes[IDX_SUPPLY_NBFC]
-            special_shape = slide.shapes.add_textbox(
-                nbfc.left,
-                nbfc.top + nbfc.height + 18000,
-                max(nbfc.width, 1800000),
-                nbfc.height,
-            )
-            special_shape.name = SUPPLY_SPECIAL_SHAPE_NAME
-            try:
-                for para in special_shape.text_frame.paragraphs:
-                    for run in para.runs:
-                        run.font.size = Pt(8)
-                        run.font.name = FONT_DATA
-            except Exception:
-                pass
-        special_txt = (supply.get("special") or "").strip()
-        if special_txt and not special_txt.lstrip().startswith("•"):
-            special_txt = "• 특수채: " + special_txt
-        set_shape_text(special_shape, special_txt, align="left")
-    except Exception:
-        pass
+    _layout_supply_comments(slide, shapes, supply)
     rv = inp.get("rv") or {}
     curve_txt = (rv.get("curve") or "").strip()
     credit_txt = (rv.get("credit") or "").strip()
@@ -1710,6 +1850,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     fill_cond_table(
         shapes[IDX_COND_200].table, cond200, font_size_pt=7, highlight_row=hi200, highlight_col=scen_hi
     )
+    _ensure_footnote_below_tables(slide, shapes, shapes[IDX_COND_100], shapes[IDX_COND_200])
 
     # 01~04 각주: 표와 겹치지 않게 소폭 하향, 기대수익률 산식 문구 갱신
     try:
