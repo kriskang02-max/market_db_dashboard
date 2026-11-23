@@ -44,50 +44,51 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CSV = os.path.join(ROOT, "matching_data.csv")
 DEFAULT_TEMPLATE = os.path.join(ROOT, "신한 매칭형 레포 채권펀드 주간 투자 제안서.pptx")
 
-# PPTX 표 인덱스 (슬라이드 0 shapes)
+# PPTX 표 인덱스 (슬라이드 0 shapes) — 템플릿 편집 시 resolve_slide_shapes()가 내용으로 재탐색
 IDX_REPO_SCENARIO = 71
 IDX_PORTFOLIO_DETAIL = 72
-IDX_COND_100 = 73
-IDX_MINPYEONG = 74
-IDX_EXPECTED = 123
-IDX_CREDIT_SP = 124
-IDX_CURVE_SP = 125
-IDX_COND_200 = 122
-IDX_SCENARIO_RET = 126
-IDX_RATE_SENS = 127
+IDX_MINPYEONG = 73
+IDX_COND_100 = 127  # 레버리지 100% (05)
+IDX_COND_200 = 121  # 레버리지 200% (05)
+IDX_EXPECTED = 122
+IDX_CREDIT_SP = 123
+IDX_CURVE_SP = 124
+IDX_SCENARIO_RET = 125
+IDX_RATE_SENS = 126
 
 # 텍스트 박스
-IDX_DATE_LINE = 85
-IDX_FUND_STRATEGY = 95
-IDX_FUND_SECTOR = 97
-IDX_FUND_LEV = 99
-IDX_BASE_RATE = 101
-IDX_REPO_SPOT = 103
-IDX_SUPPLY_BANK = 80
-IDX_SUPPLY_NBFC = 81
+IDX_DATE_LINE = 84
+IDX_FUND_STRATEGY = 94
+IDX_FUND_SECTOR = 96
+IDX_FUND_LEV = 98
+IDX_BASE_RATE = 100
+IDX_REPO_SPOT = 102
+IDX_SUPPLY_BANK = 79
+IDX_SUPPLY_NBFC = 80
+IDX_SUPPLY_SPECIAL = 128  # 특수채 수급 (템플릿에 존재)
 # RV 코멘트: 제목 아래 넓은 상자. 라벨 옆 짧은 칸은 비움
-IDX_RV_CURVE = 104
-IDX_RV_CREDIT = 105
-IDX_RV_CASH = 106
-IDX_RV_CURVE_TAG = 109
-IDX_RV_CREDIT_TAG = 111
-IDX_RV_CASH_TAG = 113
+IDX_RV_CURVE = 103
+IDX_RV_CREDIT = 104
+IDX_RV_CASH = 105
+IDX_RV_CURVE_TAG = 108
+IDX_RV_CREDIT_TAG = 110
+IDX_RV_CASH_TAG = 112
 SUPPLY_SPECIAL_SHAPE_NAME = "MatchingSupplySpecial"
 RV_CREDIT_MIN_HEIGHT_EMU = 210000  # 크레딧 RV 2줄
 COLOR_SUPPLY = RGBColor(0xCB, 0xD5, 0xE1)  # 사이드바 수급 코멘트
 SUPPLY_FONT_PT = 6.75
-IDX_TITLE_03 = 82
-IDX_FOOTNOTE_GROUP = 86
-IDX_REC_TITLE = 88
-IDX_REC_COMPOSITION = 83
-IDX_REC_RETURN = 89
-IDX_REC_BEP = 90
-IDX_PORT_SECTION_TITLE = 107  # 06 금주 추천 포트폴리오 상세
+IDX_TITLE_03 = 81
+IDX_FOOTNOTE_GROUP = 85
+IDX_REC_TITLE = 87
+IDX_REC_COMPOSITION = 82
+IDX_REC_RETURN = 88
+IDX_REC_BEP = 89
+IDX_PORT_SECTION_TITLE = 106  # 06 금주 추천 포트폴리오 상세
 IDX_PORT_SECTION_CARD = 8  # 06 영역 카드 배경
-IDX_NOTE_MINPYEONG = 115
-IDX_NOTE_EXPECTED = 117
-IDX_NOTE_CREDIT = 119
-IDX_NOTE_CURVE = 121
+IDX_NOTE_MINPYEONG = 114
+IDX_NOTE_EXPECTED = 116
+IDX_NOTE_CREDIT = 118
+IDX_NOTE_CURVE = 120
 FOOTNOTE_NUDGE_EMU = 70000  # 01·02 각주
 FOOTNOTE_NUDGE_EMU_BOTTOM = 55000  # 03·04 각주
 COLOR_ACCENT = COLOR_SHINHAN_NAVY
@@ -99,7 +100,7 @@ COLOR_REPO_HEADER = RGBColor(0x1E, 0x29, 0x3B)
 COLOR_REPO_ROW = RGBColor(0x0F, 0x17, 0x2A)
 COLOR_REPO_ROW_ALT = RGBColor(0x1E, 0x29, 0x3B)
 COLOR_REPO_AVG = RGBColor(0x0C, 0x4A, 0x6E)  # 1Y평균 열
-IDX_SIDE_TITLES = (78, 79, 82, 87, 91)  # 01~05 사이드바 소제목
+IDX_SIDE_TITLES = (77, 78, 81, 86, 90)  # 01~05 사이드바 소제목
 IDX_REC_CARD = 2
 IDX_REC_GOLD_BAR = 6  # 04 카드 좌측 포인트 바
 
@@ -1376,6 +1377,114 @@ def ensure_cond_wow_column(table) -> None:
             tcs = list(tr.tc_lst)
 
 
+def _shape_text(shape) -> str:
+    try:
+        if shape.has_text_frame:
+            return "".join(r.text for p in shape.text_frame.paragraphs for r in p.runs)
+    except Exception:
+        pass
+    return ""
+
+
+def _table_header(shape, col: int = 0) -> str:
+    try:
+        if shape.has_table:
+            return (shape.table.cell(0, col).text_frame.text or "").strip()
+    except Exception:
+        pass
+    return ""
+
+
+def resolve_slide_shapes(slide) -> dict:
+    """템플릿 도형 인덱스가 바뀌어도 내용으로 핵심 도형을 찾는다."""
+    from pptx.enum.shapes import MSO_SHAPE_TYPE
+
+    shapes = list(slide.shapes)
+    out: dict[str, Any] = {"shapes": shapes}
+
+    def pick(idx: int | None, fallback_idx: int):
+        if idx is not None and 0 <= idx < len(shapes):
+            return shapes[idx]
+        return shapes[fallback_idx]
+
+    # tables by header
+    for i, s in enumerate(shapes):
+        if not s.has_table:
+            continue
+        h0 = _table_header(s, 0)
+        h1 = _table_header(s, 1)
+        if "레버리지 100%" in h1:
+            out["cond100"] = s
+        elif "레버리지 200%" in h1:
+            out["cond200"] = s
+        elif h0.startswith("시나리오"):
+            out["repo_scenario"] = s
+        elif "포트폴리오 편입" in h1 or h0 == "구분":
+            out["portfolio_detail"] = s
+        elif h0.startswith("섹터") and s.top < 1200000 and s.left < 4000000:
+            out["minpyeong"] = s
+        elif h0.startswith("섹터") and s.top < 1200000 and s.left >= 4000000:
+            out["expected"] = s
+        elif h0.startswith("섹터") and 2000000 < s.top < 3200000 and s.left < 4000000:
+            out["credit_sp"] = s
+        elif h0.startswith("섹터") and 2000000 < s.top < 3200000 and s.left >= 4000000:
+            out["curve_sp"] = s
+        elif "기준금리 시나리오" in h0:
+            out["scenario_ret"] = s
+        elif "시중금리 변동" in h0:
+            out["rate_sens"] = s
+
+    # text / groups by content
+    for i, s in enumerate(shapes):
+        if s.shape_type == MSO_SHAPE_TYPE.GROUP:
+            for c in s.shapes:
+                ct = _shape_text(c)
+                if "민평금리" in ct or "BEP 정의" in ct:
+                    out["footnote"] = s
+                    break
+            continue
+        t = _shape_text(s)
+        if t.startswith("• 은행채") or (t.startswith("은행채") and s.left < 500000):
+            out["supply_bank"] = s
+        elif "특수채:" in t and s.left < 500000:
+            out["supply_special"] = s
+        elif t.startswith("• 여전채") or (t.startswith("여전채") and s.left < 500000):
+            out["supply_nbfc"] = s
+        elif "신한자산운용" in t and "|" in t:
+            out["date_line"] = s
+        elif t.startswith("03 ") and "RV" in t:
+            out["title_03"] = s
+
+    # named special
+    for s in shapes:
+        if getattr(s, "name", "") == SUPPLY_SPECIAL_SHAPE_NAME:
+            out["supply_special"] = s
+            break
+
+    # fallbacks to IDX_*
+    out.setdefault("cond100", pick(None, IDX_COND_100))
+    out.setdefault("cond200", pick(None, IDX_COND_200))
+    out.setdefault("repo_scenario", pick(None, IDX_REPO_SCENARIO))
+    out.setdefault("portfolio_detail", pick(None, IDX_PORTFOLIO_DETAIL))
+    out.setdefault("minpyeong", pick(None, IDX_MINPYEONG))
+    out.setdefault("expected", pick(None, IDX_EXPECTED))
+    out.setdefault("credit_sp", pick(None, IDX_CREDIT_SP))
+    out.setdefault("curve_sp", pick(None, IDX_CURVE_SP))
+    out.setdefault("scenario_ret", pick(None, IDX_SCENARIO_RET))
+    out.setdefault("rate_sens", pick(None, IDX_RATE_SENS))
+    out.setdefault("footnote", pick(None, IDX_FOOTNOTE_GROUP))
+    out.setdefault("supply_bank", pick(None, IDX_SUPPLY_BANK))
+    out.setdefault("supply_nbfc", pick(None, IDX_SUPPLY_NBFC))
+    out.setdefault("date_line", pick(None, IDX_DATE_LINE))
+    out.setdefault("title_03", pick(None, IDX_TITLE_03))
+    if "supply_special" not in out:
+        try:
+            out["supply_special"] = shapes[IDX_SUPPLY_SPECIAL]
+        except Exception:
+            pass
+    return out
+
+
 def _parse_supply_body(raw: str, label: str) -> str:
     """'• 은행채: 본문' / '은행채: 본문' / '본문' → 본문만."""
     s = (raw or "").strip()
@@ -1443,9 +1552,14 @@ def _set_supply_comment(shape, label: str, body: str) -> None:
         r.text = ""
 
 
-def _find_or_add_supply_special(slide, bank_shape, nbfc_shape):
+def _find_or_add_supply_special(slide, bank_shape, nbfc_shape, resolved: dict | None = None):
+    if resolved and resolved.get("supply_special") is not None:
+        return resolved["supply_special"]
     for s in slide.shapes:
         if getattr(s, "name", "") == SUPPLY_SPECIAL_SHAPE_NAME:
+            return s
+        t = _shape_text(s)
+        if "특수채:" in t and getattr(s, "left", 0) < 500000:
             return s
     box = slide.shapes.add_textbox(
         bank_shape.left,
@@ -1458,11 +1572,12 @@ def _find_or_add_supply_special(slide, bank_shape, nbfc_shape):
     return box
 
 
-def _layout_supply_comments(slide, shapes, supply: dict) -> None:
+def _layout_supply_comments(slide, shapes, supply: dict, resolved: dict | None = None) -> None:
     """은행채 → 특수채 → 여전채 순으로 동일 서식·간격 배치."""
-    bank = shapes[IDX_SUPPLY_BANK]
-    nbfc = shapes[IDX_SUPPLY_NBFC]
-    special = _find_or_add_supply_special(slide, bank, nbfc)
+    resolved = resolved or {}
+    bank = resolved.get("supply_bank") or shapes[IDX_SUPPLY_BANK]
+    nbfc = resolved.get("supply_nbfc") or shapes[IDX_SUPPLY_NBFC]
+    special = _find_or_add_supply_special(slide, bank, nbfc, resolved)
     gap = 18000
     h = bank.height
     left = bank.left
@@ -1492,7 +1607,7 @@ def _layout_supply_comments(slide, shapes, supply: dict) -> None:
 
     # 03 제목과 겹치면 RV 블록을 아래로 밀기 (특수채 박스 포함)
     try:
-        title03 = shapes[IDX_TITLE_03]
+        title03 = (resolved or {}).get("title_03") or shapes[IDX_TITLE_03]
         need_top = nbfc.top + nbfc.height + 50000
         if title03.top < need_top:
             delta = need_top - title03.top
@@ -1597,83 +1712,26 @@ def _find_footnote_group(slide, shapes):
     return None
 
 
-def _ensure_footnote_below_tables(slide, shapes, shape100, shape200) -> None:
-    """05 표·각주 겹침 제거: 표를 위로, 각주를 아래로, 표 z-order 최상단."""
-    foot = _find_footnote_group(slide, shapes)
+def _ensure_footnote_below_tables(slide, shapes, shape100, shape200, resolved: dict | None = None) -> None:
+    """05 각주 z-order만 조정. 위치는 템플릿(사용자 수정)을 존중한다."""
+    foot = None
+    if resolved:
+        foot = resolved.get("footnote")
+    if foot is None:
+        foot = _find_footnote_group(slide, shapes)
     if foot is None:
         return
-    try:
-        # 표·각주 사이 공간을 위해 05 표를 소폭 상향
-        lift = 180000
-        min_top = 4100000
-        if shape100.top - lift >= min_top:
-            shape100.top = int(shape100.top) - lift
-        if shape200.top - lift >= min_top:
-            shape200.top = int(shape200.top) - lift
-        # 05 제목도 함께 이동
-        for s in slide.shapes:
-            try:
-                if not s.has_text_frame:
-                    continue
-                t = "".join(r.text for p in s.text_frame.paragraphs for r in p.runs)
-                if t.startswith("05 ") and "조건별" in t and s.left > 2000000:
-                    if s.top - lift >= min_top - 200000:
-                        s.top = int(s.top) - lift
-                    break
-            except Exception:
-                pass
-    except Exception:
-        pass
-    try:
-        bottom = max(shape100.top + shape100.height, shape200.top + shape200.height)
-    except Exception:
-        return
-    try:
-        gap = 100000
-        slide_h = 6858000
-        display_top = _group_display_top(foot)
-        try:
-            abs_top = min(int(c.top) for c in foot.shapes)
-        except Exception:
-            abs_top = display_top
-        need = bottom + gap
-        delta = max(need - display_top, need - abs_top, 0)
-        # 그룹 전체 높이를 자식 기준으로 재산정
-        try:
-            content_h = max(int(c.top) + int(c.height) for c in foot.shapes) - abs_top
-        except Exception:
-            content_h = int(foot.height)
-        max_delta = max(0, slide_h - content_h - 40000 - display_top)
-        if delta > max_delta:
-            delta = max_delta
-        if delta > 500:
-            _nudge_group_absolute(foot, int(delta))
-    except Exception:
-        pass
-    # 표가 각주보다 위에 그려지도록
+    # 표가 각주보다 위에 그려지도록 (템플릿 좌표는 유지)
     _bring_shape_to_front(slide, shape100)
     _bring_shape_to_front(slide, shape200)
 
 
 def layout_cond_tables(shape100, shape200) -> None:
-    """05 레버리지 100%/200% 표가 겹치지 않도록 좌우 배치·동일 너비."""
-    slide_w = 12192000
-    left = 2420000
-    right_margin = 140000
-    gap = 140000
-    usable = slide_w - left - right_margin
-    w = max(3800000, (usable - gap) // 2)
-    try:
-        shape100.left = left
-        shape100.width = w
-        shape200.left = left + w + gap
-        shape200.width = w
-    except Exception:
-        pass
+    """05 표: 템플릿 위치·크기를 유지하고, 열 비율만 표 폭에 맞게 맞춘다."""
     for shp in (shape100, shape200):
         try:
             ensure_cond_wow_column(shp.table)
-            # 열너비를 표 폭에 맞게 재적용 (전주대비 열 충분히 확보)
+            w = int(shp.width)
             ratios = _cond_col_ratios(8)
             tbl = shp.table
             widths = [max(180000, int(w * r)) for r in ratios]
@@ -1682,11 +1740,6 @@ def layout_cond_tables(shape100, shape200) -> None:
             for ci, ww in enumerate(widths):
                 if ci < len(tbl.columns):
                     tbl.columns[ci].width = ww
-            # shape 폭과 grid 합 동기화
-            try:
-                shp.width = w
-            except Exception:
-                pass
         except Exception:
             pass
 
@@ -1894,6 +1947,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     prs = Presentation(template_path)
     slide = prs.slides[0]
     shapes = list(slide.shapes)
+    resolved = resolve_slide_shapes(slide)
 
     # date line: 작성일(오늘) 기준
     weekdays = "월화수목금토일"
@@ -1902,7 +1956,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
         f"{today.year}.{today.month:02d}.{today.day:02d} "
         f"({weekdays[today.weekday()]}) | 신한자산운용 채권운용2팀 강찬홍"
     )
-    set_shape_text(shapes[IDX_DATE_LINE], inp.get("date_line") or auto_date)
+    set_shape_text(resolved.get("date_line") or shapes[IDX_DATE_LINE], inp.get("date_line") or auto_date)
 
     fund = inp.get("fund") or {}
     set_shape_text(shapes[IDX_FUND_STRATEGY], fund.get("strategy") or "")
@@ -1921,7 +1975,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
     set_shape_text(shapes[IDX_REPO_SPOT], spot)
 
     supply = inp.get("supply") or {}
-    _layout_supply_comments(slide, shapes, supply)
+    _layout_supply_comments(slide, shapes, supply, resolved)
     rv = inp.get("rv") or {}
     curve_txt = (rv.get("curve") or "").strip()
     credit_txt = (rv.get("credit") or "").strip()
@@ -1991,24 +2045,26 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
         pass
 
     # grids
-    fill_grid_table(shapes[IDX_MINPYEONG].table, grids["minpyeong"])
-    fill_grid_table(shapes[IDX_EXPECTED].table, grids["expected"])
-    fill_grid_table(shapes[IDX_CREDIT_SP].table, grids["credit"])
-    fill_grid_table(shapes[IDX_CURVE_SP].table, grids["curve"])
+    fill_grid_table(resolved["minpyeong"].table, grids["minpyeong"])
+    fill_grid_table(resolved["expected"].table, grids["expected"])
+    fill_grid_table(resolved["credit_sp"].table, grids["credit"])
+    fill_grid_table(resolved["curve_sp"].table, grids["curve"])
     hi100 = match_combo_row_index(COMBOS_100, pf.get("rows") or [])
     hi200 = match_combo_row_index(COMBOS_200, pf.get("rows") or [])
     try:
         scen_hi = int(port.get("repo_scenario_idx") if port.get("repo_scenario_idx") is not None else 0)
     except (TypeError, ValueError):
         scen_hi = 0
-    layout_cond_tables(shapes[IDX_COND_100], shapes[IDX_COND_200])
+    cond100_shp = resolved["cond100"]
+    cond200_shp = resolved["cond200"]
+    layout_cond_tables(cond100_shp, cond200_shp)
     fill_cond_table(
-        shapes[IDX_COND_100].table, cond100, font_size_pt=7, highlight_row=hi100, highlight_col=scen_hi
+        cond100_shp.table, cond100, font_size_pt=7, highlight_row=hi100, highlight_col=scen_hi
     )
     fill_cond_table(
-        shapes[IDX_COND_200].table, cond200, font_size_pt=7, highlight_row=hi200, highlight_col=scen_hi
+        cond200_shp.table, cond200, font_size_pt=7, highlight_row=hi200, highlight_col=scen_hi
     )
-    _ensure_footnote_below_tables(slide, shapes, shapes[IDX_COND_100], shapes[IDX_COND_200])
+    _ensure_footnote_below_tables(slide, shapes, cond100_shp, cond200_shp, resolved)
 
     # 01~04 각주: 표와 겹치지 않게 소폭 하향, 기대수익률 산식 문구 갱신
     try:
@@ -2021,7 +2077,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
         pass
 
     # repo scenario table (사이드바 05) — 전체 6.4pt
-    scen_tbl = shapes[IDX_REPO_SCENARIO].table
+    scen_tbl = resolved["repo_scenario"].table
     repo_fs = 6.4
     for ci in range(len(scen_tbl.columns)):
         try:
@@ -2063,7 +2119,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
         pass
 
     # portfolio detail (01 민평수익률 기준)
-    det = shapes[IDX_PORTFOLIO_DETAIL].table
+    det = resolved["portfolio_detail"].table
     set_cell_text(det.cell(0, 2), "민평수익률", font_size_pt=7, bold=True, color=COLOR_SHINHAN_NAVY)
     set_cell_text(det.cell(0, 4), "기여수익률", font_size_pt=7, bold=True, color=COLOR_SHINHAN_NAVY)
     for ci in range(len(det.columns)):
@@ -2102,7 +2158,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
             set_cell_fill(det.cell(5, ci), COLOR_SHINHAN_BG)
 
     # scenario return table — 상단·헤더 쿨그레이, Base(선택 시나리오) 열만 신한 블루
-    scen_ret = shapes[IDX_SCENARIO_RET].table
+    scen_ret = resolved["scenario_ret"].table
     headers = port.get("scen_headers") or []
     try:
         sel_i = int(port.get("repo_scenario_idx") if port.get("repo_scenario_idx") is not None else 0)
@@ -2138,7 +2194,7 @@ def fill_pptx(template_path: str, csv_path: str, inputs: dict | None = None) -> 
         set_cell_fill(scen_ret.cell(2, i), COLOR_SHINHAN_BG if is_base else COLOR_WHITE)
 
     # sensitivity — 헤더 쿨그레이, +0.0% Base 열만 신한 블루
-    sens_tbl = shapes[IDX_RATE_SENS].table
+    sens_tbl = resolved["rate_sens"].table
     shocks = port.get("shocks") or []
     if len(sens_tbl.rows) > 0:
         for ci in range(len(sens_tbl.columns)):
