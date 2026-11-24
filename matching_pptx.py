@@ -1315,9 +1315,33 @@ def match_combo_row_index(combos: list[dict], portfolio_rows: list[dict]) -> int
 
 
 def _cond_col_ratios(n: int = 8) -> list[float]:
-    """만기,구성,RWA,동결,인상1,인상2,BEP,전주대비 열 비율."""
-    ratios = [0.09, 0.24, 0.08, 0.10, 0.10, 0.10, 0.13, 0.16]
+    """만기,구성,RWA,동결,인상1,인상2,BEP,전주대비 열 비율.
+
+    구성·RWA는 줄바꿈 방지로 넓히고, BEP·전주대비에서 확보.
+    """
+    # 구성(레버리지) 열을 넓혀 200% 표 라벨 줄바꿈 방지
+    ratios = [0.08, 0.30, 0.10, 0.10, 0.10, 0.10, 0.10, 0.12]
     return ratios[:n]
+
+
+def _wow_value_color(wow_text: str) -> RGBColor:
+    """전주대비: +파란색, −빨간색, 그 외 본문색."""
+    s = (wow_text or "").strip().replace(",", "").replace("%", "").replace("−", "-").replace("–", "-")
+    if not s or s in ("—", "-", "–"):
+        return COLOR_LEVEL
+    try:
+        v = float(s)
+    except ValueError:
+        if s.startswith("+"):
+            return COLOR_CHG_DOWN  # 파랑
+        if s.startswith("-"):
+            return COLOR_CHG_UP  # 빨강
+        return COLOR_LEVEL
+    if v > 0:
+        return COLOR_CHG_DOWN
+    if v < 0:
+        return COLOR_CHG_UP
+    return COLOR_LEVEL
 
 
 def ensure_cond_wow_column(table) -> None:
@@ -1727,19 +1751,39 @@ def _ensure_footnote_below_tables(slide, shapes, shape100, shape200, resolved: d
 
 
 def layout_cond_tables(shape100, shape200) -> None:
-    """05 표: 템플릿 위치·크기를 유지하고, 열 비율만 표 폭에 맞게 맞춘다."""
+    """05 두 표에 동일 열너비·동일 행높이를 적용한다."""
+    try:
+        ensure_cond_wow_column(shape100.table)
+        ensure_cond_wow_column(shape200.table)
+    except Exception:
+        pass
+    # 두 표 외곽 폭·높이를 맞춘 뒤, 같은 절대 열너비 적용
+    w = max(int(shape100.width), int(shape200.width))
+    h = max(int(shape100.height), int(shape200.height))
+    try:
+        shape100.width = w
+        shape200.width = w
+        shape100.height = h
+        shape200.height = h
+    except Exception:
+        pass
+    ratios = _cond_col_ratios(8)
+    widths = [max(180000, int(w * r)) for r in ratios]
+    widths[-1] += w - sum(widths)
+    n_rows = max(len(shape100.table.rows), len(shape200.table.rows), 1)
+    row_h = max(160000, h // n_rows)
+    # 합이 표 높이와 맞도록 마지막 행에서 보정
+    row_heights = [row_h] * n_rows
+    row_heights[-1] += h - sum(row_heights)
     for shp in (shape100, shape200):
         try:
-            ensure_cond_wow_column(shp.table)
-            w = int(shp.width)
-            ratios = _cond_col_ratios(8)
             tbl = shp.table
-            widths = [max(180000, int(w * r)) for r in ratios]
-            drift = w - sum(widths)
-            widths[-1] += drift
             for ci, ww in enumerate(widths):
                 if ci < len(tbl.columns):
                     tbl.columns[ci].width = ww
+            for ri, tr in enumerate(tbl._tbl.tr_lst):
+                if ri < len(row_heights):
+                    tr.set("h", str(int(row_heights[ri])))
         except Exception:
             pass
 
@@ -1765,7 +1809,14 @@ def fill_cond_table(
     for ci in range(min(ncols, 8)):
         try:
             is_scen_hdr = scen_ci is not None and ci == scen_ci
-            is_metric = ci in (6, 7)  # BEP · 전주대비
+            if ci == 6:  # BEP
+                hdr_color = COLOR_TEAL
+            elif ci == 7:  # 전주대비 헤더는 검정
+                hdr_color = COLOR_LEVEL
+            elif is_scen_hdr:
+                hdr_color = COLOR_SHINHAN_NAVY
+            else:
+                hdr_color = COLOR_LEVEL
             set_cell_fill(
                 table.cell(0, ci),
                 COLOR_SHINHAN_BG if is_scen_hdr else COLOR_HEADER_GRAY,
@@ -1775,9 +1826,7 @@ def fill_cond_table(
                 headers[ci],
                 font_size_pt=font_size_pt,
                 bold=True,
-                color=COLOR_SHINHAN_NAVY
-                if is_scen_hdr
-                else (COLOR_TEAL if is_metric else COLOR_LEVEL),
+                color=hdr_color,
             )
         except Exception:
             pass
@@ -1831,15 +1880,15 @@ def fill_cond_table(
                 bold=True,
                 color=COLOR_SHINHAN_NAVY if is_scen else txt_color,
             )
-        metric_color = COLOR_SHINHAN_NAVY if is_hi else COLOR_TEAL
+        bep_color = COLOR_SHINHAN_NAVY if is_hi else COLOR_TEAL
         set_cell_text(
             table.cell(ri, 6),
             row.get("bep") or "",
             font_size_pt=font_size_pt,
             bold=True,
-            color=metric_color,
+            color=bep_color,
         )
-        # 전주대비: BEP와 동일 서식. 열 추가 실패 시에도 재시도.
+        # 전주대비: 헤더는 검정, 값 +파랑/−빨강
         try:
             if len(table.columns) < 8:
                 ensure_cond_wow_column(table)
@@ -1853,7 +1902,7 @@ def fill_cond_table(
                 wow,
                 font_size_pt=font_size_pt,
                 bold=True,
-                color=metric_color,
+                color=_wow_value_color(wow),
             )
         except Exception:
             pass
